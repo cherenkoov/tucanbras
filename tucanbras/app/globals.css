@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+/* ─── Design tokens ──────────────────────────────────────────────────────────
+   Font families from Figma:
+     --font-accent  → "RimmaSans" (custom, Bold) — logotype
+     --font-body    → "Involve" (custom, Semibold/Regular) — body / nav
+   Place font files in /public/fonts/ and add @font-face rules here.
+   Fallbacks are used until custom fonts are loaded.
+─────────────────────────────────────────────────────────────────────────── */
+
+@theme inline {
+  --color-background: #fffce5;
+  --color-foreground: #323031;
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/*
+  TODO: replace fallbacks with @font-face once font files are available:
+
+  @font-face {
+    font-family: 'RimmaSans';
+    src: url('/fonts/RimmaSans-Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: 'Involve';
+    src: url('/fonts/Involve-SemiBold.woff2') format('woff2');
+    font-weight: 600;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: 'Involve';
+    src: url('/fonts/Involve-Regular.woff2') format('woff2');
+    font-weight: 400;
+    font-display: swap;
+  }
+*/
+
+:root {
+  background: #fffce5;
+  color: #323031;
+}
+
+body {
+  background: #fffce5;
+  color: #323031;
+  font-family: 'Involve', 'Inter', system-ui, sans-serif;
+}

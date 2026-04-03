@@ -1,52 +1,169 @@
 @import "tailwindcss";
 
-/* ─── Design tokens ──────────────────────────────────────────────────────────
-   Font families from Figma:
-     --font-accent  → "RimmaSans" (custom, Bold) — logotype
-     --font-body    → "Involve" (custom, Semibold/Regular) — body / nav
-   Place font files in /public/fonts/ and add @font-face rules here.
-   Fallbacks are used until custom fonts are loaded.
+/* ─── Custom fonts ───────────────────────────────────────────────────────────
+   Involve  — body / nav (Regular 400, Medium 500, SemiBold 600, Bold 700)
+   RimmaSans — logotype (Bold 700)
 ─────────────────────────────────────────────────────────────────────────── */
 
-@theme inline {
-  --color-background: #fffce5;
-  --color-foreground: #323031;
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+@font-face {
+  font-family: 'Involve';
+  src: url('/fonts/Involve/Involve-Regular-BF65bb0f66a3dc1.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
 }
 
-/*
-  TODO: replace fallbacks with @font-face once font files are available:
+@font-face {
+  font-family: 'Involve';
+  src: url('/fonts/Involve/Involve-Oblique-BF65bb0f672a2a7.woff2') format('woff2');
+  font-weight: 400;
+  font-style: oblique;
+  font-display: swap;
+}
 
-  @font-face {
-    font-family: 'RimmaSans';
-    src: url('/fonts/RimmaSans-Bold.woff2') format('woff2');
-    font-weight: 700;
-    font-display: swap;
-  }
+@font-face {
+  font-family: 'Involve';
+  src: url('/fonts/Involve/Involve-Medium-BF65bb0f6716366.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
 
-  @font-face {
-    font-family: 'Involve';
-    src: url('/fonts/Involve-SemiBold.woff2') format('woff2');
-    font-weight: 600;
-    font-display: swap;
-  }
+@font-face {
+  font-family: 'Involve';
+  src: url('/fonts/Involve/Involve-MediumOblique-BF65bb0f671dd12.woff2') format('woff2');
+  font-weight: 500;
+  font-style: oblique;
+  font-display: swap;
+}
 
-  @font-face {
-    font-family: 'Involve';
-    src: url('/fonts/Involve-Regular.woff2') format('woff2');
-    font-weight: 400;
-    font-display: swap;
-  }
-*/
+@font-face {
+  font-family: 'Involve';
+  src: url('/fonts/Involve/Involve-SemiBold-BF65bb0f6747dfe.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Involve';
+  src: url('/fonts/Involve/Involve-SemiBoldOblique-BF65bb0f674c7ed.woff2') format('woff2');
+  font-weight: 600;
+  font-style: oblique;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Involve';
+  src: url('/fonts/Involve/Involve-Bold-BF65bb0f66f270b.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Involve';
+  src: url('/fonts/Involve/Involve-BoldOblique-BF65bb0f6714a1d.woff2') format('woff2');
+  font-weight: 700;
+  font-style: oblique;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'RimmaSans';
+  src: url('/fonts/Rimma_sans/rimma-sans-bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ─── Design tokens (from Figma variables) ───────────────────────────────────*/
+
+@theme {
+  /* ── Colors ── */
+  --color-cream:          #fffce5; /* Surface/Page/White, Background */
+  --color-ink:            #323031; /* Text/Heading Black, Surface/Black */
+  --color-ink-secondary:  #5b595a; /* muted text, Others block */
+  --color-ink-muted:      #cccab7; /* Others block surface */
+  --color-green:          #8fd096; /* Surface/Primary, logotype text */
+  --color-green-dark:     #6a906e; /* hibiscus leaf dark */
+  --color-blue:           #2e67b2; /* Surface/Secondary */
+  --color-yellow:         #ffd376; /* Surface/Tertiary, hero CTA */
+  --color-orange:         #f26434; /* Surface/Quinary, accent CTA */
+
+  /* ── Fonts ── */
+  --font-sans:   'Involve',   system-ui, sans-serif; /* body + nav + headings */
+  --font-accent: 'RimmaSans', Georgia,   serif;       /* logotype, H0, H1, H5 */
+
+  /* ── Font sizes + line heights ── */
+  /* Values in px as in Figma; line-height is absolute px */
+  --text-h0:             90px; --text-h0--line-height:             80px; /* Rimma_sans Bold 700 */
+  --text-h1:             48px; --text-h1--line-height:             40px; /* Rimma_sans Bold 700 */
+  --text-h2:             80px; --text-h2--line-height:             90px; /* Involve Bold 700 */
+  --text-h3:             72px; --text-h3--line-height:             81px; /* Involve Medium 500 */
+  --text-h4:             42px; --text-h4--line-height:             48px; /* Involve Regular 400 */
+  --text-h5:             36px; --text-h5--line-height:             32px; /* Rimma_sans Regular 700 */
+  --text-h6:             32px; --text-h6--line-height:             36px; /* Involve Regular 400 */
+  --text-body-lg:        32px; --text-body-lg--line-height:        36px; /* Involve Bold 700 */
+  --text-body-xl:        32px; --text-body-xl--line-height:        36px; /* Involve SemiBold 600 */
+  --text-body-md:        21px; --text-body-md--line-height:        21px; /* Involve SemiBold 600 */
+  --text-body-sm:        21px; --text-body-sm--line-height:        24px; /* Involve Medium 500, ls: 2px */
+  --text-btn:            48px; --text-btn--line-height:            32px; /* Involve Bold 700 */
+  --text-btn-header:     26px; --text-btn-header--line-height:     32px; /* Involve SemiBold 600 */
+  --text-btn-accent:     32px; --text-btn-accent--line-height:     32px; /* Rimma_sans Bold 700 */
+
+  /* ── Spacing scale ── */
+  --spacing-s200: 8px;
+  --spacing-s300: 12px;
+  --spacing-s400: 16px;
+  --spacing-s500: 20px;
+  --spacing-s600: 24px;
+  --spacing-s800: 32px;
+  --spacing-s1000: 48px;
+  --spacing-s1100: 64px;
+
+  /* ── Layout ── */
+  --spacing-landing-x:   100px; /* horizontal padding of landing */
+  --spacing-landing-y:   40px;  /* vertical padding of landing */
+  --spacing-section-gap: 200px; /* Between - Landing */
+
+  /* ── Border radius ── */
+  --radius-xsm:     4px;  /* Border Radius/xsm */
+  --radius-btn:     18px; /* header nav buttons */
+  --radius-card:    28px; /* Border Radius/xl, plans card */
+  --radius-card-lg: 36px; /* comparison blocks */
+  --radius-feat:    44px; /* celpe-bras feature cards */
+  --radius-2xl:     48px; /* Border Radius/2xl */
+  --radius-section: 60px; /* about, hero rounded corners */
+
+  /* ── Shadows ── */
+  --shadow-btn:         0 1px 4px #0000002e, inset 0 1px 2px #ffffff2e;
+  --shadow-card:        inset 0 4px 4px #ffffff40, 0 2px 4px #0000002e;
+  --shadow-hero:        0 2px 4px #00000040, inset 0 4px 4px #ffffff40;
+  --shadow-image:       inset 0 -24px 36px #00000052, inset 0 4px 4px #ffffff40;
+  --shadow-round-inner: inset 4px 4px 8px #0000000d, inset -4px -4px 8px #0000000d, inset 4px -4px 8px #0000000d, inset -4px 4px 8px #0000000d;
+  --shadow-pill-float:  inset 4px 4px 8px #fffce54d, inset -4px -4px 8px #fffce54d, inset 4px -4px 8px #fffce54d, inset -4px 4px 8px #fffce54d;
+}
 
 :root {
-  background: #fffce5;
-  color: #323031;
+  background: #eae3e3; /* TODO: временный фон для отладки, вернуть var(--color-cream) */
+  color: var(--color-ink);
 }
 
 body {
-  background: #fffce5;
-  color: #323031;
-  font-family: 'Involve', 'Inter', system-ui, sans-serif;
+  background: #eae3e3; /* TODO: временный фон для отладки, вернуть var(--color-cream) */
+  color: var(--color-ink);
+  font-family: var(--font-sans);
 }
+
+/* ── Blur landing content when mobile menu is open ───────────────────────── */
+main {
+  transition: filter 0.3s ease;
+}
+
+body.menu-open main {
+  filter: blur(6px);
+  pointer-events: none;
+  user-select: none;
+}
+

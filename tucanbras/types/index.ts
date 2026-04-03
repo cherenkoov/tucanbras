@@ -14,7 +14,8 @@ export interface HeaderProps {
 
 // ─── 2. Hero ─────────────────────────────────────────────────────────────────
 export interface HeroData {
-  heading: string;
+  heading1: string;
+  heading2: string;
   ctaText: string;
   ctaHref: string; // TODO: TBD
 }

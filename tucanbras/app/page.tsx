@@ -23,7 +23,8 @@ import type {
 // ─── Stub data — replace with Notion fetches ─────────────────────────────────
 
 const heroData: HeroData = {
-  heading: "Учите португальский — и летите в Бразилию",
+  heading1: "Учите португальский —",
+  heading2: "и летите в Бразилию",
   ctaText: "Бесплатный урок",
   ctaHref: "#", // TODO: TBD
 };
@@ -83,8 +84,12 @@ const footerData: FooterData = {
 export default function Home() {
   return (
     <>
-      {/* 1 */}
-      <Header navLinks={NAV_LINKS} />
+      {/* 1 — fixed, вне main (не блюрится), z-50 */}
+      <div className="fixed top-0 left-0 right-0 z-50 pt-[43px] px-s600">
+        <Header navLinks={NAV_LINKS} />
+      </div>
+      {/* Компенсация высоты fixed хедера: 43px (tucan) + 85px (bar mobile) / 96px (bar desktop) */}
+      <main className="px-s600 pt-[128px] lg:pt-[139px]">
       {/* 2 */}
       <Hero data={heroData} />
       {/* 3 */}
@@ -99,6 +104,7 @@ export default function Home() {
       <Plans data={plansData} />
       {/* 8 */}
       <Footer data={footerData} />
+    </main>
     </>
   );
 }

@@ -2,11 +2,13 @@ import { HeroProps } from "@/types";
 
 export default function Hero({ data }: HeroProps) {
   return (
-    <section id="hero" className="w-full pt-[80px] pb-s800">
+    <section id="hero" className="w-full pt-[80px] pb-[80px]">
+
+      <div className="max-w-[1720px] mx-auto w-full">
 
       {/* Container — width fits content, glassmorphism */}
       <div
-        className="flex w-fit flex-col gap-0 rounded-feat p-s300 backdrop-blur-[4px]"
+        className="flex w-fit max-[500px]:w-full flex-col gap-0 rounded-feat p-s300 backdrop-blur-[4px]"
         style={{
           backgroundColor: '#2e67b266',
           boxShadow: 'var(--shadow-hero)',
@@ -17,12 +19,12 @@ export default function Hero({ data }: HeroProps) {
         <h1
           className="h-full px-s200 pt-s200 font-sans font-medium text-cream"
           style={{
-            fontSize: 'clamp(16px, 3.75vw, 72px)',
-            lineHeight: 'clamp(20px, 4.22vw, 81px)',
+            fontSize: 'clamp(24px, 3.75vw, 72px)',
+            lineHeight: '1.125',
           }}
         >
-          <span className="block whitespace-nowrap">{data.heading1}</span>
-          <span className="block whitespace-nowrap">{data.heading2}</span>
+          <span className="block whitespace-nowrap max-[335px]:whitespace-normal">{data.heading1}</span>
+          <span className="block whitespace-nowrap max-[335px]:whitespace-normal">{data.heading2}</span>
         </h1>
 
         {/* CTA button */}
@@ -43,6 +45,8 @@ export default function Hero({ data }: HeroProps) {
             {data.ctaText}
           </a>
         </div>
+
+      </div>
 
       </div>
     </section>

@@ -30,9 +30,12 @@ const heroData: HeroData = {
 };
 
 const aboutData: AboutData = {
-  block1: "", // TODO: fetch from Notion
-  block2: "", // TODO: fetch from Notion
+  message1: "Учись, где и когда угодно", // TODO: fetch from Notion
+  description:
+    "Мы — современная онлайн-школа португальского языка с бразильским акцентом. Готовим к CELPE-BRAS, обещаем уровень B1 за шесть месяцев и помогаем с получением гражданства.", // TODO: fetch from Notion
+  message2: "С нами учиться — приятно, а результат — гарантирован.", // TODO: fetch from Notion
   ctaText: "Ещё",
+  ctaHref: "#", // TODO: TBD
 };
 
 const comparisonData: ComparisonData = {

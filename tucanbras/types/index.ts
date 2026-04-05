@@ -26,9 +26,11 @@ export interface HeroProps {
 
 // ─── 3. About ────────────────────────────────────────────────────────────────
 export interface AboutData {
-  block1: string;
-  block2: string;
-  ctaText: string;
+  message1: string;    // "Учись, где и когда угодно" — heading in Block 1
+  description: string; // paragraph text in Block 2
+  message2: string;    // "С нами учиться — приятно…" — quote in Block 3
+  ctaText: string;     // button label, e.g. "More"
+  ctaHref: string;     // TODO: TBD
 }
 
 export interface AboutProps {

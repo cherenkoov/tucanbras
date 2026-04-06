@@ -15,7 +15,7 @@ export default function About({ data }: AboutProps) {
     <section id="about" className="w-full">
       <div
         className="
-          flex flex-col gap-[12px] overflow-clip
+          flex flex-col gap-[12px] overflow-visible lg:overflow-clip
           rounded-[38px] lg:rounded-[44px]
           p-[12px]
           max-w-[1720px] mx-auto w-full
@@ -48,11 +48,11 @@ export default function About({ data }: AboutProps) {
               </div>
             </div>
 
-            {/* Calendar phone */}
+            {/* Dashboard phone */}
             <div className="flex flex-col flex-nowrap justify-start items-end overflow-visible rounded-bl-[60px] rounded-tr-[60px] w-full lg:h-[200px]">
               <img
-                alt="TucanBRAS app — calendar"
-                src={IMG_SCREEN_CALENDAR}
+                alt="TucanBRAS app — dashboard"
+                src={IMG_SCREEN_DASHBOARD}
                 className="w-full h-auto block pointer-events-none lg:w-[600px] lg:max-w-none"
               />
             </div>
@@ -123,11 +123,11 @@ export default function About({ data }: AboutProps) {
               </div>
             </div>
 
-            {/* Dashboard phone */}
+            {/* Calendar phone */}
             <div className="overflow-visible rounded-bl-[60px] rounded-tr-[60px] w-full lg:flex-none lg:w-[600px] lg:h-[1012px]">
               <img
-                alt="TucanBRAS app — dashboard"
-                src={IMG_SCREEN_DASHBOARD}
+                alt="TucanBRAS app — calendar"
+                src={IMG_SCREEN_CALENDAR}
                 className="w-full h-auto block pointer-events-none"
               />
             </div>

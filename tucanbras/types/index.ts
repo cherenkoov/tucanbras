@@ -50,21 +50,14 @@ export interface ComparisonProps {
 }
 
 // ─── 5. Tutors ───────────────────────────────────────────────────────────────
-export interface TutorCard {
-  name: string;
-  languages: string[];
-  description: string;
-  specialtyTags: string[];
-  interestTags?: string[]; // optional per CLAUDE.md
-}
-
+// TutorCard comes from PostgreSQL via lib/tutors.ts — re-export Tutor type there.
+// TutorsData holds static text (headings, CTA) + the DB-fetched tutor list.
 export interface TutorsData {
   heading1: string;
   heading2: string;
   description: string;
   ctaText: string;
   ctaHref: string; // TODO: TBD
-  tutors: TutorCard[];
 }
 
 export interface TutorsProps {
@@ -72,16 +65,12 @@ export interface TutorsProps {
 }
 
 // ─── 6. CelpeBras ────────────────────────────────────────────────────────────
-export interface CelpeBrasFeatureCard {
-  title: string;
-  description: string; // TODO: TBD — content of 5 cards not defined yet
-}
-
+// Cards have only a title; icon and color are hardcoded per design.
 export interface CelpeBrasData {
   heading: string;
-  cards: CelpeBrasFeatureCard[]; // 5 cards
+  cards: string[]; // 5 card titles
   quote: string;
-  descriptionLine: string;
+  hintText: string;  // "Или просто узнай, как проходит экзамен — мы расскажем лично"
   ctaText: string;
   ctaHref: string; // TODO: TBD
 }
@@ -92,11 +81,13 @@ export interface CelpeBrasProps {
 
 // ─── 7. Plans ────────────────────────────────────────────────────────────────
 export interface PlanCard {
-  name: string;
-  price: string;
+  name: string;         // "Одно занятие"
+  priceAmount: string;  // "$17/"
+  pricePeriod: string;  // "1 урок"
+  subtitle: string;     // short description below price
+  features: string[];   // 2 feature bullets with checkmarks
   ctaText: string;
-  description?: string;
-  bullets?: string[];
+  ctaHref: string;      // TODO: TBD
 }
 
 export interface PlansData {
@@ -121,9 +112,9 @@ export interface FaqGroup {
 }
 
 export interface FooterData {
-  faqGroups: FaqGroup[]; // 3 groups
+  faqGroups: FaqGroup[];  // 3 groups — from Notion
   policyLinks: { label: string; href: string }[];
-  socialLinks: { label: string; href: string }[]; // TODO: TBD — final URLs
+  socialLinks: { label: string; href: string; iconUrl: string }[];
 }
 
 export interface FooterProps {

@@ -10,6 +10,8 @@ import CelpeBras from "@/components/sections/CelpeBras";
 import Plans from "@/components/sections/Plans";
 import Footer from "@/components/sections/Footer";
 
+import { getTutors } from "@/lib/tutors";
+
 import type {
   HeroData,
   AboutData,
@@ -40,9 +42,27 @@ const aboutData: AboutData = {
 
 const comparisonData: ComparisonData = {
   heading: "Почему TucanBRAS?",
-  tucanPros: [], // TODO: fetch from Notion
-  schoolCons: [], // TODO: fetch from Notion
-  summaryText: "", // TODO: fetch from Notion
+  tucanPros: [
+    "Зарегистрирован в Бразилии",
+    "Готовим к экзаменам",
+    "Бразильский диалект",
+    "Записываем на CELPE-BRAS",
+    "Гибкие тарифы",
+    "Личный кабинет в Telegram-боте",
+    "Крипто-френдли",
+    "Гарантируем B1 через 6 месяцев",
+  ], // TODO: fetch from Notion
+  schoolCons: [
+    "Другая юрисдикция",
+    "Обычные курсы",
+    "Европейский португальский",
+    "Не записывают",
+    "Невыгодные тарифы",
+    "Старомодные сайты",
+    "Устаревшие платежи",
+    "Не заинтересованы в результате",
+  ], // TODO: fetch from Notion
+  summaryText: "Мы не конкурируем со школами — мы просто делаем то, что сами хотели бы пройти.", // TODO: fetch from Notion
 };
 
 const tutorsData: TutorsData = {
@@ -52,39 +72,114 @@ const tutorsData: TutorsData = {
     "Мы не просто команда репетиторов — мы проводники в культуру, язык и бразильский образ жизни.",
   ctaText: "Выбрать репетитора",
   ctaHref: "#", // TODO: TBD
-  tutors: [], // TODO: fetch from Notion
 };
 
 const celpeBrasData: CelpeBrasData = {
-  heading: "", // TODO: fetch from Notion
-  cards: [], // TODO: TBD — 5 cards, content not defined
-  quote: "", // TODO: fetch from Notion
-  descriptionLine: "", // TODO: fetch from Notion
+  heading: "CELPE-BRAS — твой билет в новую жизнь",
+  cards: [
+    "Разбираем структуру экзамена",
+    "Практикуем реальные задачи",
+    "Тренируем устную часть",
+    "Учебный план по CELPE-BRAS",
+    "Помогаем записаться на экзамен",
+  ], // TODO: fetch from Notion
+  quote: "Мы прошли этот путь сами и теперь проводим по нему других. Без стресса, без бюрократии — с улыбкой и уверенностью.",
+  hintText: "Или просто узнай, как проходит экзамен — мы расскажем лично",
   ctaText: "Связаться",
   ctaHref: "#", // TODO: TBD
 };
 
 const plansData: PlansData = {
-  heading1:
-    "Выбирай удобный формат: от одного пробного занятия до полной подготовки к CELPE-BRAS.",
+  heading1: "Выбирай удобный формат: от одного пробного занятия до полной подготовки к CELPE-BRAS.",
   heading2: "Мы не прячем условия — всё честно, как под солнцем Бразилии",
   plans: [
-    { name: "Одно занятие", price: "$17 / 1 урок", ctaText: "Попробовать" },
-    { name: "Базовый пакет", price: "$199 / 10 уроков", ctaText: "Хочу этот пакет" },
-    { name: "Продвинутый курс", price: "$449 / 30 уроков", ctaText: "Учусь всерьёз" },
-    { name: "Учись без ограничений", price: "$749 / 1 месяц", ctaText: "Готовлюсь к экзамену" },
+    {
+      name: "Одно занятие",
+      priceAmount: "$17/",
+      pricePeriod: "1 урок",
+      subtitle: "Попробуй формат и познакомься с преподавателем",
+      features: ["Подходит новичкам", "Доступ к Telegram-кабинету"],
+      ctaText: "Попробовать",
+      ctaHref: "#", // TODO: TBD
+    },
+    {
+      name: "Базовый пакет",
+      priceAmount: "$199/",
+      pricePeriod: "10 уроков",
+      subtitle: "Лучший вариант для системного старта",
+      features: ["Индивидуальные занятия", "Гибкое расписание"],
+      ctaText: "Хочу этот пакет",
+      ctaHref: "#", // TODO: TBD
+    },
+    {
+      name: "Продвинутый курс",
+      priceAmount: "$449/",
+      pricePeriod: "30 уроков",
+      subtitle: "Идеален для достижения уровня В1",
+      features: ["Индивидуальные занятия", "Гибкое расписание"],
+      ctaText: "Учусь всерьёз",
+      ctaHref: "#", // TODO: TBD
+    },
+    {
+      name: "Учись без ограничений",
+      priceAmount: "$749/",
+      pricePeriod: "1 месяц",
+      subtitle: "Сколько уроков — решаешь ты",
+      features: ["Неограниченные занятия", "Телеграмм-статистика"],
+      ctaText: "Готовлюсь к экзамену",
+      ctaHref: "#", // TODO: TBD
+    },
   ],
 };
 
 const footerData: FooterData = {
-  faqGroups: [], // TODO: fetch from Notion (3 groups)
-  policyLinks: [], // TODO: TBD — final URLs
-  socialLinks: [], // TODO: TBD — final URLs
+  faqGroups: [ // TODO: fetch from Notion
+    {
+      title: 'Learning',
+      items: [
+        { question: 'How are the classes going?', answer: '' },
+        { question: 'Teachers', answer: '' },
+        { question: 'Teaching methods', answer: '' },
+        { question: 'Language level', answer: '' },
+        { question: 'Schedule flexibility', answer: '' },
+      ],
+    },
+    {
+      title: 'For User',
+      items: [
+        { question: "Student's personal account", answer: '' },
+        { question: 'Sign up for classes', answer: '' },
+        { question: 'Homework assignments', answer: '' },
+        { question: 'Progress tracking', answer: '' },
+        { question: 'Payment options', answer: '' },
+      ],
+    },
+    {
+      title: 'For Tutor',
+      items: [
+        { question: 'Become a teacher', answer: '' },
+        { question: "Teacher's profile", answer: '' },
+        { question: 'Terms of cooperation', answer: '' },
+      ],
+    },
+  ],
+  policyLinks: [ // TODO: TBD — final URLs
+    { label: 'User agreement', href: '#' },
+    { label: 'Privacy policy', href: '#' },
+    { label: 'Terms of payment', href: '#' },
+    { label: 'Processing of personal data', href: '#' },
+  ],
+  socialLinks: [ // TODO: TBD — final URLs + export icons to /public/
+    { label: 'Telegram',  href: '#', iconUrl: 'https://www.figma.com/api/mcp/asset/27b31bd7-f182-47d7-ae9e-9acade205d8a' },
+    { label: 'Instagram', href: '#', iconUrl: 'https://www.figma.com/api/mcp/asset/7a2fa6f9-24eb-422b-85e2-2416fe702e8e' },
+    { label: 'YouTube',   href: '#', iconUrl: 'https://www.figma.com/api/mcp/asset/912addad-310a-496c-ac10-3abd39e0397f' },
+  ],
 };
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function Home() {
+export default async function Home() {
+  const tutors = await getTutors().catch(() => []);
   return (
     <>
       {/* 1 — fixed, вне main (не блюрится), z-50 */}
@@ -100,7 +195,7 @@ export default function Home() {
       {/* 4 */}
       <Comparison data={comparisonData} />
       {/* 5 */}
-      <Tutors data={tutorsData} />
+      <Tutors data={tutorsData} tutors={tutors} />
       {/* 6 */}
       <CelpeBras data={celpeBrasData} />
       {/* 7 */}

@@ -3,21 +3,6 @@
 import { useState, useEffect } from 'react'
 import type { HeaderProps } from '@/types'
 
-// Figma image asset URLs (valid ~7 days — replace with /public/images/header/* after download)
-const IMG = {
-  tucanBody:          'https://www.figma.com/api/mcp/asset/d1a605fe-4d02-4fa8-84c5-ab25557b8aaf',
-  tucanTopHead:       'https://www.figma.com/api/mcp/asset/25f29a25-cb0e-4066-8665-725dfe070843',
-  tucanNeak:          'https://www.figma.com/api/mcp/asset/51f159ea-b0b5-47f4-99a7-311edd3629b5',
-  tucanEyeRight:      'https://www.figma.com/api/mcp/asset/594f7ec4-9155-40fd-aa94-9a4f72f2742e',
-  tucanEyeLeft:       'https://www.figma.com/api/mcp/asset/53c8d0e7-c73b-4f8a-95ca-a96c58ebfdd9',
-  tucanNoseMain:      'https://www.figma.com/api/mcp/asset/4e1bcac2-208c-4a7f-88de-35460b0a8204',
-  tucanNoseMask:      'https://www.figma.com/api/mcp/asset/52c66ae0-d074-4f84-9d9e-666b646a729b',
-  tucanNoseFill:      'https://www.figma.com/api/mcp/asset/e6dce2ef-eaa9-4918-9ec9-da85050b5159',
-  tucanNose2Mask:     'https://www.figma.com/api/mcp/asset/fd9b49a1-e599-44c2-a16e-b9ea07887049',
-  tucanNose2Fill:     'https://www.figma.com/api/mcp/asset/b3ba750d-8042-42b1-8b76-179dc98b3172',
-  tucanTipDot:        'https://www.figma.com/api/mcp/asset/5e3c3e65-d104-4657-b8ae-baacb0a3e2d7',
-  tucanRim:           'https://www.figma.com/api/mcp/asset/cf4f9d06-04f9-4705-9fa0-225d612c378a',
-} as const
 
 // Nav pill colors — index-matched to NAV_LINKS order, uses CSS tokens from globals.css
 const NAV_PILL_STYLES = [
@@ -39,93 +24,105 @@ export const NAV_LINKS = [
 const PILL_INNER_SHADOW = 'var(--shadow-round-inner)'
 
 // ─── Tucan bird logo ─────────────────────────────────────────────────────────
-// Multi-layer illustration from Figma node 2745:112407.
-// Head Frame sits 35px above the Body Frame to create the "perching" effect.
+// Two-layer approach matching the original design:
+//   1. Body SVG  — clipped to header bar height via overflow-hidden
+//   2. Head SVG  — overflows above the bar; head+beak all animated together
+//
+// Path assignments (from Tucan Container.svg):
+//   BODY  → dark silhouette only  (M139 134.77…)
+//   HEAD  → everything else: head feathers, face, eyes, + all 5 beak parts:
+//            Main (#F79138), Left side (#D05427 masked), Right side (#F47530 masked),
+//            Tip dot (opacity 0.64 #25292B), Rim (#282B2E)
 
 function TucanLogo({ bodyW }: { bodyW: number }) {
-  const scale = bodyW / 135
-  const headW = Math.round(135 * scale)
-  const headH = Math.round(174 * scale)
-  const headTop = Math.round(-35 * scale)
+  const scale = bodyW / 139
+  const svgH  = Math.round(175 * scale)
+  const top   = Math.round(-35 * scale)
+
+  const svgProps = {
+    width: bodyW,
+    height: svgH,
+    viewBox: '0 0 139 175',
+    fill: 'none',
+    xmlns: 'http://www.w3.org/2000/svg',
+  } as const
 
   return (
-    <div className="relative h-full shrink-0" style={{ width: bodyW }}>
-      {/* Body Frame — clipped to header bar height by overflow-hidden */}
-      <div className="absolute inset-0 overflow-hidden" style={{ left: '1.32%' }}>
-        <img alt="" src={IMG.tucanBody} className="absolute block w-full h-full max-w-none" />
+    <div className="relative h-full shrink-0 overflow-visible" style={{ width: bodyW }}>
+
+      {/* ── 1. Body — clipped to header bar height ── */}
+      <div className="absolute inset-0 overflow-hidden">
+        <svg aria-hidden {...svgProps} className="absolute" style={{ left: 0, top }}>
+          <path d="M139 134.77C139 134.77 132.54 2.17215 27.5174 43.0428C27.3052 42.7794 -8.58012 77.0481 12.3214 112.373C14.0828 115.351 16.1738 119.132 20.943 121.218L20.7488 117.739C20.7488 117.739 21.0153 119.541 22.0902 119.851C23.1651 120.16 22.7631 120.411 23.4993 120.721C24.2354 121.03 24.0367 119.044 24.9761 120.223C25.9155 121.402 45.0683 121.944 47.5207 153.221H139V134.77Z" fill="#25292B"/>
+        </svg>
       </div>
 
-      {/* Head Frame — пропорционально масштабируется от bodyW */}
-      <div className="absolute" style={{ width: headW, height: headH, left: -4, top: headTop }}>
+      {/* ── 2. Head + all beak parts — animated, overflows above bar ── */}
+      <svg aria-hidden {...svgProps} className="absolute" style={{ left: -4, top, overflow: 'visible' }}>
+        <style>{`
+          @keyframes tucan-bob {
+            0%,100% { transform: rotate(0deg); }
+            25%      { transform: rotate(-5deg); }
+            75%      { transform: rotate(4deg); }
+          }
+        `}</style>
 
-        {/* Top of head */}
-        <div className="absolute" style={{ top: '-0.13%', right: '19.42%', bottom: '62.81%', left: '16.75%' }}>
-          <img alt="" src={IMG.tucanTopHead} className="absolute block w-full h-full max-w-none" />
-        </div>
+        <g style={{ transformOrigin: '57px 89px', animation: 'tucan-bob 5s ease-in-out infinite' }}>
 
-        {/* Beak — slightly skewed */}
-        <div className="absolute flex items-center justify-center"
-          style={{ top: '12.34%', right: '25.1%', bottom: '48.92%', left: '10.05%' }}>
-          <div style={{ width: 85.317 * scale, height: 64 * scale, transform: 'skewX(1.89deg)', position: 'relative' }}>
-            <img alt="" src={IMG.tucanNeak} className="absolute block w-full h-full max-w-none" />
-          </div>
+          {/* Head — top feathers (bottom layer) */}
+          <path d="M22.6182 47.3015C22.6182 47.3015 41.0355 -1.82855 80.4567 0.0526785C119.878 1.93818 106.643 36.2621 106.643 36.2621L95.5653 64.9337L22.6182 47.3015Z" fill="#282B2E"/>
 
-        </div>
+          {/* Head — face oval */}
+          <path d="M58.4549 89.0924C82.0145 89.0924 100.615 74.0055 100 55.3948C99.3856 36.7842 79.7884 21.6973 56.2288 21.6973C32.6692 21.6973 14.0686 36.7842 14.6834 55.3948C15.2981 74.0055 34.8953 89.0924 58.4549 89.0924Z" fill="#FEF1CA"/>
 
-        {/* Eye right */}
-        <div className="absolute" style={{ top: '17.33%', right: '18.87%', bottom: '70.54%', left: '68.07%' }}>
-          <img alt="" src={IMG.tucanEyeRight} className="absolute block w-full h-full max-w-none" />
-        </div>
+          {/* Head — right eye ring */}
+          <path d="M107.386 42.2907C108.569 37.215 106.539 32.4907 102.853 31.7387C99.166 30.9866 95.2183 34.4917 94.0354 39.5674C92.8525 44.6431 94.8822 49.3675 98.569 50.1195C102.256 50.8715 106.203 47.3665 107.386 42.2907Z" fill="#D55C27"/>
 
-        {/* Eye left */}
-        <div className="absolute" style={{ top: '3.79%', right: '37.26%', bottom: '82.03%', left: '39.94%' }}>
-          <img alt="" src={IMG.tucanEyeLeft} className="absolute block w-full h-full max-w-none" />
-        </div>
+          {/* Head — upper beak outline on face */}
+          <path d="M56.1808 31.4791C56.1808 31.4791 49.4217 24.4628 59.2519 12.0422C69.0866 -0.378453 84.6979 15.8389 84.6979 15.8389L56.1762 31.4791H56.1808Z" fill="#F79235"/>
 
-        {/* Nose main shape */}
-        <div className="absolute" style={{ top: '10.07%', right: '20.51%', bottom: '10.24%', left: '13.9%' }}>
-          <img alt="" src={IMG.tucanNoseMain} className="absolute block w-full h-full max-w-none" />
-        </div>
+          {/* Head — beak ridge */}
+          <path d="M67.3212 18.9786C70.059 14.7988 70.4833 10.3813 68.2688 9.11172C66.0544 7.84216 62.0398 10.2013 59.302 14.3811C56.5642 18.5609 56.1399 22.9784 58.3544 24.248C60.5688 25.5175 64.5834 23.1584 67.3212 18.9786Z" fill="#D55C27"/>
 
-        {/* Nose left-side colour layer (masked) */}
-        <div className="absolute" style={{
-          top: '9.96%', right: '20.45%', bottom: '10.35%', left: '13.96%',
-          maskImage: `url('${IMG.tucanNoseMask}')`,
-          WebkitMaskImage: `url('${IMG.tucanNoseMask}')`,
-          maskSize: `${69.502 * scale}px ${164.298 * scale}px`,
-          maskPosition: `${-25.228 * scale}px ${-10.664 * scale}px`,
-          maskRepeat: 'no-repeat',
-        }}>
-          <img
-            alt=""
-            src={IMG.tucanNoseFill}
-            className="absolute block w-full max-w-none"
-            style={{ height: `${Math.round((82 / 80) * bodyW)}px` }}
-          />
-        </div>
+          {/* Eye — iris */}
+          <path d="M66.7526 19.8412C69.1686 16.1527 69.5431 12.2544 67.5891 11.1341C65.635 10.0138 62.0924 12.0958 59.6763 15.7843C57.2603 19.4728 56.8858 23.3711 58.8399 24.4913C60.794 25.6116 64.3366 23.5297 66.7526 19.8412Z" fill="#3166B1"/>
 
-        {/* Nose right-side colour layer (masked) */}
-        <div className="absolute" style={{
-          top: '10.12%', right: '20.52%', bottom: '10.19%', left: '13.89%',
-          maskImage: `url('${IMG.tucanNose2Mask}')`,
-          WebkitMaskImage: `url('${IMG.tucanNose2Mask}')`,
-          maskSize: `${115.663 * scale}px ${150.713 * scale}px`,
-          maskPosition: `${-5.8 * scale}px ${-6.098 * scale}px`,
-          maskRepeat: 'no-repeat',
-        }}>
-          <img alt="" src={IMG.tucanNose2Fill} className="absolute block w-full h-full max-w-none" />
-        </div>
+          {/* Eye — pupil */}
+          <path d="M60.6045 16.2563C58.8496 18.9371 58.8725 21.8232 60.5268 22.8878C62.9581 24.4527 65.0512 22.4944 66.8061 19.8136C68.561 17.1328 69.4247 14.2596 66.8838 13.1822C65.0557 12.4083 62.3594 13.5755 60.6045 16.2563Z" fill="#1E1617"/>
 
-        {/* Tip dot */}
-        <div className="absolute" style={{ top: '52.75%', right: '57.38%', bottom: '10.23%', left: '13.9%' }}>
-          <img alt="" src={IMG.tucanTipDot} className="absolute block w-full h-full max-w-none" />
-        </div>
+          {/* Eye — highlight */}
+          <path d="M62.5848 17.4321C62.8284 17.0374 62.753 16.5701 62.4163 16.3882C62.0797 16.2064 61.6094 16.379 61.3658 16.7737C61.1223 17.1683 61.1977 17.6357 61.5343 17.8175C61.8709 17.9993 62.3413 17.8268 62.5848 17.4321Z" fill="#FBFADF"/>
 
-        {/* Rim highlight */}
-        <div className="absolute" style={{ top: '8.05%', right: '20.03%', bottom: '64.13%', left: '36.16%' }}>
-          <img alt="" src={IMG.tucanRim} className="absolute block w-full h-full max-w-none" />
-        </div>
-      </div>
+          {/* Eye — brow detail */}
+          <path d="M63.7658 15.646C63.7658 15.646 65.2465 13.7348 66.6678 13.9443C66.6678 13.9443 66.1194 13.1276 64.6113 13.8074C63.1032 14.4873 61.9195 15.5519 62.6005 15.9795C63.2814 16.407 63.7704 15.646 63.7704 15.646H63.7658Z" fill="#FBFADF"/>
+
+          {/* Beak — Main (above face oval) */}
+          <path d="M49.4826 60.8447L51.3609 48.5227C51.3609 48.5227 52.1332 39.4714 59.4224 31.4676C66.7116 23.4638 82.8393 18.3503 82.8393 18.3503C82.8393 18.3503 93.844 16.3152 100.649 19.727C107.449 23.1389 107.307 28.7783 107.307 28.7783L106.398 33.5028C106.398 33.5028 97.9022 64.0514 78.3973 95.6603C58.8877 127.269 38.2037 154.782 18.7627 156.411C18.7627 156.411 37.3171 121.091 43.4912 92.351C49.6654 63.611 49.4826 60.8447 49.4826 60.8447Z" fill="#F79138"/>
+
+          {/* Beak — Left side (masked) */}
+          <mask id={`mask0_tucan_${bodyW}`} style={{maskType:'luminance'}} maskUnits="userSpaceOnUse" x="-7" y="6" width="71" height="166">
+            <path d="M63.124 6.88281C63.124 6.88281 51.2465 146.41 8.11434 168.775C-35.0178 191.141 31.8694 50.1511 31.8694 50.1511L63.124 6.88281Z" fill="white"/>
+          </mask>
+          <g mask={`url(#mask0_tucan_${bodyW})`}>
+            <path d="M49.5695 60.6435L51.4478 48.3215C51.4478 48.3215 52.2201 39.2702 59.5093 31.2664C66.7986 23.2627 82.9263 18.1491 82.9263 18.1491C82.9263 18.1491 93.9309 16.114 100.736 19.5259C107.536 22.9377 107.394 28.5771 107.394 28.5771L106.485 33.3016C106.485 33.3016 97.9891 63.8502 78.4842 95.4591C58.9746 127.068 38.2906 154.581 18.8496 156.21C18.8496 156.21 37.404 120.89 43.5781 92.1499C49.7523 63.4098 49.5695 60.6435 49.5695 60.6435Z" fill="#D05427"/>
+          </g>
+
+          {/* Beak — Right side (masked) */}
+          <mask id={`mask1_tucan_${bodyW}`} style={{maskType:'luminance'}} maskUnits="userSpaceOnUse" x="12" y="11" width="117" height="152">
+            <path d="M100.343 11.7266C100.343 11.7266 99.2187 76.8299 12.959 161.819L33.5288 162.439L125.506 103.612L128.622 23.8819L100.338 11.7266H100.343Z" fill="white"/>
+          </mask>
+          <g mask={`url(#mask1_tucan_${bodyW})`}>
+            <path d="M49.4787 60.9209L51.3569 48.5988C51.3569 48.5988 52.1293 39.5476 59.4185 31.5438C66.7077 23.54 82.8354 18.4265 82.8354 18.4265C82.8354 18.4265 93.8401 16.3913 100.645 19.8032C107.445 23.2151 107.303 28.8545 107.303 28.8545L106.394 33.5789C106.394 33.5789 97.8983 64.1275 78.3934 95.7365C58.8838 127.345 38.1998 154.858 18.7588 156.487C18.7588 156.487 37.3132 121.167 43.4873 92.4272C49.6615 63.6872 49.4787 60.9209 49.4787 60.9209Z" fill="#F47530"/>
+          </g>
+
+          {/* Beak — Tip dot */}
+          <path opacity="0.64" d="M18.7627 156.415C18.7627 156.415 20.7461 155.846 42.3716 108.14C58.2799 73.0461 59.5275 104.741 55.7481 114.262C51.9687 123.784 39.8443 148.526 18.7627 156.415Z" fill="#25292B"/>
+
+          {/* Beak — Rim (top layer) */}
+          <path d="M49.3004 62.6278C49.3004 62.6278 52.1841 37.9276 67.6126 25.9773C83.2787 13.8388 107.276 15.7586 106.399 33.5023L106.54 32.6686C106.54 32.6686 112.427 21.0689 100.197 16.3614C87.963 11.6583 80.395 15.9381 74.943 17.751C69.4863 19.5596 53.9984 31.1679 51.5352 39.6507C49.0719 48.1292 48.1488 51.353 49.305 62.6278H49.3004Z" fill="#282B2E"/>
+
+        </g>
+      </svg>
     </div>
   )
 }
@@ -225,7 +222,7 @@ export default function Header({ navLinks }: HeaderProps) {
 
           {/* Brand — tucan bird + logotype, grouped left */}
           <div className="relative z-10 flex items-center gap-0 shrink-0 overflow-visible h-full">
-            <div className="hidden min-[430px]:block lg:hidden h-full"><TucanLogo bodyW={80} /></div>
+            <div className="hidden min-[430px]:block lg:hidden h-full"><TucanLogo bodyW={100} /></div>
             <div className="hidden lg:block h-full"><TucanLogo bodyW={135} /></div>
             <span
               className="flex items-center justify-center font-bold tracking-normal select-none text-green font-accent pb-2 h-full w-full ml-3"

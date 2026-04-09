@@ -141,7 +141,7 @@ export default function About({ data }: AboutProps) {
         >
           <p
             className="font-accent font-bold text-center w-full"
-            style={{ fontSize: 'clamp(28px, 3.5vw, 48px)', lineHeight: '1', color: '#2e67b2' }}
+            style={{ fontSize: 'clamp(24px, 3.5vw, 48px)', lineHeight: '1', color: '#2e67b2' }}
           >
             {data.message2}
           </p>

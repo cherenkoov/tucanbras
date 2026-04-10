@@ -146,13 +146,13 @@
 }
 
 :root {
-  background: #eae3e3; /* TODO: временный фон для отладки, вернуть var(--color-cream) */
-  color: var(--color-ink);
+  background: var(--color-ink);
+  color: var(--color-cream);
 }
 
 body {
-  background: #eae3e3; /* TODO: временный фон для отладки, вернуть var(--color-cream) */
-  color: var(--color-ink);
+  background: var(--color-ink);
+  color: var(--color-cream);
   font-family: var(--font-sans);
 }
 

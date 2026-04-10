@@ -1,25 +1,16 @@
 import { CelpeBrasProps } from '@/types'
 
-// ─── Feature card icons ───────────────────────────────────────────────────────
-// TODO: export these 5 icons from Figma and save to /public/celpe-bras/
-// Temporary Figma asset URLs (expire in 7 days from initial fetch).
-const ICON_LEARN    = 'https://www.figma.com/api/mcp/asset/9af32eb6-a0ae-41a7-84f1-746fd57f1927'
-const ICON_PRACTICE = 'https://www.figma.com/api/mcp/asset/1cdac9e1-f87d-4ff3-8149-5d066d94e58b'
-const ICON_TRAIN    = 'https://www.figma.com/api/mcp/asset/7369259f-e09d-4bc4-a61d-12325c87a97d'
-const ICON_PLAN     = 'https://www.figma.com/api/mcp/asset/06a40400-925f-4ea7-b192-cf9e710adc7f'
-const ICON_HELP     = 'https://www.figma.com/api/mcp/asset/35e5c842-914f-4fb6-9d79-69950b8ac215'
-
 // ─── Static card config (icon + bg color — not from CMS) ─────────────────────
 const CARD_CONFIG = [
-  { icon: ICON_LEARN,    bg: '#fffce5' },
-  { icon: ICON_PRACTICE, bg: '#7cb082' },
-  { icon: ICON_TRAIN,    bg: '#2e67b2' },
-  { icon: ICON_PLAN,     bg: '#f26434' },
-  { icon: ICON_HELP,     bg: '#ffd376' },
+  { icon: '/celpe-bras/structure.svg', bg: '#fffce5', text: '#323031' },
+  { icon: '/celpe-bras/practice.svg',  bg: '#7cb082', text: '#fffce5' },
+  { icon: '/celpe-bras/train.svg',     bg: '#2e67b2', text: '#fffce5' },
+  { icon: '/celpe-bras/plan.svg',      bg: '#f26434', text: '#fffce5' },
+  { icon: '/celpe-bras/help.svg',      bg: '#ffd376', text: '#323031' },
 ]
 
 // ─── Feature card ─────────────────────────────────────────────────────────────
-function FeatureCard({ title, icon, bg }: { title: string; icon: string; bg: string }) {
+function FeatureCard({ title, icon, bg, text }: { title: string; icon: string; bg: string; text: string }) {
   return (
     <div
       className="relative flex flex-1 items-center gap-[48px] min-w-[300px] overflow-hidden rounded-[44px] px-[32px] py-[32px]"
@@ -36,8 +27,8 @@ function FeatureCard({ title, icon, bg }: { title: string; icon: string; bg: str
 
       {/* Label */}
       <p
-        className="font-accent font-bold text-ink flex-1 min-w-0"
-        style={{ fontSize: 'clamp(20px, 2vw, 36px)', lineHeight: '1.1' }}
+        className="font-accent font-bold flex-1 min-w-0"
+        style={{ fontSize: 'clamp(20px, 2vw, 36px)', lineHeight: '1.1', color: text, letterSpacing: '0.12em' }}
       >
         {title}
       </p>
@@ -67,19 +58,19 @@ export default function CelpeBras({ data }: CelpeBrasProps) {
 
           {/* Row 1 */}
           <div className="flex flex-col lg:flex-row gap-[20px]">
-            <FeatureCard title={c0} icon={CARD_CONFIG[0].icon} bg={CARD_CONFIG[0].bg} />
-            <FeatureCard title={c1} icon={CARD_CONFIG[1].icon} bg={CARD_CONFIG[1].bg} />
+            <FeatureCard title={c0} icon={CARD_CONFIG[0].icon} text={CARD_CONFIG[0].text} bg={CARD_CONFIG[0].bg} />
+            <FeatureCard title={c1} icon={CARD_CONFIG[1].icon} text={CARD_CONFIG[1].text} bg={CARD_CONFIG[1].bg} />
           </div>
 
           {/* Row 2 */}
           <div className="flex flex-col lg:flex-row gap-[20px]">
-            <FeatureCard title={c2} icon={CARD_CONFIG[2].icon} bg={CARD_CONFIG[2].bg} />
-            <FeatureCard title={c3} icon={CARD_CONFIG[3].icon} bg={CARD_CONFIG[3].bg} />
+            <FeatureCard title={c2} icon={CARD_CONFIG[2].icon} text={CARD_CONFIG[2].text} bg={CARD_CONFIG[2].bg} />
+            <FeatureCard title={c3} icon={CARD_CONFIG[3].icon} text={CARD_CONFIG[3].text} bg={CARD_CONFIG[3].bg} />
           </div>
 
           {/* Row 3: last card + quote */}
           <div className="flex flex-col lg:flex-row gap-[20px]">
-            <FeatureCard title={c4} icon={CARD_CONFIG[4].icon} bg={CARD_CONFIG[4].bg} />
+            <FeatureCard title={c4} icon={CARD_CONFIG[4].icon} text={CARD_CONFIG[4].text} bg={CARD_CONFIG[4].bg} />
 
             {/* Quote */}
             <div className="flex flex-1 items-center min-w-[300px] px-[32px] py-[32px]">

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import type { TutorsProps } from '@/types'
 import type { Tutor } from '@/lib/tutors'
 
@@ -11,7 +11,7 @@ function TutorCard({ tutor }: { tutor: Tutor }) {
     <div className="flex flex-col w-full max-w-[410px] mx-auto">
 
       {/* Photo — overlaps 56px into card body */}
-      <div className="relative w-full flex justify-center z-0 mb-[-56px]">
+      <div className="relative w-full flex justify-center z-0 mb-[-64px]">
         <div
           className="relative overflow-hidden rounded-[21px]"
           style={{ width: 'calc(100% - 80px)', maxWidth: '326px', aspectRatio: '1/1' }}
@@ -34,18 +34,16 @@ function TutorCard({ tutor }: { tutor: Tutor }) {
       </div>
 
       {/* Card body */}
-      <div className="relative rounded-[36px] pt-[12px] pb-[12px] px-[12px] z-10">
-
-        {/* Cover — fills card, overflow visible */}
-        <img
-          src="/tutors/cover.svg"
-          aria-hidden
-          className="absolute inset-0 w-full h-full rounded-[36px] pointer-events-none"
-          style={{ objectFit: 'cover', overflow: 'visible', boxShadow: 'inset 0px 4px 4px rgba(255,255,255,0.20), 0px 2px 4px rgba(0,0,0,0.18)' }}
-        />
+      <div
+        className="relative rounded-[36px] pt-[72px] pb-[24px] px-[12px] z-10"
+        style={{
+          backgroundImage: 'url(/tutors/cover.svg)',
+          backgroundSize: '100% 100%',
+        }}
+      >
 
         {/* Content — relative so it stacks above cover */}
-        <div className="relative flex flex-col gap-[20px]">
+        <div className="relative flex flex-col gap-[16px]">
 
         {/* Name — first two words on line 1, rest on line 2 */}
         {(() => {
@@ -82,7 +80,7 @@ function TutorCard({ tutor }: { tutor: Tutor }) {
         {tutor.quote && (
           <p
             className="font-sans font-semibold text-cream text-center w-full"
-            style={{ fontSize: 'clamp(16px, 1.6vw, 24px)', lineHeight: '1.4' }}
+            style={{ fontSize: 'clamp(24px, 1.6vw, 32px)', lineHeight: '1' }}
           >
             {tutor.quote}
           </p>
@@ -97,11 +95,11 @@ function TutorCard({ tutor }: { tutor: Tutor }) {
             >
               Специализации
             </p>
-            <div className="flex flex-wrap gap-[8px] justify-center">
+            <div className="flex flex-wrap gap-[4px] justify-center">
               {tutor.specializations.map(tag => (
                 <span
                   key={tag}
-                  className="font-sans font-medium text-cream text-center rounded-[24px] px-[21px] py-[12px]"
+                  className="font-sans font-medium text-cream text-center rounded-[18px] px-[21px] py-[16px]"
                   style={{ backgroundColor: 'rgba(50,48,49,0.4)', fontSize: 'clamp(13px, 1.1vw, 17px)', lineHeight: '1.3' }}
                 >
                   {tag}
@@ -118,34 +116,21 @@ function TutorCard({ tutor }: { tutor: Tutor }) {
   )
 }
 
-// ─── Mobile carousel ─────────────────────────────────────────────────────────
+// ─── Carousel ────────────────────────────────────────────────────────────────
 
-const CARD_VW = 82   // card width as % of viewport
-const PEEK_VW = (100 - CARD_VW) / 2  // spacer = half remaining space
+const CARD_W = 'min(78vw, 370px)'
 
 function TutorCarousel({ tutors }: { tutors: Tutor[] }) {
   const [activeIndex, setActiveIndex] = useState(0)
   const ref = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    if (window.innerWidth < 1024) return
-    const el = ref.current
-    if (!el) return
-    const cards = Array.from(el.children).slice(1, -1)
-    const card = cards[1] as HTMLElement
-    if (!card) return
-    el.scrollTo({ left: card.offsetLeft - (el.clientWidth - card.offsetWidth) / 2, behavior: 'instant' })
-    setActiveIndex(1)
-  }, [])
-
   const onScroll = () => {
     const el = ref.current
     if (!el) return
     const center = el.scrollLeft + el.clientWidth / 2
-    const cards = Array.from(el.children).slice(1, -1) // exclude spacers
+    const cards = Array.from(el.children) as HTMLElement[]
     let closest = 0, minDist = Infinity
-    cards.forEach((child, i) => {
-      const c = child as HTMLElement
+    cards.forEach((c, i) => {
       const dist = Math.abs(c.offsetLeft + c.offsetWidth / 2 - center)
       if (dist < minDist) { minDist = dist; closest = i }
     })
@@ -155,58 +140,57 @@ function TutorCarousel({ tutors }: { tutors: Tutor[] }) {
   const scrollToIndex = (i: number) => {
     const el = ref.current
     if (!el) return
-    const cards = Array.from(el.children).slice(1, -1) // exclude spacers
-    const card = cards[i] as HTMLElement
+    const cards = Array.from(el.children) as HTMLElement[]
+    const card = cards[i]
     if (!card) return
     el.scrollTo({ left: card.offsetLeft - (el.clientWidth - card.offsetWidth) / 2, behavior: 'smooth' })
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Track */}
+    <div className="flex flex-col gap-6 -mx-6">
+      {/* Track: -mx-6 на обёртке + px-6 на треке = peek без обрезки */}
       <div
         ref={ref}
         onScroll={onScroll}
-        className="flex overflow-x-auto snap-x snap-mandatory gap-[12px]"
-        style={{ scrollbarWidth: 'none' }}
+        className="flex items-center overflow-x-auto snap-x snap-mandatory gap-[12px] px-6"
+        style={{ scrollbarWidth: 'none', scrollPaddingInline: '24px' }}
       >
-        {/* Left spacer — (100vw - cardWidth) / 2 - gap */}
-        <div className="shrink-0" style={{ width: 'calc((100vw - min(82vw, 410px)) / 2 - 12px)' }} />
-
         {tutors.map((tutor, i) => (
           <div
             key={tutor.id}
             className="snap-center shrink-0"
-            style={{ width: 'min(82vw, 410px)' }}
+            style={{ width: CARD_W }}
           >
             <TutorCard tutor={tutor} />
           </div>
         ))}
-
-        {/* Right spacer */}
-        <div className="shrink-0" style={{ width: 'calc((100vw - min(82vw, 410px)) / 2 - 12px)' }} />
       </div>
 
-      {/* Dots */}
+      {/* Dots — sliding window of 5 */}
       <div className="flex justify-center items-center gap-[6px]">
-        {tutors.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => scrollToIndex(i)}
-            aria-label={`Репетитор ${i + 1}`}
-            style={{
-              width:           i === activeIndex ? 20 : 8,
-              height:          8,
-              borderRadius:    4,
-              backgroundColor: i === activeIndex ? 'var(--color-ink)' : 'rgba(43,42,43,0.25)',
-              transition:      'all 0.3s ease',
-              border:          'none',
-              cursor:          'pointer',
-              padding:         0,
-              flexShrink:      0,
-            }}
-          />
-        ))}
+        {tutors.map((_, i) => {
+          const dist = Math.abs(i - activeIndex)
+          if (dist > 2) return null
+          return (
+            <button
+              key={i}
+              onClick={() => scrollToIndex(i)}
+              aria-label={`Репетитор ${i + 1}`}
+              style={{
+                width:           dist === 0 ? 20 : dist === 1 ? 8 : 6,
+                height:          dist === 0 ? 8 : dist === 1 ? 8 : 6,
+                borderRadius:    4,
+                backgroundColor: '#323031',
+                opacity:         dist === 0 ? 1 : dist === 1 ? 0.45 : 0.2,
+                transition:      'all 0.3s ease',
+                border:          'none',
+                cursor:          dist === 0 ? 'default' : 'pointer',
+                padding:         0,
+                flexShrink:      0,
+              }}
+            />
+          )
+        })}
       </div>
     </div>
   )
@@ -290,7 +274,7 @@ export default function Tutors({ data, tutors }: TutorsSectionProps) {
   const displayTutors = tutors.length > 0 ? tutors : STUB_TUTORS
 
   return (
-    <section id="tutors" className="w-full">
+    <section id="tutors" className="w-full py-[80px]">
       <div className="flex flex-col gap-[64px] lg:gap-[80px] max-w-[1720px] mx-auto w-full">
 
         {/* ══ Headings row ══ */}
@@ -310,14 +294,12 @@ export default function Tutors({ data, tutors }: TutorsSectionProps) {
         </div>
 
         {/* ══ Cards — carousel on all screen sizes ══ */}
-        <div className="-mx-6">
-          <TutorCarousel tutors={displayTutors} />
-        </div>
+        <TutorCarousel tutors={displayTutors} />
 
         {/* ══ Description quote ══ */}
         <p
-          className="font-involve font-bold text-ink text-center w-full uppercase"
-          style={{ fontSize: 'clamp(13px, 1.2vw, 18px)', letterSpacing: '0.02em' }}
+          className="font-accent font-bold text-ink text-center w-full uppercase"
+          style={{ fontSize: 'clamp(24px, 1.2vw, 36px)', lineHeight: '1',letterSpacing: '0.02em' }}
         >
           &ldquo;{data.description}&rdquo;
         </p>
@@ -336,7 +318,7 @@ export default function Tutors({ data, tutors }: TutorsSectionProps) {
             }}
           >
             <span
-              className="font-accent font-bold text-cream"
+              className="font-accent items-center text-cream"
               style={{ fontSize: '32px', lineHeight: '32px' }}
             >
               {data.ctaText}

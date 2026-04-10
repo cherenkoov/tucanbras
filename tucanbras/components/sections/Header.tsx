@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import type { HeaderProps } from '@/types'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 
 // Nav pill colors — index-matched to NAV_LINKS order, uses CSS tokens from globals.css
@@ -12,13 +13,7 @@ const NAV_PILL_STYLES = [
   { bg: 'var(--color-orange)', text: 'var(--color-cream)' }, // Тарифы
 ] as const
 
-// Navigation items — hardcoded per CLAUDE.md, labels and anchors are fixed
-export const NAV_LINKS = [
-  { label: 'О тукане',   href: '#about'     },
-  { label: 'Репетиторы', href: '#tutors'    },
-  { label: 'CELPE-BRAS', href: '#celpe-bras' },
-  { label: 'Тарифы',     href: '#plans'     },
-]
+// Anchor hrefs are hardcoded — labels come from Notion via page.tsx
 
 // Inner shadow overlay used on nav pills (from Figma "Round Inner" effect → --shadow-round-inner)
 const PILL_INNER_SHADOW = 'var(--shadow-round-inner)'
@@ -235,7 +230,7 @@ export default function Header({ navLinks }: HeaderProps) {
           {/* Spacer */}
           <div className="flex-1" />
 
-          {/* Desktop nav */}
+          {/* Desktop nav + language switcher */}
           <nav
             className="relative z-10 hidden lg:flex w-fit items-start justify-start gap-3 pt-3 pb-4 px-3 shrink-0 h-full"
             aria-label="Основная навигация"
@@ -249,6 +244,7 @@ export default function Header({ navLinks }: HeaderProps) {
                 text={NAV_PILL_STYLES[i]?.text ?? 'var(--color-ink)'}
               />
             ))}
+            <LanguageSwitcher variant="pill" />
           </nav>
 
           {/* Mobile burger — collapse animation */}
@@ -291,6 +287,16 @@ export default function Header({ navLinks }: HeaderProps) {
             {link.label}
           </a>
         ))}
+        {/* Mobile language switcher */}
+        <LanguageSwitcher
+          variant="pill"
+          className="pointer-events-auto transition-all duration-300"
+          style={{
+            transitionDelay: menuOpen ? `${navLinks.length * 60}ms` : '0ms',
+            opacity: menuOpen ? 1 : 0,
+            transform: menuOpen ? 'translateY(0)' : 'translateY(-12px)',
+          }}
+        />
       </div>
     </header>
   )

@@ -3,8 +3,8 @@ import { ComparisonProps } from '@/types'
 // ─── Assets ──────────────────────────────────────────────────────────────────
 const IMG_TUCAN_PIXEL      = '/comparison/Tucan Pixel.png'
 const IMG_STONE_PIXEL      = '/comparison/Stonehead Pixel.png'
-const IMG_MARK_TUCAN       = '/comparison/Mark - Tucan.svg'
-const IMG_MARK_OTHERS      = '/comparison/Mark - Others.svg'
+const IMG_MARK_TUCAN       = '/marks/Mark - Positive.svg'
+const IMG_MARK_OTHERS      = '/marks/Mark - Negative.svg'
 const IMG_COMPARISON_SYMBOL = '/comparison/Comparison Symbol.svg'
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
@@ -52,7 +52,7 @@ export default function Comparison({ data }: ComparisonProps) {
                 className="font-accent font-bold text-cream"
                 style={{ fontSize: 'clamp(22px, 2.5vw, 36px)', lineHeight: '1.1' }}
               >
-                Наш ТУКАН
+                {data.tucanTitle}
               </p>
               <img
                 alt=""
@@ -102,7 +102,7 @@ export default function Comparison({ data }: ComparisonProps) {
                 className="font-accent font-bold"
                 style={{ fontSize: 'clamp(22px, 2.5vw, 36px)', lineHeight: '1.1', color: '#5b595a' }}
               >
-                Обычные скучные школы
+                {data.schoolTitle}
               </p>
               <img
                 alt=""

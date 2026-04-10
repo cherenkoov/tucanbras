@@ -141,8 +141,8 @@
   --shadow-card:        inset 0 4px 4px #ffffff40, 0 2px 4px #0000002e;
   --shadow-hero:        0 2px 4px #00000040, inset 0 4px 4px #ffffff40;
   --shadow-image:       inset 0 -24px 36px #00000052, inset 0 4px 4px #ffffff40;
-  --shadow-round-inner: inset 4px 4px 8px #0000000d, inset -4px -4px 8px #0000000d, inset 4px -4px 8px #0000000d, inset -4px 4px 8px #0000000d;
-  --shadow-pill-float:  inset 4px 4px 8px #fffce54d, inset -4px -4px 8px #fffce54d, inset 4px -4px 8px #fffce54d, inset -4px 4px 8px #fffce54d;
+  --shadow-round-inner: inset 1px 1px 2px #00000002, inset -1px -1px 2px #00000002, inset 1px -1px 2px #00000002, inset -1px 1px 2px #00000002;
+  --shadow-pill-float:  inset 1px 1px 2px #00000002, inset -1px -1px 2px #00000002, inset 1px -1px 2px #00000002, inset -1px 1px 2px #00000002;
 }
 
 :root {

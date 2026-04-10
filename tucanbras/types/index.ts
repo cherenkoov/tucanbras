@@ -1,11 +1,19 @@
 // TypeScript interfaces for all 8 sections of TucanBRAS landing page.
 // Content comes from Notion (see lib/notion.ts). Only structure & nav are hardcoded.
 
+export type Locale = 'ru' | 'en' | 'pt'
+
 // ─── 1. Header ───────────────────────────────────────────────────────────────
-// Navigation structure is hardcoded per CLAUDE.md — no Notion data needed.
 export interface NavLink {
   label: string;
   href: string; // anchor link, e.g. "#tutors"
+}
+
+export interface HeaderData {
+  nav0: string; // "О тукане"
+  nav1: string; // "Репетиторы"
+  nav2: string; // "CELPE-BRAS"
+  nav3: string; // "Тарифы"
 }
 
 export interface HeaderProps {
@@ -40,6 +48,8 @@ export interface AboutProps {
 // ─── 4. Comparison ───────────────────────────────────────────────────────────
 export interface ComparisonData {
   heading: string;
+  tucanTitle: string;
+  schoolTitle: string;
   tucanPros: string[];
   schoolCons: string[];
   summaryText: string;
@@ -112,6 +122,14 @@ export interface FaqGroup {
 }
 
 export interface FooterData {
+  formTitle: string;
+  formNamePlaceholder: string;
+  formTelegramPlaceholder: string;
+  formSubmitText: string;
+  brandDescription: string;
+  legalTitle: string;
+  copyright: string;
+  allRightsReserved: string;
   faqGroups: FaqGroup[];  // 3 groups — from Notion
   policyLinks: { label: string; href: string }[];
   socialLinks: { label: string; href: string; iconUrl: string }[];

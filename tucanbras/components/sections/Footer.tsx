@@ -1,4 +1,5 @@
 import type { FooterProps, FaqGroup as FaqGroupType } from '@/types'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
 // TODO: export from Figma → save to /public/footer/ and replace URLs
@@ -65,14 +66,14 @@ export default function Footer({ data }: FooterProps) {
     <footer id="footer" className="w-full">
       {/* ══ Outer green container ══ */}
       <div
-        className="flex flex-col max-w-[1720px] mx-auto w-full rounded-[72px] p-[24px]"
+        className="flex flex-col max-w-[1720px] mx-auto w-full rounded-[38px] p-[12px]"
         style={{ backgroundColor: '#8fd096' }}
       >
 
         {/* ══ Form card ══ */}
         <div className="relative z-[4] pb-[12px]">
           <form
-            className="bg-cream rounded-[48px] p-[20px] flex flex-col gap-[24px]"
+            className="bg-cream rounded-[26px] p-[20px] flex flex-col gap-[24px]"
             action="#" // TODO: TBD — form submission handler
           >
             {/* Title */}
@@ -81,7 +82,7 @@ export default function Footer({ data }: FooterProps) {
                 className="font-heading font-medium text-ink"
                 style={{ fontSize: 'clamp(36px, 5vw, 72px)', lineHeight: '1.13' }}
               >
-                Стань частью школы
+                {data.formTitle}
               </p>
             </div>
 
@@ -91,7 +92,7 @@ export default function Footer({ data }: FooterProps) {
                 <input
                   type="text"
                   name="name"
-                  placeholder="Имя"
+                  placeholder={data.formNamePlaceholder}
                   className="w-full bg-transparent font-heading font-normal text-ink placeholder:text-ink outline-none"
                   style={{ fontSize: 'clamp(20px, 2.5vw, 32px)', lineHeight: '36px' }}
                 />
@@ -100,7 +101,7 @@ export default function Footer({ data }: FooterProps) {
                 <input
                   type="text"
                   name="telegram"
-                  placeholder="Телеграм"
+                  placeholder={data.formTelegramPlaceholder}
                   className="w-full bg-transparent font-heading font-normal text-ink placeholder:text-ink outline-none"
                   style={{ fontSize: 'clamp(20px, 2.5vw, 32px)', lineHeight: '36px' }}
                 />
@@ -120,7 +121,7 @@ export default function Footer({ data }: FooterProps) {
                 className="font-sans font-bold text-cream"
                 style={{ fontSize: 'clamp(20px, 2.5vw, 32px)', lineHeight: '32px' }}
               >
-                Send
+                {data.formSubmitText}
               </span>
             </button>
           </form>
@@ -128,7 +129,7 @@ export default function Footer({ data }: FooterProps) {
 
         {/* ══ Footer content card ══ */}
         <div
-          className="relative z-[2] bg-cream rounded-[48px] overflow-hidden px-[48px] pb-[48px] flex flex-col gap-[64px]"
+          className="relative z-[2] bg-cream rounded-[26px] overflow-hidden px-[48px] pb-[48px] flex flex-col gap-[64px]"
           style={{ boxShadow: '0px 2px 4px 0px rgba(0,0,0,0.18), inset 0px 4px 4px 0px rgba(255,255,255,0.25)' }}
         >
 
@@ -148,7 +149,7 @@ export default function Footer({ data }: FooterProps) {
                 className="font-heading font-normal text-ink text-center"
                 style={{ fontSize: 'clamp(16px, 1.8vw, 28px)', lineHeight: '1.3' }}
               >
-                We teach the language for living, working and moving, not for show.
+                {data.brandDescription}
               </p>
             </div>
           </div>
@@ -171,7 +172,7 @@ export default function Footer({ data }: FooterProps) {
                 className="font-heading font-normal text-ink"
                 style={{ fontSize: 'clamp(20px, 2vw, 28px)', lineHeight: '32px' }}
               >
-                Legal information
+                {data.legalTitle}
               </p>
               <div className="flex flex-col gap-[16px] pl-[8px]">
                 {data.policyLinks.map(link => (
@@ -217,23 +218,17 @@ export default function Footer({ data }: FooterProps) {
                 className="font-sans font-bold text-ink"
                 style={{ fontSize: 'clamp(16px, 2vw, 32px)', lineHeight: '36px' }}
               >
-                © TucanBRAS 2026
+                {data.copyright}
               </p>
               <p
                 className="font-sans font-bold text-ink"
                 style={{ fontSize: 'clamp(16px, 2vw, 32px)', lineHeight: '36px' }}
               >
-                Все права защищены
+                {data.allRightsReserved}
               </p>
             </div>
-            {/* Language selector — TODO: TBD — locale switcher behaviour */}
-            <button
-              type="button"
-              className="font-sans font-bold text-ink underline"
-              style={{ fontSize: 'clamp(16px, 2vw, 32px)', lineHeight: '36px', minWidth: '135px' }}
-            >
-              Русский
-            </button>
+            {/* Language selector */}
+            <LanguageSwitcher style={{ fontSize: 'clamp(16px, 2vw, 32px)', lineHeight: '36px' }} />
           </div>
 
         </div>

@@ -1,45 +1,33 @@
 import type { PlansProps, PlanCard } from '@/types'
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
-// TODO: export from Figma → save to /public/plans/ and replace URLs
-const BG: Record<number, { desktop: string; mobile: string }> = {
-  0: {
-    desktop: 'https://www.figma.com/api/mcp/asset/601ac022-edde-4e1f-bceb-1c1b8f54c6d8',
-    mobile:  'https://www.figma.com/api/mcp/asset/6e3a3c3b-3ca1-4527-b8ac-b1fc1d561724',
-  },
-  1: {
-    desktop: 'https://www.figma.com/api/mcp/asset/0a798cc3-3cb2-41e8-bf4a-9926095a69e5',
-    mobile:  'https://www.figma.com/api/mcp/asset/8cb01d0f-69e2-4d19-b9b7-afb0d66d30ca',
-  },
-  2: {
-    desktop: 'https://www.figma.com/api/mcp/asset/5afa1c27-05fc-4dfe-8952-1010e511dc0b',
-    mobile:  'https://www.figma.com/api/mcp/asset/22c01d01-22bc-4f98-999c-a84d73a0b6d3',
-  },
-  3: {
-    desktop: 'https://www.figma.com/api/mcp/asset/f42efe64-28e5-4a81-b55b-7b8fb0736f0c',
-    mobile:  'https://www.figma.com/api/mcp/asset/a52a3dec-10cf-4079-96f3-3957a65a6699',
-  },
-}
+const BG = [
+  '/plans/cover-1.svg',
+  '/plans/cover-2.svg',
+  '/plans/cover-3.svg',
+  '/plans/cover-4.svg',
+]
 
 // Checkmark icon used in feature rows
-const ICON_CHECK = 'https://www.figma.com/api/mcp/asset/d381756e-9680-4498-9bcf-0ba483dd8333'
+const ICON_CHECK = '/marks/Mark%20-%20Positive.svg'
 
 // ─── Per-plan static config ───────────────────────────────────────────────────
 // featuresFirst: desktop layout — true = features|price, false = price|features
 // textCream: cream text on desktop; mobileTextCream: cream text on mobile
 const CONFIG = [
-  { featuresFirst: true,  textCream: false, mobileTextCream: false }, // One
-  { featuresFirst: false, textCream: true,  mobileTextCream: true  }, // Base
-  { featuresFirst: true,  textCream: true,  mobileTextCream: false }, // Pro
-  { featuresFirst: false, textCream: true,  mobileTextCream: true  }, // Premium
+  { featuresFirst: true,  textCream: false, mobileTextCream: false, accent: '#8FD096', btnText: null      }, // One
+  { featuresFirst: false, textCream: true,  mobileTextCream: true,  accent: '#FFFCE5', btnText: '#7CB082' }, // Base
+  { featuresFirst: true,  textCream: false, mobileTextCream: false, accent: '#2E67B2', btnText: '#FFD376' }, // Pro
+  { featuresFirst: false, textCream: true,  mobileTextCream: true,  accent: '#FFD376', btnText: '#F69137' }, // Premium
 ]
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function FeatureRow({ text, textCream, mobileTextCream }: {
+function FeatureRow({ text, textCream, mobileTextCream, accent }: {
   text: string
   textCream: boolean
   mobileTextCream: boolean
+  accent: string
 }) {
   const colorClass = [
     mobileTextCream ? 'text-cream' : 'text-ink',
@@ -48,9 +36,20 @@ function FeatureRow({ text, textCream, mobileTextCream }: {
 
   return (
     <div className="flex items-center gap-[16px] px-[8px]">
-      <div className="shrink-0 w-[32px] h-[36px] relative">
-        <img src={ICON_CHECK} alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none" />
-      </div>
+      <div
+        className="shrink-0 w-[32px] h-[36px]"
+        style={{
+          backgroundColor: accent,
+          WebkitMaskImage: `url(${ICON_CHECK})`,
+          WebkitMaskSize: 'contain',
+          WebkitMaskRepeat: 'no-repeat',
+          WebkitMaskPosition: 'center',
+          maskImage: `url(${ICON_CHECK})`,
+          maskSize: 'contain',
+          maskRepeat: 'no-repeat',
+          maskPosition: 'center',
+        }}
+      />
       <span
         className={`font-sans font-bold ${colorClass}`}
         style={{ fontSize: 'clamp(16px, 1.5vw, 24px)', lineHeight: '1.2' }}
@@ -81,30 +80,23 @@ function PlanSection({ plan, index }: { plan: PlanCard; index: number }) {
   return (
     <div
       className={`relative overflow-hidden rounded-[28px] px-[32px] py-[64px] w-full ${isLast ? '' : 'mb-[-48px]'}`}
-      style={{ boxShadow: 'inset 0px 4px 4px 0px rgba(255,255,255,0.25), 0px 2px 4px 0px rgba(0,0,0,0.18)' }}
     >
-      {/* Background — responsive: different image per breakpoint */}
+      {/* Background */}
       <img
-        src={BG[index].desktop}
+        src={BG[index]}
         alt=""
         aria-hidden="true"
-        className="absolute inset-0 w-full h-full object-cover pointer-events-none hidden lg:block"
-      />
-      <img
-        src={BG[index].mobile}
-        alt=""
-        aria-hidden="true"
-        className="absolute inset-0 w-full h-full object-cover pointer-events-none lg:hidden"
+        className="absolute inset-0 w-full h-full object-cover pointer-events-none"
       />
 
       {/* Plan content */}
       <div className={`relative flex ${rowClass} items-center justify-between gap-[0px] w-full`}>
 
         {/* ── Price block ── */}
-        <div className={`flex flex-col items-center lg:items-start shrink-0 lg:flex-1`}>
+        <div className={`flex flex-col items-center ${cfg.featuresFirst ? 'lg:items-end' : 'lg:items-start'} shrink-0 lg:flex-1`}>
           {/* Plan name */}
           <p
-            className={`font-sans font-semibold w-full ${cfg.mobileTextCream ? 'text-cream' : 'text-ink'} ${cfg.textCream ? 'lg:text-cream' : 'lg:text-ink'} text-center lg:text-left`}
+            className={`font-sans font-semibold w-full ${cfg.mobileTextCream ? 'text-cream' : 'text-ink'} ${cfg.textCream ? 'lg:text-cream' : 'lg:text-ink'} text-center ${cfg.featuresFirst ? 'lg:text-right' : 'lg:text-left'}`}
             style={{ fontSize: 'clamp(18px, 1.8vw, 32px)', lineHeight: '1.15' }}
           >
             {plan.name}
@@ -128,7 +120,7 @@ function PlanSection({ plan, index }: { plan: PlanCard; index: number }) {
 
           {/* Subtitle */}
           <p
-            className={`font-sans font-semibold w-full text-center lg:text-left ${cfg.mobileTextCream ? 'text-cream' : 'text-ink'} ${cfg.textCream ? 'lg:text-cream' : 'lg:text-ink'}`}
+            className={`font-sans font-semibold w-full text-center ${cfg.featuresFirst ? 'lg:text-right' : 'lg:text-left'} ${cfg.mobileTextCream ? 'text-cream' : 'text-ink'} ${cfg.textCream ? 'lg:text-cream' : 'lg:text-ink'}`}
             style={{ fontSize: 'clamp(14px, 1.2vw, 21px)', lineHeight: '1.2' }}
           >
             {plan.subtitle}
@@ -145,6 +137,7 @@ function PlanSection({ plan, index }: { plan: PlanCard; index: number }) {
                 text={f}
                 textCream={cfg.textCream}
                 mobileTextCream={cfg.mobileTextCream}
+                accent={cfg.accent}
               />
             ))}
           </div>
@@ -154,7 +147,7 @@ function PlanSection({ plan, index }: { plan: PlanCard; index: number }) {
             href={plan.ctaHref} // TODO: TBD
             className="flex items-center justify-center w-full overflow-hidden rounded-[28px]"
             style={{
-              backgroundColor: '#8fd096',
+              backgroundColor: cfg.accent,
               paddingTop: '32px',
               paddingBottom: '32px',
               paddingLeft: '16px',
@@ -163,8 +156,8 @@ function PlanSection({ plan, index }: { plan: PlanCard; index: number }) {
             }}
           >
             <span
-              className="font-sans font-bold text-cream text-center"
-              style={{ fontSize: 'clamp(24px, 2.5vw, 48px)', lineHeight: '32px' }}
+              className="font-sans font-bold text-center"
+              style={{ fontSize: 'clamp(24px, 2.5vw, 48px)', lineHeight: '32px', color: cfg.btnText ?? 'var(--color-cream)' }}
             >
               {plan.ctaText}
             </span>
@@ -185,7 +178,7 @@ export default function Plans({ data }: PlansProps) {
       >
 
         {/* ══ Heading ══ */}
-        <div className="flex flex-col lg:flex-row items-start justify-between gap-[60px] lg:gap-[48px] px-[32px] pt-[60px] text-cream">
+        <div className="flex flex-col lg:flex-row items-start justify-between gap-[60px] lg:gap-[48px] px-[32px] pt-[60px] text-ink">
           <p
             className="font-heading flex-1 text-center lg:text-left"
             style={{ fontSize: 'clamp(24px, 2.5vw, 48px)', lineHeight: '1.3' }}

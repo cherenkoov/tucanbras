@@ -6,14 +6,8 @@ import { Pool } from 'pg'
 
 let pgPool: Pool | null = null
 function getPool() {
-  if (!pgPool && process.env.DB_HOST) {
-    pgPool = new Pool({
-      database: process.env.DB_NAME,
-      user:     process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      host:     process.env.DB_HOST,
-      port:     Number(process.env.DB_PORT ?? 5432),
-    })
+  if (!pgPool && process.env.DATABASE_URL) {
+    pgPool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } })
   }
   return pgPool
 }
@@ -67,7 +61,7 @@ async function saveToPostgres(name: string, email: string, tutorId: number | nul
 // ─── Route handler ────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  let body: { name?: string; email?: string }
+  let body: { name?: string; email?: string; tutor_id?: number }
   try {
     body = await req.json()
   } catch {

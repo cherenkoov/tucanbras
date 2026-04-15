@@ -154,7 +154,7 @@ function TutorSelector({
       {/* Dropdown */}
       {open && allTutors.length > 0 && (
         <div
-          className="absolute left-0 right-0 bg-cream border-2 border-[#323031] rounded-[24px] overflow-auto z-20"
+          className="absolute left-0 right-0 bg-cream border-2 border-[#323031] rounded-[24px] overflow-auto z-20 scrollbar-custom"
           style={{ top: 'calc(100% + 8px)', maxHeight: '220px', boxShadow: '0 4px 24px rgba(0,0,0,0.14)' }}
         >
           {allTutors.map((tutor, i) => (

@@ -1,14 +1,51 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import type { TutorsProps } from '@/types'
+import type { TutorsProps, Locale } from '@/types'
 import type { Tutor } from '@/lib/tutors'
+import FreeLessonModal from '@/components/FreeLessonModal'
+
+// ─── Localised labels ─────────────────────────────────────────────────────────
+
+const SPEC_LABEL: Record<Locale, string> = {
+  ru: 'Специализации',
+  en: 'Specializations',
+  pt: 'Especializações',
+}
+
+const SELECT_LABEL: Record<Locale, string> = {
+  ru: 'Выбрать',
+  en: 'Select',
+  pt: 'Selecionar',
+}
 
 // ─── Tutor card ──────────────────────────────────────────────────────────────
 
-function TutorCard({ tutor }: { tutor: Tutor }) {
+function TutorCard({
+  tutor,
+  specializationsLabel,
+  selectLabel,
+  onSelect,
+}: {
+  tutor: Tutor
+  specializationsLabel: string
+  selectLabel: string
+  onSelect: () => void
+}) {
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
+  const [hovered,  setHovered]  = useState(false)
+
   return (
-    <div className="flex flex-col w-full max-w-[410px] mx-auto">
+    <div
+      className="relative flex flex-col w-full max-w-[410px] mx-auto cursor-pointer select-none active:opacity-80 lg:active:opacity-100 transition-opacity"
+      onClick={onSelect}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onMouseMove={e => {
+        const rect = e.currentTarget.getBoundingClientRect()
+        setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top })
+      }}
+    >
 
       {/* Photo — overlaps 56px into card body */}
       <div className="relative w-full flex justify-center z-0 mb-[-64px]">
@@ -41,76 +78,99 @@ function TutorCard({ tutor }: { tutor: Tutor }) {
           backgroundSize: '100% 100%',
         }}
       >
-
-        {/* Content — relative so it stacks above cover */}
         <div className="relative flex flex-col gap-[16px]">
 
-        {/* Name — first two words on line 1, rest on line 2 */}
-        {(() => {
-          const parts = tutor.fullName.split(' ')
-          const line1 = parts.slice(0, 2).join(' ')
-          const line2 = parts.slice(2).join(' ')
-          return (
-            <p
-              className="font-heading font-normal text-cream text-center w-full"
-              style={{ fontSize: 'clamp(22px, 2vw, 32px)', lineHeight: '1.15' }}
-            >
-              {line1}
-              {line2 && <><br />{line2}</>}
-            </p>
-          )
-        })()}
+          {/* Name */}
+          {(() => {
+            const parts = tutor.fullName.split(' ')
+            const line1 = parts.slice(0, 2).join(' ')
+            const line2 = parts.slice(2).join(' ')
+            return (
+              <p
+                className="font-heading font-normal text-cream text-center w-full"
+                style={{ fontSize: 'clamp(22px, 2vw, 32px)', lineHeight: '1.15' }}
+              >
+                {line1}
+                {line2 && <><br />{line2}</>}
+              </p>
+            )
+          })()}
 
-        {/* Language flags */}
-        {tutor.languages.length > 0 && (
-          <div className="flex items-center justify-center gap-[8px]">
-            {tutor.languages.map(lang => (
-              <img
-                key={lang.code}
-                src={lang.flagPath}
-                alt={lang.name}
-                title={lang.name}
-                className="w-[32px] h-[32px] object-cover rounded-[4px] pointer-events-none"
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Quote / description */}
-        {tutor.quote && (
-          <p
-            className="font-sans font-semibold text-cream text-center w-full"
-            style={{ fontSize: 'clamp(24px, 1.6vw, 32px)', lineHeight: '1' }}
-          >
-            {tutor.quote}
-          </p>
-        )}
-
-        {/* Specializations */}
-        {tutor.specializations.length > 0 && (
-          <div className="flex flex-col gap-[12px]">
-            <p
-              className="font-sans font-medium text-cream text-center tracking-[2px]"
-              style={{ fontSize: 'clamp(13px, 1.1vw, 17px)', opacity: 0.7 }}
-            >
-              Специализации
-            </p>
-            <div className="flex flex-wrap gap-[4px] justify-center">
-              {tutor.specializations.map(tag => (
-                <span
-                  key={tag}
-                  className="font-sans font-medium text-cream text-center rounded-[18px] px-[21px] py-[16px]"
-                  style={{ backgroundColor: 'rgba(50,48,49,0.4)', fontSize: 'clamp(13px, 1.1vw, 17px)', lineHeight: '1.3' }}
-                >
-                  {tag}
-                </span>
+          {/* Language flags */}
+          {tutor.languages.length > 0 && (
+            <div className="flex items-center justify-center gap-[8px]">
+              {tutor.languages.map(lang => (
+                <img
+                  key={lang.code}
+                  src={lang.flagPath}
+                  alt={lang.name}
+                  title={lang.name}
+                  className="w-[32px] h-[32px] object-cover rounded-[4px] pointer-events-none"
+                />
               ))}
             </div>
-          </div>
-        )}
+          )}
 
-        </div>{/* end content */}
+          {/* Quote */}
+          {tutor.quote && (
+            <p
+              className="font-sans font-semibold text-cream text-center w-full"
+              style={{ fontSize: 'clamp(24px, 1.6vw, 32px)', lineHeight: '1' }}
+            >
+              {tutor.quote}
+            </p>
+          )}
+
+          {/* Specializations */}
+          {tutor.specializations.length > 0 && (
+            <div className="flex flex-col gap-[12px]">
+              <p
+                className="font-sans font-medium text-cream text-center tracking-[2px]"
+                style={{ fontSize: 'clamp(13px, 1.1vw, 17px)', opacity: 0.7 }}
+              >
+                {specializationsLabel}
+              </p>
+              <div className="flex flex-wrap gap-[4px] justify-center">
+                {tutor.specializations.map(tag => (
+                  <span
+                    key={tag}
+                    className="font-sans font-medium text-cream text-center rounded-[18px] px-[21px] py-[16px]"
+                    style={{ backgroundColor: 'rgba(50,48,49,0.4)', fontSize: 'clamp(13px, 1.1vw, 17px)', lineHeight: '1.3' }}
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+        </div>
       </div>
+
+      {/* ── Desktop cursor-following button ── */}
+      <div
+        className="hidden lg:block absolute z-30 pointer-events-none"
+        style={{
+          left:      mousePos.x,
+          top:       mousePos.y,
+          transform: 'translate(-50%, -50%)',
+          opacity:   hovered ? 1 : 0,
+          transition: 'opacity 0.15s ease',
+        }}
+      >
+        <div
+          className="bg-cream text-ink rounded-[66px] px-[20px] py-[10px] whitespace-nowrap font-sans font-bold"
+          style={{ fontSize: '15px', lineHeight: '1', boxShadow: 'var(--shadow-btn)' }}
+        >
+          {selectLabel}
+        </div>
+      </div>
+
+      {/* ── Mobile tap highlight overlay ── */}
+      <div
+        className="lg:hidden absolute inset-0 rounded-[36px] z-20 pointer-events-none bg-white/10"
+        style={{ opacity: 0, transition: 'opacity 0.1s' }}
+      />
 
     </div>
   )
@@ -120,7 +180,17 @@ function TutorCard({ tutor }: { tutor: Tutor }) {
 
 const CARD_W = 'min(78vw, 370px)'
 
-function TutorCarousel({ tutors }: { tutors: Tutor[] }) {
+function TutorCarousel({
+  tutors,
+  specializationsLabel,
+  selectLabel,
+  onSelectTutor,
+}: {
+  tutors: Tutor[]
+  specializationsLabel: string
+  selectLabel: string
+  onSelectTutor: (tutor: Tutor) => void
+}) {
   const [activeIndex, setActiveIndex] = useState(0)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -148,7 +218,6 @@ function TutorCarousel({ tutors }: { tutors: Tutor[] }) {
 
   return (
     <div className="flex flex-col gap-6 -mx-6">
-      {/* Track: -mx-6 на обёртке + px-6 на треке = peek без обрезки */}
       <div
         ref={ref}
         onScroll={onScroll}
@@ -161,12 +230,17 @@ function TutorCarousel({ tutors }: { tutors: Tutor[] }) {
             className="snap-center shrink-0"
             style={{ width: CARD_W }}
           >
-            <TutorCard tutor={tutor} />
+            <TutorCard
+              tutor={tutor}
+              specializationsLabel={specializationsLabel}
+              selectLabel={selectLabel}
+              onSelect={() => onSelectTutor(tutor)}
+            />
           </div>
         ))}
       </div>
 
-      {/* Dots — sliding window of 5 */}
+      {/* Dots */}
       <div className="flex justify-center items-center gap-[6px]">
         {tutors.map((_, i) => {
           const dist = Math.abs(i - activeIndex)
@@ -196,82 +270,64 @@ function TutorCarousel({ tutors }: { tutors: Tutor[] }) {
   )
 }
 
-// ─── Stub cards shown when DB is empty ───────────────────────────────────────
+// ─── Stub cards ───────────────────────────────────────────────────────────────
 
-const STUB_TUTORS: Tutor[] = [
-  {
-    id: 1,
-    fullName: 'Жоау Педро Алмейда',
-    imageUrl: '/tutors/avatars/joau.png',
-    languages: [
-      { code: 'pt-BR', name: 'Português',  flagPath: '/flags/brazil.png' },
-      { code: 'ru',    name: 'Русский',    flagPath: '/flags/russia.png' },
-    ],
-    quote: 'Мои уроки спокойные и структурные. Помогаю навести порядок в голове и наконец понять, как работает грамматика.',
-    specializations: ['Грамматика', 'Для A1'],
-    interests: [],
-  },
-  {
-    id: 2,
-    fullName: 'Мария Фернанда Соуза да Силва',
-    imageUrl: '/tutors/avatars/maria.png',
-    languages: [
-      { code: 'pt-BR', name: 'Português', flagPath: '/flags/brazil.png' },
-      { code: 'ru',    name: 'Русский',   flagPath: '/flags/russia.png' },
-    ],
-    quote: 'Объясняю просто и без занудства. Люблю примеры из реальной жизни в Бразилии и живую речь, а не учебниковый пластик.',
-    specializations: ['Разговорная практика'],
-    interests: [],
-  },
-  {
-    id: 3,
-    fullName: 'Ана Каролина Рибейру Кошта',
-    imageUrl: '/tutors/avatars/ana.png',
-    languages: [
-      { code: 'pt-BR', name: 'Português', flagPath: '/flags/brazil.png' },
-      { code: 'en',    name: 'English',   flagPath: '/flags/usa.png'    },
-    ],
-    quote: 'Делаю упор на уверенную речь и правильное произношение. Исправляю мягко, но эффективно.',
-    specializations: ['Постановка произношения', 'Разговорная практика'],
-    interests: [],
-  },
-  {
-    id: 4,
-    fullName: 'Лукас Матеус Перейра да Роша',
-    imageUrl: '/tutors/avatars/lucas.png',
-    languages: [
-      { code: 'pt-BR', name: 'Português', flagPath: '/flags/brazil.png' },
-      { code: 'en',    name: 'English',   flagPath: '/flags/usa.png'    },
-      { code: 'ru',    name: 'Русский',   flagPath: '/flags/russia.png' },
-    ],
-    quote: 'Готовлю к жизни, работе и реальным ситуациям. Минимум воды, максимум полезного языка.',
-    specializations: ['Бразильский для работы', 'Деловая коммуникация'],
-    interests: [],
-  },
-  {
-    id: 5,
-    fullName: 'Рената Лима Фигейреду',
-    imageUrl: '/tutors/avatars/renate.png',
-    languages: [
-      { code: 'pt-BR', name: 'Português', flagPath: '/flags/brazil.png' },
-      { code: 'en',    name: 'English',   flagPath: '/flags/usa.png'    },
-      { code: 'ru',    name: 'Русский',   flagPath: '/flags/russia.png' },
-    ],
-    quote: 'Помогаю подготовиться к экзаменам без паники. Чётко объясняю формат, требования и типичные ошибки.',
-    specializations: ['Письменная речь', 'Подготовка к CELPE-BRAS'],
-    interests: [],
-  },
+const STUB_DATA: Record<Locale, { fullName: string; quote: string; specializations: string[] }[]> = {
+  ru: [
+    { fullName: 'Жоау Педро Алмейда',           quote: 'Мои уроки спокойные и структурные. Помогаю навести порядок в голове и наконец понять, как работает грамматика.', specializations: ['Грамматика', 'Для A1'] },
+    { fullName: 'Мария Фернанда Соуза да Силва', quote: 'Объясняю просто и без занудства. Люблю примеры из реальной жизни в Бразилии и живую речь, а не учебниковый пластик.', specializations: ['Разговорная практика'] },
+    { fullName: 'Ана Каролина Рибейру Кошта',    quote: 'Делаю упор на уверенную речь и правильное произношение. Исправляю мягко, но эффективно.', specializations: ['Постановка произношения', 'Разговорная практика'] },
+    { fullName: 'Лукас Матеус Перейра да Роша',  quote: 'Готовлю к жизни, работе и реальным ситуациям. Минимум воды, максимум полезного языка.', specializations: ['Бразильский для работы', 'Деловая коммуникация'] },
+    { fullName: 'Рената Лима Фигейреду',         quote: 'Помогаю подготовиться к экзаменам без паники. Чётко объясняю формат, требования и типичные ошибки.', specializations: ['Письменная речь', 'Подготовка к CELPE-BRAS'] },
+  ],
+  en: [
+    { fullName: 'João Pedro Almeida',            quote: 'My lessons are calm and structured. I help you clear up confusion and finally understand how the grammar works.', specializations: ['Grammar', 'For A1'] },
+    { fullName: 'Maria Fernanda Souza da Silva',  quote: 'I explain simply and without boring theory. I love real-life examples from Brazil and natural speech over textbook language.', specializations: ['Conversational Practice'] },
+    { fullName: 'Ana Carolina Ribeiro Costa',     quote: 'I focus on confident speech and correct pronunciation. I correct you gently but effectively.', specializations: ['Pronunciation', 'Conversational Practice'] },
+    { fullName: 'Lucas Mateus Pereira da Rocha',  quote: 'I prepare you for real life, work, and everyday situations. Minimum filler, maximum useful language.', specializations: ['Brazilian for Work', 'Business Communication'] },
+    { fullName: 'Renata Lima Figueiredo',         quote: 'I help you prepare for exams without the panic. I clearly explain the format, requirements, and common mistakes.', specializations: ['Written Skills', 'CELPE-BRAS Prep'] },
+  ],
+  pt: [
+    { fullName: 'João Pedro Almeida',            quote: 'Minhas aulas são calmas e estruturadas. Ajudo você a organizar as ideias e finalmente entender como a gramática funciona.', specializations: ['Gramática', 'Para A1'] },
+    { fullName: 'Maria Fernanda Souza da Silva',  quote: 'Explico de forma simples e sem enrolação. Gosto de exemplos da vida real no Brasil e da fala natural, não do plástico dos livros didáticos.', specializations: ['Prática Conversacional'] },
+    { fullName: 'Ana Carolina Ribeiro Costa',     quote: 'Foco na fala segura e na pronúncia correta. Corrijo com suavidade, mas com eficácia.', specializations: ['Pronúncia', 'Prática Conversacional'] },
+    { fullName: 'Lucas Mateus Pereira da Rocha',  quote: 'Preparo para a vida, o trabalho e situações reais. Mínimo de enrolação, máximo de linguagem útil.', specializations: ['Português para o Trabalho', 'Comunicação Empresarial'] },
+    { fullName: 'Renata Lima Figueiredo',         quote: 'Ajudo a se preparar para os exames sem pânico. Explico claramente o formato, os requisitos e os erros comuns.', specializations: ['Escrita', 'Preparação para o CELPE-BRAS'] },
+  ],
+}
+
+const STUB_BASE: Omit<Tutor, 'fullName' | 'quote' | 'specializations'>[] = [
+  { id: 1, imageUrl: '/tutors/avatars/joau.png',   languages: [{ code: 'pt-BR', name: 'Português', flagPath: '/flags/brazil.png' }, { code: 'ru', name: 'Русский', flagPath: '/flags/russia.png' }], interests: [] },
+  { id: 2, imageUrl: '/tutors/avatars/maria.png',  languages: [{ code: 'pt-BR', name: 'Português', flagPath: '/flags/brazil.png' }, { code: 'ru', name: 'Русский', flagPath: '/flags/russia.png' }], interests: [] },
+  { id: 3, imageUrl: '/tutors/avatars/ana.png',    languages: [{ code: 'pt-BR', name: 'Português', flagPath: '/flags/brazil.png' }, { code: 'en', name: 'English', flagPath: '/flags/usa.png'    }], interests: [] },
+  { id: 4, imageUrl: '/tutors/avatars/lucas.png',  languages: [{ code: 'pt-BR', name: 'Português', flagPath: '/flags/brazil.png' }, { code: 'en', name: 'English', flagPath: '/flags/usa.png'    }, { code: 'ru', name: 'Русский', flagPath: '/flags/russia.png' }], interests: [] },
+  { id: 5, imageUrl: '/tutors/avatars/renate.png', languages: [{ code: 'pt-BR', name: 'Português', flagPath: '/flags/brazil.png' }, { code: 'en', name: 'English', flagPath: '/flags/usa.png'    }, { code: 'ru', name: 'Русский', flagPath: '/flags/russia.png' }], interests: [] },
 ]
+
+function getStubTutors(locale: Locale): Tutor[] {
+  return STUB_BASE.map((base, i) => ({ ...base, ...STUB_DATA[locale][i] }))
+}
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
 interface TutorsSectionProps {
-  data: TutorsProps['data']
-  tutors: Tutor[]
+  data:    TutorsProps['data']
+  tutors:  Tutor[]
+  locale:  Locale
 }
 
-export default function Tutors({ data, tutors }: TutorsSectionProps) {
-  const displayTutors = tutors.length > 0 ? tutors : STUB_TUTORS
+export default function Tutors({ data, tutors, locale }: TutorsSectionProps) {
+  const specializationsLabel = SPEC_LABEL[locale]
+  const selectLabel          = SELECT_LABEL[locale]
+  const displayTutors        = tutors.length > 0 ? tutors : getStubTutors(locale)
+
+  const [modalOpen,     setModalOpen]     = useState(false)
+  const [selectedTutor, setSelectedTutor] = useState<Tutor | null>(null)
+
+  const openModal = (tutor: Tutor | null) => {
+    setSelectedTutor(tutor)
+    setModalOpen(true)
+  }
 
   return (
     <section id="tutors" className="w-full py-[80px]">
@@ -286,47 +342,65 @@ export default function Tutors({ data, tutors }: TutorsSectionProps) {
             {data.heading1}
           </h2>
           <h2
-            className="font-heading font-bold text-ink flex-1"
+            className="font-heading font-bold text-ink flex-1 text-right"
             style={{ fontSize: 'clamp(32px, 4vw, 64px)', lineHeight: '1.1' }}
           >
             {data.heading2}
           </h2>
         </div>
 
-        {/* ══ Cards — carousel on all screen sizes ══ */}
-        <TutorCarousel tutors={displayTutors} />
+        {/* ══ Cards — carousel ══ */}
+        <TutorCarousel
+          tutors={displayTutors}
+          specializationsLabel={specializationsLabel}
+          selectLabel={selectLabel}
+          onSelectTutor={tutor => openModal(tutor)}
+        />
 
         {/* ══ Description quote ══ */}
         <p
           className="font-accent font-bold text-ink text-center w-full uppercase"
-          style={{ fontSize: 'clamp(24px, 1.2vw, 36px)', lineHeight: '1',letterSpacing: '0.02em' }}
+          style={{ fontSize: 'clamp(24px, 1.2vw, 36px)', lineHeight: '1', letterSpacing: '0.02em' }}
         >
           &ldquo;{data.description}&rdquo;
         </p>
 
-        {/* ══ CTA button ══ */}
+        {/* ══ CTA button — opens modal without pre-selected tutor ══ */}
         <div className="flex justify-center w-full">
-          <a
-            href={data.ctaHref} // TODO: TBD
-            className="flex items-center justify-center rounded-[66px] px-[48px]"
+          <button
+            type="button"
+            onClick={() => openModal(null)}
+            className="flex items-center justify-center rounded-[66px] px-[36px] w-full lg:w-auto lg:min-w-[400px] cursor-pointer"
             style={{
               backgroundColor: '#2b2a2b',
               paddingTop: '44px',
               paddingBottom: '44px',
               boxShadow: 'var(--shadow-btn)',
-              minWidth: '400px',
             }}
           >
             <span
-              className="font-accent items-center text-cream"
-              style={{ fontSize: '32px', lineHeight: '32px' }}
+              className="font-accent text-center text-cream"
+              style={{ fontSize: 'clamp(24px, 1.2vw, 36px)', lineHeight: '32px' }}
             >
               {data.ctaText}
             </span>
-          </a>
+          </button>
         </div>
 
       </div>
+
+      {/* ══ Free lesson modal ══ */}
+      <FreeLessonModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        locale={locale}
+        initialTutor={selectedTutor}
+        allTutors={displayTutors.map(t => ({
+          id:       t.id,
+          fullName: t.fullName,
+          imageUrl: t.imageUrl,
+        }))}
+      />
     </section>
   )
 }

@@ -32,18 +32,18 @@ export default function About({ data }: AboutProps) {
 
             {/* Heading block */}
             <div
-              className="relative flex flex-col gap-0 items-center w-full rounded-[26px] p-[40px] overflow-visible"
+              className="relative flex flex-col gap-0 items-center w-full rounded-[26px] p-[36px] overflow-visible"
               style={{ backgroundColor: '#fffce5' }}
             >
               <p
                 className="w-full font-accent font-bold text-green"
-                style={{ fontSize: 'clamp(28px, 3.5vw, 48px)', lineHeight: '1' }}
+                style={{ fontSize: 'clamp(28px, 3.5vw, 42px)', lineHeight: '1' }}
               >
                 {data.message1}
               </p>
 
               {/* Flower — absolute, overflows block bottom-right */}
-              <div className="absolute bottom-[-47px] right-[-78px] w-[140px] h-[118px] pointer-events-none z-10">
+              <div className="absolute bottom-[-107px] right-[-30px] w-[140px] h-[118px] pointer-events-none z-10">
                 <img alt="" src={IMG_FLOWER} className="w-full h-full" />
               </div>
             </div>
@@ -63,7 +63,7 @@ export default function About({ data }: AboutProps) {
 
             {/* CTA block */}
             <div
-              className="relative flex flex-col gap-[320px] justify-between overflow-hidden rounded-[26px] p-[40px] flex-1 min-w-0 lg:min-w-[600px] lg:max-w-[720px] lg:h-[1012px]"
+              className="relative flex flex-col gap-[320px] justify-between overflow-hidden rounded-[26px] p-[36px] flex-1 min-w-0 lg:min-w-[600px] lg:max-w-[720px] lg:h-[1012px]"
               style={{ backgroundColor: '#fffce5' }}
             >
               {/* Description */}
@@ -78,7 +78,7 @@ export default function About({ data }: AboutProps) {
               <div className="relative w-full mt-[40px] lg:mt-0">
 
                 {/* Hibiscus orange (upsideup) */}
-                <div className="absolute h-[237px] right-[22px] top-[-221px] w-[148px] pointer-events-none">
+                <div className="absolute h-[237px] right-[22px] top-[-221px] w-[148px] pointer-events-none z-10">
                   <img alt="" src={IMG_HIBISCUS_UP} className="w-full h-full" />
                 </div>
 
@@ -89,7 +89,7 @@ export default function About({ data }: AboutProps) {
 
                 {/* Fern — large, extends left outside block */}
                 <div
-                  className="absolute pointer-events-none"
+                  className="absolute pointer-events-none z-0"
                   style={{ height: '511px', width: '620px', left: '-260px', top: '-348px' }}
                 >
                   <img
@@ -106,8 +106,8 @@ export default function About({ data }: AboutProps) {
                   className="relative flex items-center justify-center w-full overflow-hidden rounded-[66px]"
                   style={{
                     backgroundColor: '#f26434',
-                    paddingTop: '44px',
-                    paddingBottom: '44px',
+                    paddingTop: '36px',
+                    paddingBottom: '36px',
                     paddingLeft: '16px',
                     paddingRight: '16px',
                     boxShadow: 'var(--shadow-btn)',
@@ -136,7 +136,7 @@ export default function About({ data }: AboutProps) {
 
         {/* ══ Row 2: Motivation quote ══ */}
         <div
-          className="flex flex-col items-center justify-center rounded-[36px] p-[40px] w-full z-10"
+          className="flex flex-col items-center justify-center rounded-[36px] p-[36px] w-full z-10"
           style={{ backgroundColor: '#fffce5', minHeight: '264px' }}
         >
           <p

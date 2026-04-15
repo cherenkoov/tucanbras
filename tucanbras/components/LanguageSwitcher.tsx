@@ -27,11 +27,13 @@ const PILL_STYLE = {
 interface Props {
   /** pill — dark button + dropdown (Header) | text — slash-separated links (Footer) */
   variant?: 'pill' | 'text'
+  /** down — dropdown below button (desktop) | row — inline row to the left (mobile) */
+  dropDirection?: 'down' | 'row'
   className?: string
   style?: React.CSSProperties
 }
 
-export default function LanguageSwitcher({ variant = 'text', className, style }: Props) {
+export default function LanguageSwitcher({ variant = 'text', dropDirection = 'down', className, style }: Props) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -61,13 +63,60 @@ export default function LanguageSwitcher({ variant = 'text', className, style }:
 
   // ── pill variant ────────────────────────────────────────────────────────────
   if (variant === 'pill') {
+    // ── row: all flags in one horizontal line, others slide in from the right ─
+    if (dropDirection === 'row') {
+      return (
+        <div
+          ref={ref}
+          className={`flex flex-row items-center gap-2 shrink-0 ${className ?? ''}`}
+          style={style}
+        >
+          {others.map((l, i) => (
+            <div
+              key={l.code}
+              style={{
+                maxWidth:   open ? '60px' : '0px',
+                opacity:    open ? 1 : 0,
+                overflow:   'hidden',
+                transition: 'max-width 200ms ease, opacity 200ms ease',
+                transitionDelay: open ? `${i * 50}ms` : '0ms',
+                flexShrink: 0,
+              }}
+            >
+              <Link
+                href={switchPath(l.code)}
+                role="option"
+                onClick={() => setOpen(false)}
+                className="flex items-center justify-center overflow-hidden rounded-btn font-semibold whitespace-nowrap select-none"
+                style={{ ...PILL_STYLE, boxShadow: 'var(--shadow-pill-float)', pointerEvents: open ? 'auto' : 'none' }}
+              >
+                <img src={l.flagUrl} alt={l.label} style={{ height: '32px', width: 'auto', display: 'block' }} />
+              </Link>
+            </div>
+          ))}
+
+          {/* Current locale — always rightmost */}
+          <button
+            type="button"
+            onClick={() => setOpen(v => !v)}
+            className="relative flex items-center justify-center overflow-hidden rounded-btn font-semibold whitespace-nowrap select-none shrink-0"
+            style={PILL_STYLE}
+            aria-haspopup="listbox"
+            aria-expanded={open}
+          >
+            <img src={current.flagUrl} alt={current.label} style={{ height: '32px', width: 'auto', display: 'block' }} />
+          </button>
+        </div>
+      )
+    }
+
+    // ── down: absolute dropdown below button (default, desktop) ───────────────
     return (
       <div
         ref={ref}
         className={`relative shrink-0 ${className ?? ''}`}
         style={style}
       >
-        {/* Current locale button */}
         <button
           type="button"
           onClick={() => setOpen(v => !v)}
@@ -79,7 +128,6 @@ export default function LanguageSwitcher({ variant = 'text', className, style }:
           <img src={current.flagUrl} alt={current.label} style={{ height: '32px', width: 'auto', display: 'block' }} />
         </button>
 
-        {/* Dropdown list */}
         <div
           role="listbox"
           aria-label="Select language"
@@ -95,10 +143,10 @@ export default function LanguageSwitcher({ variant = 'text', className, style }:
               className="flex items-center justify-center overflow-hidden rounded-btn font-semibold whitespace-nowrap select-none"
               style={{
                 ...PILL_STYLE,
-                boxShadow: 'var(--shadow-pill-float)',
-                opacity:   open ? 1 : 0,
-                transform: open ? 'translateY(0)' : 'translateY(-10px)',
-                transition: 'opacity 200ms ease, transform 200ms ease',
+                boxShadow:       'var(--shadow-pill-float)',
+                opacity:         open ? 1 : 0,
+                transform:       open ? 'translateY(0)' : 'translateY(-10px)',
+                transition:      'opacity 200ms ease, transform 200ms ease',
                 transitionDelay: open ? `${i * 50}ms` : '0ms',
               }}
             >

@@ -1,4 +1,5 @@
-import { HeroProps } from "@/types";
+import type { HeroProps } from "@/types";
+import FreeLessonButton from '@/components/FreeLessonButton'
 
 export default function Hero({ data }: HeroProps) {
   return (
@@ -29,9 +30,9 @@ export default function Hero({ data }: HeroProps) {
 
         {/* CTA button */}
         <div className="mt-[24px]">
-          <a
-            href={data.ctaHref} // TODO: TBD
-            className="inline-flex w-full items-center justify-center rounded-[26px] font-bold text-ink bg-yellow whitespace-nowrap"
+          <FreeLessonButton
+            ctaText={data.ctaText}
+            className="inline-flex w-full items-center justify-center rounded-[26px] font-bold text-ink bg-yellow whitespace-nowrap cursor-pointer"
             style={{
               fontSize: 'clamp(20px, 2.5vw, 48px)',
               lineHeight: '1',
@@ -41,9 +42,7 @@ export default function Hero({ data }: HeroProps) {
               paddingRight: 'var(--spacing-s400)',
               boxShadow: 'var(--shadow-btn)',
             }}
-          >
-            {data.ctaText}
-          </a>
+          />
         </div>
 
       </div>

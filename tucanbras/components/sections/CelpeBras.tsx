@@ -1,4 +1,5 @@
 import { CelpeBrasProps } from '@/types'
+import CelpeBrasStack from '@/components/CelpeBrasStack'
 
 // ─── Static card config (icon + bg color — not from CMS) ─────────────────────
 const CARD_CONFIG = [
@@ -21,7 +22,7 @@ function FeatureCard({ title, icon, bg, text }: { title: string; icon: string; b
       }}
     >
       {/* Icon */}
-      <div className="shrink-0 w-[100px] h-[100px]">
+      <div className="shrink-0" style={{ width: 'clamp(48px, 6vw, 100px)', height: 'clamp(48px, 6vw, 100px)' }}>
         <img src={icon} alt="" className="w-full h-full object-contain pointer-events-none" />
       </div>
 
@@ -53,23 +54,33 @@ export default function CelpeBras({ data }: CelpeBrasProps) {
           {data.heading}
         </h2>
 
-        {/* ══ Feature grid ══ */}
-        <div className="flex flex-col gap-[20px] w-full">
+        {/* ══ Feature grid — mobile: stacking scroll, desktop: grid ══ */}
+
+        {/* Mobile stack */}
+        <div className="lg:hidden">
+          <CelpeBrasStack
+            titles={[c0, c1, c2, c3, c4]}
+            cardConfig={CARD_CONFIG}
+          />
+        </div>
+
+        {/* Desktop grid */}
+        <div className="hidden lg:flex flex-col gap-[20px] w-full">
 
           {/* Row 1 */}
-          <div className="flex flex-col lg:flex-row gap-[20px]">
+          <div className="flex flex-row gap-[20px]">
             <FeatureCard title={c0} icon={CARD_CONFIG[0].icon} text={CARD_CONFIG[0].text} bg={CARD_CONFIG[0].bg} />
             <FeatureCard title={c1} icon={CARD_CONFIG[1].icon} text={CARD_CONFIG[1].text} bg={CARD_CONFIG[1].bg} />
           </div>
 
           {/* Row 2 */}
-          <div className="flex flex-col lg:flex-row gap-[20px]">
+          <div className="flex flex-row gap-[20px]">
             <FeatureCard title={c2} icon={CARD_CONFIG[2].icon} text={CARD_CONFIG[2].text} bg={CARD_CONFIG[2].bg} />
             <FeatureCard title={c3} icon={CARD_CONFIG[3].icon} text={CARD_CONFIG[3].text} bg={CARD_CONFIG[3].bg} />
           </div>
 
           {/* Row 3: last card + quote */}
-          <div className="flex flex-col lg:flex-row gap-[20px]">
+          <div className="flex flex-row gap-[20px]">
             <FeatureCard title={c4} icon={CARD_CONFIG[4].icon} text={CARD_CONFIG[4].text} bg={CARD_CONFIG[4].bg} />
 
             {/* Quote */}
@@ -98,17 +109,17 @@ export default function CelpeBras({ data }: CelpeBrasProps) {
           {/* CTA button */}
           <a
             href={data.ctaHref} // TODO: TBD
-            className="flex items-center justify-center w-full overflow-hidden rounded-[28px]"
+            className="flex items-center justify-center rounded-[66px] px-[44px] w-full lg:w-auto lg:min-w-[400px]"
             style={{
               backgroundColor: '#8fd096',
-              paddingTop: '32px',
-              paddingBottom: '32px',
-              boxShadow: '0px 1px 4px 0px rgba(0,0,0,0.18), inset 0px 1px 2px 0px rgba(255,255,255,0.18)',
+              paddingTop: '44px',
+              paddingBottom: '44px',
+              boxShadow: 'var(--shadow-btn)',
             }}
           >
             <span
-              className="font-accent font-bold text-ink"
-              style={{ fontSize: '48px', lineHeight: '32px' }}
+              className="font-accent text-center text-ink"
+              style={{ fontSize: 'clamp(24px, 1.2vw, 36px)', lineHeight: '32px' }}
             >
               {data.ctaText}
             </span>

@@ -2,13 +2,12 @@ import type { FooterProps, FaqGroup as FaqGroupType } from '@/types'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
-// TODO: export from Figma → save to /public/footer/ and replace URLs
-const IMG_LOGO      = 'https://www.figma.com/api/mcp/asset/59e3e556-39e2-485a-95de-c21d426a70d4'
-const IMG_SOCIAL_TG = 'https://www.figma.com/api/mcp/asset/27b31bd7-f182-47d7-ae9e-9acade205d8a'
-const IMG_SOCIAL_IG = 'https://www.figma.com/api/mcp/asset/7a2fa6f9-24eb-422b-85e2-2416fe702e8e'
-const IMG_SOCIAL_YT = 'https://www.figma.com/api/mcp/asset/912addad-310a-496c-ac10-3abd39e0397f'
+const IMG_LOGO      = '/footer/TUCANBRAS.svg'
+const IMG_SOCIAL_TG = '/footer/telegram.svg'
+const IMG_SOCIAL_IG = '/footer/instagram.svg'
+const IMG_SOCIAL_YT = '/footer/youtube.svg'
 // Arrow icon (bxs:up-arrow). Base state = up, closed accordion = rotate-180 (down).
-const ICON_ARROW    = 'https://www.figma.com/api/mcp/asset/51adc7d8-0490-40d8-b1a6-b75d81c0d119'
+const ICON_ARROW    = '/footer/arrow.svg'
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -29,7 +28,7 @@ function FaqAccordion({ group }: { group: FaqGroupType }) {
           <details key={i} className="group">
             <summary className="flex items-center gap-[16px] cursor-pointer list-none [&::-webkit-details-marker]:hidden">
               {/* Arrow: up-arrow icon, rotate-180 in closed state (= down arrow) */}
-              <div className="shrink-0 w-[12px] h-[12px] transition-transform rotate-180 group-open:rotate-0 opacity-80">
+              <div className="shrink-0 w-[12px] h-[12px] transition-transform rotate-0 group-open:rotate-180 opacity-80">
                 <img
                   src={ICON_ARROW}
                   alt=""
@@ -73,7 +72,7 @@ export default function Footer({ data }: FooterProps) {
         {/* ══ Form card ══ */}
         <div className="relative z-[4] pb-[12px]">
           <form
-            className="bg-cream rounded-[26px] p-[20px] flex flex-col gap-[24px]"
+            className="bg-cream rounded-[26px] p-[36px] flex flex-col gap-[24px]"
             action="#" // TODO: TBD — form submission handler
           >
             {/* Title */}
@@ -88,7 +87,7 @@ export default function Footer({ data }: FooterProps) {
 
             {/* Inputs */}
             <div className="flex flex-col gap-[24px]">
-              <label className="border-2 border-[#323031] rounded-[28px] px-[32px] py-[24px] block">
+              <label className="border-2 border-[#323031] rounded-[66px] px-[32px] py-[24px] block">
                 <input
                   type="text"
                   name="name"
@@ -97,7 +96,7 @@ export default function Footer({ data }: FooterProps) {
                   style={{ fontSize: 'clamp(20px, 2.5vw, 32px)', lineHeight: '36px' }}
                 />
               </label>
-              <label className="border-2 border-[#323031] rounded-[28px] px-[32px] py-[24px] block">
+              <label className="border-2 border-[#323031] rounded-[66px] px-[32px] py-[24px] block">
                 <input
                   type="text"
                   name="telegram"
@@ -111,7 +110,7 @@ export default function Footer({ data }: FooterProps) {
             {/* Submit */}
             <button
               type="submit"
-              className="flex items-center justify-center w-full rounded-[28px] px-[16px] py-[32px]"
+              className="flex items-center justify-center w-full rounded-[66px] px-[36px] py-[36px]"
               style={{
                 backgroundColor: '#323031',
                 boxShadow: '0px 1px 4px 0px rgba(0,0,0,0.18), inset 0px 1px 2px 0px rgba(255,255,255,0.18)',
@@ -129,12 +128,12 @@ export default function Footer({ data }: FooterProps) {
 
         {/* ══ Footer content card ══ */}
         <div
-          className="relative z-[2] bg-cream rounded-[26px] overflow-hidden px-[48px] pb-[48px] flex flex-col gap-[64px]"
+          className="relative z-[2] bg-cream rounded-[26px] overflow-hidden px-[36px] py-[36px] flex flex-col gap-[64px]"
           style={{ boxShadow: '0px 2px 4px 0px rgba(0,0,0,0.18), inset 0px 4px 4px 0px rgba(255,255,255,0.25)' }}
         >
 
           {/* ── Logo + description ── */}
-          <div className="flex flex-wrap items-center justify-center gap-[30px] py-[24px]">
+          <div className="flex flex-wrap items-center justify-center gap-[30px]">
             {/* Logo */}
             <div className="flex-1 min-w-[280px] min-h-[140px] lg:min-h-[192px] relative">
               <img

@@ -78,7 +78,7 @@ export default async function Home({
         {/* 4 */}
         <Comparison data={comparisonData} />
         {/* 5 */}
-        <Tutors data={tutorsData} tutors={tutors} />
+        <Tutors data={tutorsData} tutors={tutors} locale={locale} />
         {/* 6 */}
         <CelpeBras data={celpeBrasData} />
         {/* 7 */}

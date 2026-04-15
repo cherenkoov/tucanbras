@@ -15,6 +15,8 @@ export interface Tutor {
 type TutorRow = {
   id: number
   fullName: string
+  fullName_en: string | null
+  fullName_pt: string | null
   image: string | null
   languages: { code?: string; flag?: string; name?: string }[] | null
   quote: string | null
@@ -43,7 +45,7 @@ function pickArr(ru: string[] | null, en: string[] | null, pt: string[] | null, 
 export async function getTutors(locale: Locale = 'en'): Promise<Tutor[]> {
   const { rows } = await pool.query<TutorRow>(`
     SELECT
-      id, "fullName", image, languages,
+      id, "fullName", "fullName_en", "fullName_pt", image, languages,
       quote, quote_en, quote_pt,
       specializations, specializations_en, specializations_pt,
       interests, interests_en, interests_pt
@@ -55,7 +57,7 @@ export async function getTutors(locale: Locale = 'en'): Promise<Tutor[]> {
 
   return rows.map(row => ({
     id:              row.id,
-    fullName:        row.fullName,
+    fullName:        pick(row.fullName, row.fullName_en, row.fullName_pt, locale) ?? row.fullName,
     imageUrl:        row.image ? `${botBaseUrl}/static/${row.image}` : null,
     languages:       (row.languages ?? []).map(resolveLanguage),
     quote:           pick(row.quote, row.quote_en, row.quote_pt, locale),

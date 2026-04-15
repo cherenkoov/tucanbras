@@ -217,13 +217,14 @@ export default function Header({ navLinks }: HeaderProps) {
 
           {/* Brand — tucan bird + logotype, grouped left */}
           <div className="relative z-10 flex items-center gap-0 shrink-0 overflow-visible h-full">
-            <div className="hidden min-[430px]:block lg:hidden h-full"><TucanLogo bodyW={100} /></div>
+            <div className="block lg:hidden h-full"><TucanLogo bodyW={100} /></div>
             <div className="hidden lg:block h-full"><TucanLogo bodyW={135} /></div>
             <span
               className="flex items-center justify-center font-bold tracking-normal select-none text-green font-accent pb-2 h-full w-full ml-3"
               style={{ fontSize: 'clamp(28px, 4.69vw, 90px)', lineHeight: '0.9' }}
             >
-              TucanBRAS
+              <span className="min-[460px]:hidden">TUCAN</span>
+              <span className="hidden min-[460px]:inline">TucanBRAS</span>
             </span>
           </div>
 
@@ -244,7 +245,7 @@ export default function Header({ navLinks }: HeaderProps) {
                 text={NAV_PILL_STYLES[i]?.text ?? 'var(--color-ink)'}
               />
             ))}
-            <LanguageSwitcher variant="pill" />
+            <LanguageSwitcher variant="pill" dropDirection="down" />
           </nav>
 
           {/* Mobile burger — collapse animation */}
@@ -290,6 +291,7 @@ export default function Header({ navLinks }: HeaderProps) {
         {/* Mobile language switcher */}
         <LanguageSwitcher
           variant="pill"
+          dropDirection="row"
           className="pointer-events-auto transition-all duration-300"
           style={{
             transitionDelay: menuOpen ? `${navLinks.length * 60}ms` : '0ms',

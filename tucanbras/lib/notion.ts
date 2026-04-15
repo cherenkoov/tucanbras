@@ -179,9 +179,9 @@ export async function getFooterData(locale: Locale): Promise<FooterData> {
     faqGroups,
     policyLinks: POLICY_LABELS[locale].map(label => ({ label, href: '#' })),
     socialLinks: [
-      { label: 'Telegram',  href: '#', iconUrl: 'https://www.figma.com/api/mcp/asset/27b31bd7-f182-47d7-ae9e-9acade205d8a' },
-      { label: 'Instagram', href: '#', iconUrl: 'https://www.figma.com/api/mcp/asset/7a2fa6f9-24eb-422b-85e2-2416fe702e8e' },
-      { label: 'YouTube',   href: '#', iconUrl: 'https://www.figma.com/api/mcp/asset/912addad-310a-496c-ac10-3abd39e0397f' },
+      { label: 'Telegram',  href: '#', iconUrl: '/footer/telegram.svg'  },
+      { label: 'Instagram', href: '#', iconUrl: '/footer/instagram.svg' },
+      { label: 'YouTube',   href: '#', iconUrl: '/footer/youtube.svg'   },
     ],
   }
 

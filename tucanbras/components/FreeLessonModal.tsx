@@ -15,48 +15,56 @@ export interface TutorRef {
 // ─── Localised strings ────────────────────────────────────────────────────────
 
 const S: Record<Locale, {
-  title:       string
-  tutorLabel:  string
-  tutorPh:     string
-  namePh:      string
-  emailPh:     string
-  submit:      string
-  successMsg:  string
-  errorMsg:    string
-  nameError:   string
+  title:        string
+  tutorLabel:   string
+  tutorPh:      string
+  namePh:       string
+  telegramPh:   string
+  emailPh:      string
+  submit:       string
+  successMsg:   string
+  errorMsg:     string
+  nameError:    string
+  telegramError: string
 }> = {
   ru: {
-    title:      'Записаться на бесплатный урок',
-    tutorLabel: 'Преподаватель',
-    tutorPh:    'Выбрать преподавателя',
-    namePh:     'Ваше имя',
-    emailPh:    'Email (необязательно)',
-    submit:     'Записаться',
-    successMsg: 'Спасибо! Переходим в бот…',
-    errorMsg:   'Что-то пошло не так. Попробуйте ещё раз.',
-    nameError:  'Пожалуйста, введите ваше имя',
+    title:        'Записаться на бесплатный урок',
+    tutorLabel:   'Преподаватель',
+    tutorPh:      'Выбрать преподавателя',
+    namePh:       'Ваше имя',
+    telegramPh:   'Telegram username',
+    emailPh:      'Email (необязательно)',
+    submit:       'Записаться',
+    successMsg:   'Спасибо! Переходим в бот…',
+    errorMsg:     'Что-то пошло не так. Попробуйте ещё раз.',
+    nameError:    'Пожалуйста, введите ваше имя',
+    telegramError: 'Пожалуйста, введите Telegram username',
   },
   en: {
-    title:      'Sign up for a free lesson',
-    tutorLabel: 'Tutor',
-    tutorPh:    'Choose a tutor',
-    namePh:     'Your name',
-    emailPh:    'Email (optional)',
-    submit:     'Sign up',
-    successMsg: 'Thank you! Redirecting to bot…',
-    errorMsg:   'Something went wrong. Please try again.',
-    nameError:  'Please enter your name',
+    title:        'Sign up for a free lesson',
+    tutorLabel:   'Tutor',
+    tutorPh:      'Choose a tutor',
+    namePh:       'Your name',
+    telegramPh:   'Telegram username',
+    emailPh:      'Email (optional)',
+    submit:       'Sign up',
+    successMsg:   'Thank you! Redirecting to bot…',
+    errorMsg:     'Something went wrong. Please try again.',
+    nameError:    'Please enter your name',
+    telegramError: 'Please enter your Telegram username',
   },
   pt: {
-    title:      'Inscreva-se para uma aula gratuita',
-    tutorLabel: 'Professor',
-    tutorPh:    'Escolha um professor',
-    namePh:     'Seu nome',
-    emailPh:    'E-mail (opcional)',
-    submit:     'Inscrever-se',
-    successMsg: 'Obrigado! Redirecionando para o bot…',
-    errorMsg:   'Algo deu errado. Tente novamente.',
-    nameError:  'Por favor, insira seu nome',
+    title:        'Inscreva-se para uma aula gratuita',
+    tutorLabel:   'Professor',
+    tutorPh:      'Escolha um professor',
+    namePh:       'Seu nome',
+    telegramPh:   'Usuário do Telegram',
+    emailPh:      'E-mail (opcional)',
+    submit:       'Inscrever-se',
+    successMsg:   'Obrigado! Redirecionando para o bot…',
+    errorMsg:     'Algo deu errado. Tente novamente.',
+    nameError:    'Por favor, insira seu nome',
+    telegramError: 'Por favor, insira seu usuário do Telegram',
   },
 }
 
@@ -218,8 +226,10 @@ export default function FreeLessonModal({
   const [mounted,       setMounted]       = useState(false)
   const [selectedTutor, setSelectedTutor] = useState<TutorRef | null>(null)
   const [name,          setName]          = useState('')
+  const [telegram,      setTelegram]      = useState('@')
   const [email,         setEmail]         = useState('')
   const [nameErr,       setNameErr]       = useState(false)
+  const [telegramErr,   setTelegramErr]   = useState(false)
   const [status,        setStatus]        = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const nameRef   = useRef<HTMLInputElement>(null)
   const submitRef = useRef<HTMLButtonElement>(null)
@@ -245,7 +255,7 @@ export default function FreeLessonModal({
   useEffect(() => {
     if (!open) {
       const t = setTimeout(() => {
-        setName(''); setEmail(''); setNameErr(false); setStatus('idle')
+        setName(''); setTelegram('@'); setEmail(''); setNameErr(false); setTelegramErr(false); setStatus('idle')
       }, 300)
       return () => clearTimeout(t)
     }
@@ -259,9 +269,17 @@ export default function FreeLessonModal({
     return () => window.removeEventListener('keydown', handler)
   }, [open, onClose])
 
+  const handleTelegramChange = (val: string) => {
+    if (!val.startsWith('@')) val = '@' + val.replace(/^@+/, '')
+    setTelegram(val)
+    setTelegramErr(false)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    const tgValid = telegram.trim().length > 1
     if (!name.trim()) { setNameErr(true); nameRef.current?.focus(); return }
+    if (!tgValid)     { setTelegramErr(true); return }
 
     setStatus('loading')
     try {
@@ -270,6 +288,7 @@ export default function FreeLessonModal({
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({
           name:      name.trim(),
+          telegram:  telegram.trim(),
           email:     email.trim(),
           tutor_id:  selectedTutor?.id ?? null,
         }),
@@ -343,7 +362,7 @@ export default function FreeLessonModal({
 
             {/* Name */}
             <label
-              className="border-2 rounded-[66px] px-[32px] py-[20px] block transition-colors"
+              className="border-2 rounded-[66px] p-[18px] block transition-colors"
               style={{ borderColor: nameErr ? '#f26434' : '#323031' }}
             >
               <input
@@ -365,8 +384,32 @@ export default function FreeLessonModal({
               </p>
             )}
 
+            {/* Telegram */}
+            <label
+              className="border-2 rounded-[66px] p-[18px] block transition-colors"
+              style={{ borderColor: telegramErr ? '#f26434' : '#323031' }}
+            >
+              <input
+                type="text"
+                name="telegram"
+                value={telegram}
+                onChange={e => handleTelegramChange(e.target.value)}
+                onFocus={e => { if (e.target.value === '@') e.target.setSelectionRange(1, 1) }}
+                placeholder={s.telegramPh}
+                required
+                autoComplete="off"
+                className="w-full bg-transparent font-heading font-normal text-ink placeholder:text-ink placeholder:opacity-50 outline-none"
+                style={{ fontSize: 'clamp(18px, 2vw, 28px)', lineHeight: '1.3' }}
+              />
+            </label>
+            {telegramErr && (
+              <p className="font-sans text-[#f26434] pl-[16px]" style={{ fontSize: '14px' }}>
+                {s.telegramError}
+              </p>
+            )}
+
             {/* Email */}
-            <label className="border-2 border-[#323031] rounded-[66px] px-[32px] py-[20px] block">
+            <label className="border-2 border-[#323031] rounded-[66px] p-[18px] block">
               <input
                 type="email"
                 name="email"

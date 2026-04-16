@@ -135,7 +135,7 @@ export default function Footer({ data }: FooterProps) {
           {/* ── Logo + description ── */}
           <div className="flex flex-wrap items-center justify-center gap-[30px]">
             {/* Logo */}
-            <div className="w-full min-h-[140px] lg:min-h-[192px] relative">
+            <div className="flex-1 min-w-[280px] min-h-[140px] lg:min-h-[192px] relative">
               <img
                 src={IMG_LOGO}
                 alt="TucanBRAS"
@@ -189,7 +189,7 @@ export default function Footer({ data }: FooterProps) {
 
             {/* Social icons */}
             {data.socialLinks.length > 0 && (
-              <div className="flex w-full gap-[24px] items-center justify-center">
+              <div className="flex flex-1 min-w-[276px] gap-[24px] items-center justify-center">
                 {data.socialLinks.map(link => (
                   <a
                     key={link.label}

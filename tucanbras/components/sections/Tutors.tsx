@@ -221,8 +221,8 @@ function TutorCarousel({
       <div
         ref={ref}
         onScroll={onScroll}
-        className="flex items-center overflow-x-auto snap-x snap-mandatory gap-[12px] px-6 scrollbar-custom"
-        style={{ scrollPaddingInline: '24px' }}
+        className="flex items-center overflow-x-auto snap-x snap-mandatory gap-[12px] px-6"
+        style={{ scrollbarWidth: 'none', scrollPaddingInline: '24px' }}
       >
         {tutors.map((tutor, i) => (
           <div

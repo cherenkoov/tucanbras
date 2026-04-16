@@ -32,7 +32,7 @@ const S: Record<Locale, {
     tutorLabel:   'Преподаватель',
     tutorPh:      'Выбрать преподавателя',
     namePh:       'Ваше имя',
-    telegramPh:   'Telegram username',
+    telegramPh:   'Ваш Telegram',
     emailPh:      'Email (необязательно)',
     submit:       'Записаться',
     successMsg:   'Спасибо! Переходим в бот…',
@@ -45,7 +45,7 @@ const S: Record<Locale, {
     tutorLabel:   'Tutor',
     tutorPh:      'Choose a tutor',
     namePh:       'Your name',
-    telegramPh:   'Telegram username',
+    telegramPh:   'Your Telegram',
     emailPh:      'Email (optional)',
     submit:       'Sign up',
     successMsg:   'Thank you! Redirecting to bot…',
@@ -58,7 +58,7 @@ const S: Record<Locale, {
     tutorLabel:   'Professor',
     tutorPh:      'Escolha um professor',
     namePh:       'Seu nome',
-    telegramPh:   'Usuário do Telegram',
+    telegramPh:   'Seu Telegram',
     emailPh:      'E-mail (opcional)',
     submit:       'Inscrever-se',
     successMsg:   'Obrigado! Redirecionando para o bot…',
@@ -226,7 +226,7 @@ export default function FreeLessonModal({
   const [mounted,       setMounted]       = useState(false)
   const [selectedTutor, setSelectedTutor] = useState<TutorRef | null>(null)
   const [name,          setName]          = useState('')
-  const [telegram,      setTelegram]      = useState('@')
+  const [telegram,      setTelegram]      = useState('')
   const [email,         setEmail]         = useState('')
   const [nameErr,       setNameErr]       = useState(false)
   const [telegramErr,   setTelegramErr]   = useState(false)
@@ -255,7 +255,7 @@ export default function FreeLessonModal({
   useEffect(() => {
     if (!open) {
       const t = setTimeout(() => {
-        setName(''); setTelegram('@'); setEmail(''); setNameErr(false); setTelegramErr(false); setStatus('idle')
+        setName(''); setTelegram(''); setEmail(''); setNameErr(false); setTelegramErr(false); setStatus('idle')
       }, 300)
       return () => clearTimeout(t)
     }
@@ -269,15 +269,9 @@ export default function FreeLessonModal({
     return () => window.removeEventListener('keydown', handler)
   }, [open, onClose])
 
-  const handleTelegramChange = (val: string) => {
-    if (!val.startsWith('@')) val = '@' + val.replace(/^@+/, '')
-    setTelegram(val)
-    setTelegramErr(false)
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const tgValid = telegram.trim().length > 1
+    const tgValid = telegram.trim().length > 0
     if (!name.trim()) { setNameErr(true); nameRef.current?.focus(); return }
     if (!tgValid)     { setTelegramErr(true); return }
 
@@ -393,8 +387,7 @@ export default function FreeLessonModal({
                 type="text"
                 name="telegram"
                 value={telegram}
-                onChange={e => handleTelegramChange(e.target.value)}
-                onFocus={e => { if (e.target.value === '@') e.target.setSelectionRange(1, 1) }}
+                onChange={e => { setTelegram(e.target.value); setTelegramErr(false) }}
                 placeholder={s.telegramPh}
                 required
                 autoComplete="off"

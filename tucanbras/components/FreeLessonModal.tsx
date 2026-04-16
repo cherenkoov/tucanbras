@@ -96,13 +96,16 @@ function TutorSelector({
   allTutors,
   placeholder,
   onChange,
+  submitRef,
 }: {
-  selected:  TutorRef | null
-  allTutors: TutorRef[]
+  selected:    TutorRef | null
+  allTutors:   TutorRef[]
   placeholder: string
-  onChange:  (t: TutorRef) => void
+  onChange:    (t: TutorRef) => void
+  submitRef:   React.RefObject<HTMLButtonElement>
 }) {
-  const [open, setOpen] = useState(false)
+  const [open,          setOpen]          = useState(false)
+  const [dropdownMaxH,  setDropdownMaxH]  = useState(220)
   const ref = useRef<HTMLDivElement>(null)
 
   // Close on outside click
@@ -115,13 +118,22 @@ function TutorSelector({
     return () => document.removeEventListener('mousedown', handler)
   }, [open])
 
+  const handleOpen = () => {
+    if (!open && ref.current && submitRef.current) {
+      const triggerBottom = ref.current.getBoundingClientRect().bottom
+      const submitBottom  = submitRef.current.getBoundingClientRect().bottom
+      setDropdownMaxH(Math.max(60, submitBottom - triggerBottom - 8))
+    }
+    setOpen(v => !v)
+  }
+
   return (
     <div ref={ref} className="relative">
       {/* Trigger */}
       <button
         type="button"
-        onClick={() => setOpen(v => !v)}
-        className="flex items-center gap-[12px] w-full border-2 border-[#323031] rounded-[66px] px-[24px] py-[16px] transition-colors hover:border-[#5b595a]"
+        onClick={handleOpen}
+        className="flex items-center gap-[12px] w-full border-2 border-[#323031] rounded-[66px] px-[18px] py-[18px] transition-colors hover:border-[#5b595a]"
       >
         {selected ? (
           <>
@@ -155,14 +167,14 @@ function TutorSelector({
       {open && allTutors.length > 0 && (
         <div
           className="absolute left-0 right-0 bg-cream border-2 border-[#323031] rounded-[24px] overflow-auto z-20 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          style={{ top: 'calc(100% + 8px)', maxHeight: '220px', boxShadow: '0 4px 24px rgba(0,0,0,0.14)' }}
+          style={{ top: 'calc(100% + 8px)', maxHeight: dropdownMaxH, boxShadow: '0 4px 24px rgba(0,0,0,0.14)' }}
         >
           {allTutors.map((tutor, i) => (
             <button
               key={tutor.id}
               type="button"
               onClick={() => { onChange(tutor); setOpen(false) }}
-              className="flex items-center gap-[12px] w-full px-[24px] py-[14px] hover:bg-[#f5f3d8] transition-colors text-left"
+              className="flex items-center gap-[12px] w-full px-[18px] py-[18px] hover:bg-[#f5f3d8] transition-colors text-left"
               style={{
                 borderRadius: i === 0 ? '22px 22px 0 0' : i === allTutors.length - 1 ? '0 0 22px 22px' : '0',
               }}
@@ -209,7 +221,8 @@ export default function FreeLessonModal({
   const [email,         setEmail]         = useState('')
   const [nameErr,       setNameErr]       = useState(false)
   const [status,        setStatus]        = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
-  const nameRef = useRef<HTMLInputElement>(null)
+  const nameRef   = useRef<HTMLInputElement>(null)
+  const submitRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => setMounted(true), [])
 
@@ -324,6 +337,7 @@ export default function FreeLessonModal({
                 allTutors={allTutors}
                 placeholder={s.tutorPh}
                 onChange={setSelectedTutor}
+                submitRef={submitRef}
               />
             )}
 
@@ -374,6 +388,7 @@ export default function FreeLessonModal({
 
             {/* Submit */}
             <button
+              ref={submitRef}
               type="submit"
               disabled={status === 'loading'}
               className="flex items-center justify-center w-full rounded-[66px] px-[36px] disabled:opacity-60 transition-opacity"

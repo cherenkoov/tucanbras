@@ -185,6 +185,13 @@ body.menu-open main {
   to   { opacity: 1; }
 }
 
+/* ── Button loader — 3 squares sequential scale ─────────────────────────── */
+
+@keyframes btn-dot-pulse {
+  0%, 60%, 100% { transform: scale(1);   opacity: 0.4; }
+  20%           { transform: scale(1.6); opacity: 1;   }
+}
+
 /* ── Custom scrollbar — thin rounded rectangle ───────────────────────────── */
 
 .scrollbar-custom {

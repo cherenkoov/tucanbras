@@ -277,7 +277,7 @@ export default function FreeLessonModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[300] flex flex-col items-center justify-start px-[12px] pt-[190px]"
+      className="fixed inset-0 z-[300] flex flex-col items-center justify-start px-[12px] pt-[60px]"
       style={{ backgroundColor: 'rgba(0,0,0,0.52)', backdropFilter: 'blur(6px)', animation: 'backdrop-in 0.25s ease' }}
       onClick={onClose}
     >
@@ -384,12 +384,29 @@ export default function FreeLessonModal({
                 boxShadow: '0px 1px 4px 0px rgba(0,0,0,0.18), inset 0px 1px 2px 0px rgba(255,255,255,0.18)',
               }}
             >
-              <span
-                className="font-sans font-bold text-cream"
-                style={{ fontSize: 'clamp(18px, 2vw, 28px)', lineHeight: '1' }}
-              >
-                {status === 'loading' ? '…' : s.submit}
-              </span>
+              {status === 'loading' ? (
+                <div className="flex items-center gap-[8px]">
+                  {[0, 1, 2].map(i => (
+                    <span
+                      key={i}
+                      className="block bg-cream rounded-[4px]"
+                      style={{
+                        width: '10px',
+                        height: '10px',
+                        animation: `btn-dot-pulse 1.2s ease-in-out infinite`,
+                        animationDelay: `${i * 0.2}s`,
+                      }}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <span
+                  className="font-sans font-bold text-cream"
+                  style={{ fontSize: 'clamp(18px, 2vw, 28px)', lineHeight: '1' }}
+                >
+                  {s.submit}
+                </span>
+              )}
             </button>
 
           </form>

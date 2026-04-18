@@ -48,7 +48,7 @@ function TutorSelector({
   allTutors:   TutorRef[]
   placeholder: string
   onChange:    (t: TutorRef) => void
-  submitRef:   React.RefObject<HTMLButtonElement>
+  submitRef:   React.RefObject<HTMLButtonElement | null>
 }) {
   const [open,          setOpen]          = useState(false)
   const [dropdownMaxH,  setDropdownMaxH]  = useState(220)
@@ -172,7 +172,7 @@ export default function FreeLessonModal({
   const [emailErr,      setEmailErr]      = useState(false)
   const [status,        setStatus]        = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const nameRef   = useRef<HTMLInputElement>(null)
-  const submitRef = useRef<HTMLButtonElement>(null)
+  const submitRef = useRef<HTMLButtonElement | null>(null)
 
   useEffect(() => setMounted(true), [])
 

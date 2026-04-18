@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState, useCallback } from 'react'
+import { useRef, useState } from 'react'
 import type { TutorsProps, Locale, FreeLessonModalStrings } from '@/types'
 import type { Tutor } from '@/lib/tutors'
 import { getStubTutors } from '@/lib/tutorStubs'
@@ -21,31 +21,13 @@ function TutorCard({
 }) {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
   const [hovered,  setHovered]  = useState(false)
-  const touchStart = useRef<{ x: number; y: number } | null>(null)
-
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
-  }, [])
-
-  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (!touchStart.current) return
-    const dx = Math.abs(e.changedTouches[0].clientX - touchStart.current.x)
-    const dy = Math.abs(e.changedTouches[0].clientY - touchStart.current.y)
-    touchStart.current = null
-    // Only treat as tap if finger barely moved — otherwise it's a scroll gesture
-    if (dx < 5 && dy < 5) {
-      e.preventDefault()
-      onSelect()
-    }
-  }, [onSelect])
 
   return (
-    <div
-      className="relative flex flex-col w-full max-w-[410px] mx-auto cursor-pointer select-none active:opacity-80 lg:active:opacity-100 transition-opacity"
-      style={{ touchAction: 'manipulation' }}
+    <button
+      type="button"
       onClick={onSelect}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
+      className="relative flex flex-col w-full max-w-[410px] mx-auto cursor-pointer select-none active:opacity-80 lg:active:opacity-100 transition-opacity bg-transparent border-0 p-0 text-left"
+      style={{ touchAction: 'manipulation' }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onMouseMove={e => {
@@ -179,7 +161,7 @@ function TutorCard({
         style={{ opacity: 0, transition: 'opacity 0.1s' }}
       />
 
-    </div>
+    </button>
   )
 }
 

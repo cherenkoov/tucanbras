@@ -156,6 +156,7 @@ export interface FooterData {
   formEmailPlaceholder: string;
   formContactError: string;       // shown when neither telegram nor email is filled
   formEmailError: string;         // shown when email format is invalid
+  formErrorMsg: string;           // shown when submit request fails
   formSubmitText: string;
   brandDescription: string;
   legalTitle: string;

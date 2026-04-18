@@ -242,6 +242,11 @@ export async function getFooterData(locale: Locale): Promise<FooterData> {
     en: 'Please enter a valid email',
     pt: 'Por favor, insira um email válido',
   }
+  const FOOTER_ERROR_MSG: Record<Locale, string> = {
+    ru: 'Ошибка отправки. Попробуй ещё раз.',
+    en: 'Send error. Please try again.',
+    pt: 'Erro ao enviar. Tente novamente.',
+  }
 
   if (!footerRow) return {
     formTitle: '', formNamePlaceholder: '',
@@ -250,6 +255,7 @@ export async function getFooterData(locale: Locale): Promise<FooterData> {
     formEmailPlaceholder: FOOTER_EMAIL_PH[locale],
     formContactError:     FOOTER_CONTACT_ERROR[locale],
     formEmailError:       FOOTER_EMAIL_ERROR[locale],
+    formErrorMsg:         FOOTER_ERROR_MSG[locale],
     formSubmitText: '', brandDescription: '', legalTitle: '',
     copyright: '', allRightsReserved: '',
     policyLinks,
@@ -266,6 +272,7 @@ export async function getFooterData(locale: Locale): Promise<FooterData> {
     formEmailPlaceholder:    pt(footerRow, 'formEmailPlaceholder') || FOOTER_EMAIL_PH[locale],
     formContactError:        pt(footerRow, 'formContactError')     || FOOTER_CONTACT_ERROR[locale],
     formEmailError:          pt(footerRow, 'formEmailError')       || FOOTER_EMAIL_ERROR[locale],
+    formErrorMsg:            pt(footerRow, 'formErrorMsg')         || FOOTER_ERROR_MSG[locale],
     formSubmitText:          pt(footerRow, 'formSubmitText'),
     brandDescription:        pt(footerRow, 'brandDescription'),
     legalTitle:              pt(footerRow, 'legalTitle'),

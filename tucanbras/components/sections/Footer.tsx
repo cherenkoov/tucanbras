@@ -81,6 +81,7 @@ export default function Footer({ data, tutors, planNames, locale }: FooterProps)
             formEmailPlaceholder={data.formEmailPlaceholder}
             formContactError={data.formContactError}
             formEmailError={data.formEmailError}
+            formErrorMsg={data.formErrorMsg}
             formSubmitText={data.formSubmitText}
             tutors={tutors}
             planNames={planNames}

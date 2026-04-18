@@ -212,6 +212,7 @@ interface Props {
   formEmailPlaceholder:    string
   formContactError:        string
   formEmailError:          string
+  formErrorMsg:            string
   formSubmitText:          string
   tutors:                  TutorRef[]
   planNames:               string[]
@@ -229,6 +230,7 @@ export default function FooterForm({
   formEmailPlaceholder,
   formContactError,
   formEmailError,
+  formErrorMsg,
   formSubmitText,
   tutors,
   planNames,
@@ -397,7 +399,7 @@ export default function FooterForm({
         {emailErr   && <p className="font-sans text-[#f26434] pl-[16px]" style={errorStyle}>{formEmailError}</p>}
         {status === 'error' && (
           <p className="font-sans text-[#f26434] pl-[16px]" style={errorStyle}>
-            {locale === 'ru' ? 'Ошибка отправки. Попробуй ещё раз.' : locale === 'pt' ? 'Erro ao enviar. Tente novamente.' : 'Send error. Please try again.'}
+            {formErrorMsg}
           </p>
         )}
       </div>

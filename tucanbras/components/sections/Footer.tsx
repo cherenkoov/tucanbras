@@ -63,7 +63,7 @@ function FaqAccordion({ group }: { group: FaqGroupType }) {
 
 export default function Footer({ data, tutors, planNames, locale }: FooterProps) {
   return (
-    <footer id="footer" className="w-full">
+    <footer id="footer" className="w-full scroll-mt-[136px] lg:scroll-mt-[147px]">
       {/* ══ Outer green container ══ */}
       <div
         className="flex flex-col max-w-[1720px] mx-auto w-full rounded-[38px] p-[12px]"

@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useRef, useState, useCallback } from 'react'
 import type { TutorsProps, Locale, FreeLessonModalStrings } from '@/types'
 import type { Tutor } from '@/lib/tutors'
 import { getStubTutors } from '@/lib/tutorStubs'
@@ -21,11 +21,31 @@ function TutorCard({
 }) {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
   const [hovered,  setHovered]  = useState(false)
+  const touchStart = useRef<{ x: number; y: number } | null>(null)
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+  }, [])
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!touchStart.current) return
+    const dx = Math.abs(e.changedTouches[0].clientX - touchStart.current.x)
+    const dy = Math.abs(e.changedTouches[0].clientY - touchStart.current.y)
+    touchStart.current = null
+    // Only treat as tap if finger barely moved — otherwise it's a scroll gesture
+    if (dx < 8 && dy < 8) {
+      e.preventDefault()
+      onSelect()
+    }
+  }, [onSelect])
 
   return (
     <div
       className="relative flex flex-col w-full max-w-[410px] mx-auto cursor-pointer select-none active:opacity-80 lg:active:opacity-100 transition-opacity"
+      style={{ touchAction: 'manipulation' }}
       onClick={onSelect}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onMouseMove={e => {
@@ -209,7 +229,7 @@ function TutorCarousel({
         ref={ref}
         onScroll={onScroll}
         className="flex items-center overflow-x-auto snap-x snap-mandatory gap-[12px] px-6"
-        style={{ scrollbarWidth: 'none', scrollPaddingInline: '24px' }}
+        style={{ scrollbarWidth: 'none', scrollPaddingInline: '24px', touchAction: 'pan-x' }}
       >
         {tutors.map((tutor, i) => (
           <div

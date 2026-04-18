@@ -10,6 +10,7 @@ import CelpeBras from '@/components/sections/CelpeBras'
 import Plans from '@/components/sections/Plans'
 import Footer from '@/components/sections/Footer'
 
+import AnchorScrollHandler from '@/components/ui/AnchorScrollHandler'
 import { getTutors } from '@/lib/tutors'
 import { getStubTutors } from '@/lib/tutorStubs'
 import {
@@ -71,6 +72,7 @@ export default async function Home({
 
   return (
     <>
+      <AnchorScrollHandler />
       {/* 1 — fixed, вне main (не блюрится), z-50 */}
       <div className="fixed top-0 left-0 right-0 z-50 pt-[43px] px-s600">
         <Header navLinks={navLinks} />

@@ -1,5 +1,7 @@
 'use client'
 
+import { scrollToElement } from '@/components/ui/AnchorScrollHandler'
+
 interface Props {
   ctaText:   string
   className?: string
@@ -9,7 +11,7 @@ interface Props {
 export default function FreeLessonButton({ ctaText, className, style }: Props) {
   const handleClick = () => {
     const el = document.getElementById('tutors')
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    if (el) scrollToElement(el)
   }
 
   return (

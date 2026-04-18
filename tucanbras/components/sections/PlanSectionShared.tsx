@@ -1,5 +1,6 @@
 'use client'
 
+import { scrollToElement } from '@/components/ui/AnchorScrollHandler'
 import type { PlanCard } from '@/types'
 
 export const BG = [
@@ -70,7 +71,8 @@ export function PlanSection({ plan, index }: { plan: PlanCard; index: number }) 
     const url = new URL(window.location.href)
     url.searchParams.set('plan', plan.name)
     window.history.pushState({}, '', url.toString())
-    document.getElementById('footer')?.scrollIntoView({ behavior: 'smooth' })
+    const footer = document.getElementById('footer')
+    if (footer) scrollToElement(footer)
   }
 
   const priceColor = [

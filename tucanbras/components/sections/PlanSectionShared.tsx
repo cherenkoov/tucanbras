@@ -1,6 +1,5 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
 import type { PlanCard } from '@/types'
 
 export const BG = [
@@ -66,10 +65,11 @@ function FeatureRow({ text, textCream, mobileTextCream, accent }: {
 export function PlanSection({ plan, index }: { plan: PlanCard; index: number }) {
   const cfg    = CONFIG[index]
   const isLast = index === 3
-  const router = useRouter()
 
   const handleCtaClick = () => {
-    router.push(`?plan=${encodeURIComponent(plan.name)}`, { scroll: false })
+    const url = new URL(window.location.href)
+    url.searchParams.set('plan', plan.name)
+    window.history.pushState({}, '', url.toString())
     document.getElementById('footer')?.scrollIntoView({ behavior: 'smooth' })
   }
 

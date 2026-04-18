@@ -9,6 +9,16 @@ import { useEffect } from 'react'
 // scroll-margin-top on each section provides the fixed-header offset.
 export default function AnchorScrollHandler() {
   useEffect(() => {
+    let scrolledRecently = false
+    let scrollTimer: ReturnType<typeof setTimeout>
+
+    const onScroll = () => {
+      scrolledRecently = true
+      clearTimeout(scrollTimer)
+      // Ghost clicks on iOS fire within ~100ms after a scroll gesture ends
+      scrollTimer = setTimeout(() => { scrolledRecently = false }, 150)
+    }
+
     const handleClick = (e: MouseEvent) => {
       const anchor = (e.target as HTMLElement).closest('a[href^="#"]')
       if (!anchor) return
@@ -16,12 +26,20 @@ export default function AnchorScrollHandler() {
       if (!href || href === '#') return
       const el = document.querySelector(href)
       if (!el) return
+      // Always prevent default browser anchor jump
       e.preventDefault()
+      // Ignore ghost clicks that fire right after a scroll gesture on iOS
+      if (scrolledRecently) return
       scrollToElement(el as HTMLElement)
     }
-    // capture:true — fires before iOS Safari processes the anchor navigation
+
+    window.addEventListener('scroll', onScroll, { passive: true })
     document.addEventListener('click', handleClick, { capture: true })
-    return () => document.removeEventListener('click', handleClick, { capture: true })
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      document.removeEventListener('click', handleClick, { capture: true })
+      clearTimeout(scrollTimer)
+    }
   }, [])
 
   return null

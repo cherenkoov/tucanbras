@@ -216,7 +216,7 @@ export default function Header({ navLinks }: HeaderProps) {
         <div className="relative flex items-center justify-between h-full px-0">
 
           {/* Brand — tucan bird + logotype, grouped left */}
-          <div className="relative z-10 flex items-center gap-0 shrink-0 overflow-visible h-full">
+          <a href="#hero" className="relative z-10 flex items-center gap-0 shrink-0 overflow-visible h-full">
             <div className="block lg:hidden h-full"><TucanLogo bodyW={100} /></div>
             <div className="hidden lg:block h-full"><TucanLogo bodyW={135} /></div>
             <span
@@ -226,7 +226,7 @@ export default function Header({ navLinks }: HeaderProps) {
               <span className="min-[460px]:hidden">TUCAN</span>
               <span className="hidden min-[460px]:inline">TucanBRAS</span>
             </span>
-          </div>
+          </a>
 
           {/* Spacer */}
           <div className="flex-1" />

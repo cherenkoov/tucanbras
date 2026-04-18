@@ -3,7 +3,7 @@ import FreeLessonButton from '@/components/ui/FreeLessonButton'
 
 export default function Hero({ data }: HeroProps) {
   return (
-    <section id="hero" className="w-full pt-[80px]">
+    <section id="hero" className="w-full pt-[80px] scroll-mt-[136px] lg:scroll-mt-[147px]">
 
       <div className="max-w-[1720px] mx-auto w-full">
 

@@ -48,7 +48,7 @@ function TutorSelector({
   allTutors:   TutorRef[]
   placeholder: string
   onChange:    (t: TutorRef) => void
-  submitRef:   React.RefObject<HTMLButtonElement | null>
+  submitRef:   React.RefObject<HTMLButtonElement>
 }) {
   const [open,          setOpen]          = useState(false)
   const [dropdownMaxH,  setDropdownMaxH]  = useState(220)

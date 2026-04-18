@@ -48,7 +48,7 @@ export default function AnchorScrollHandler() {
 // ─── Scroll speed ────────────────────────────────────────────────────────────
 // Adjust SCROLL_DURATION_MS to control scroll speed (milliseconds).
 // Lower = faster, higher = slower. Typical range: 400–1200.
-const SCROLL_DURATION_MS = 800
+const SCROLL_DURATION_MS = 1200
 
 const easeInOutCubic = (t: number) =>
   t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2

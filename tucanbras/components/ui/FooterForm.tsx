@@ -242,6 +242,16 @@ export default function FooterForm({
   const [telegram,      setTelegram]      = useState('')
   const [email,         setEmail]         = useState('')
 
+  useEffect(() => {
+    const plan = new URLSearchParams(window.location.search).get('plan')
+    if (plan && planNames.includes(plan)) {
+      setSelectedPlan(plan)
+      const url = new URL(window.location.href)
+      url.searchParams.delete('plan')
+      window.history.replaceState({}, '', url.toString())
+    }
+  }, [])
+
   const [nameErr,     setNameErr]     = useState(false)
   const [tutorErr,    setTutorErr]    = useState(false)
   const [planErr,     setPlanErr]     = useState(false)

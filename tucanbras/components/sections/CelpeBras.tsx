@@ -108,7 +108,7 @@ export default function CelpeBras({ data }: CelpeBrasProps) {
 
           {/* CTA button */}
           <a
-            href={data.ctaHref} // TODO: TBD
+            href="#footer"
             className="flex items-center justify-center rounded-[66px] px-[44px] w-full lg:w-auto lg:min-w-[400px]"
             style={{
               backgroundColor: '#8fd096',

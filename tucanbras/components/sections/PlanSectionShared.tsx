@@ -1,3 +1,6 @@
+'use client'
+
+import { useRouter } from 'next/navigation'
 import type { PlanCard } from '@/types'
 
 export const BG = [
@@ -61,8 +64,14 @@ function FeatureRow({ text, textCream, mobileTextCream, accent }: {
 }
 
 export function PlanSection({ plan, index }: { plan: PlanCard; index: number }) {
-  const cfg = CONFIG[index]
+  const cfg    = CONFIG[index]
   const isLast = index === 3
+  const router = useRouter()
+
+  const handleCtaClick = () => {
+    router.push(`?plan=${encodeURIComponent(plan.name)}`, { scroll: false })
+    document.getElementById('footer')?.scrollIntoView({ behavior: 'smooth' })
+  }
 
   const priceColor = [
     cfg.mobileTextCream ? 'text-cream' : 'text-ink',
@@ -134,9 +143,10 @@ export function PlanSection({ plan, index }: { plan: PlanCard; index: number }) 
             ))}
           </div>
 
-          <a
-            href={plan.ctaHref}
-            className="flex items-center justify-center w-full overflow-hidden rounded-[28px]"
+          <button
+            type="button"
+            onClick={handleCtaClick}
+            className="flex items-center justify-center w-full overflow-hidden rounded-[28px] cursor-pointer"
             style={{
               backgroundColor: cfg.accent,
               paddingTop: '32px',
@@ -152,7 +162,7 @@ export function PlanSection({ plan, index }: { plan: PlanCard; index: number }) 
             >
               {plan.ctaText}
             </span>
-          </a>
+          </button>
         </div>
       </div>
     </div>

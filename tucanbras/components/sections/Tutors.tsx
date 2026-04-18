@@ -1,23 +1,10 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import type { TutorsProps, Locale } from '@/types'
+import type { TutorsProps, Locale, FreeLessonModalStrings } from '@/types'
 import type { Tutor } from '@/lib/tutors'
-import FreeLessonModal from '@/components/FreeLessonModal'
-
-// ─── Localised labels ─────────────────────────────────────────────────────────
-
-const SPEC_LABEL: Record<Locale, string> = {
-  ru: 'Специализации',
-  en: 'Specializations',
-  pt: 'Especializações',
-}
-
-const SELECT_LABEL: Record<Locale, string> = {
-  ru: 'Выбрать',
-  en: 'Select',
-  pt: 'Selecionar',
-}
+import { getStubTutors } from '@/lib/tutorStubs'
+import FreeLessonModal from '@/components/ui/FreeLessonModal'
 
 // ─── Tutor card ──────────────────────────────────────────────────────────────
 
@@ -270,55 +257,18 @@ function TutorCarousel({
   )
 }
 
-// ─── Stub cards ───────────────────────────────────────────────────────────────
-
-const STUB_DATA: Record<Locale, { fullName: string; quote: string; specializations: string[] }[]> = {
-  ru: [
-    { fullName: 'Жоау Педро Алмейда',           quote: 'Мои уроки спокойные и структурные. Помогаю навести порядок в голове и наконец понять, как работает грамматика.', specializations: ['Грамматика', 'Для A1'] },
-    { fullName: 'Мария Фернанда Соуза да Силва', quote: 'Объясняю просто и без занудства. Люблю примеры из реальной жизни в Бразилии и живую речь, а не учебниковый пластик.', specializations: ['Разговорная практика'] },
-    { fullName: 'Ана Каролина Рибейру Кошта',    quote: 'Делаю упор на уверенную речь и правильное произношение. Исправляю мягко, но эффективно.', specializations: ['Постановка произношения', 'Разговорная практика'] },
-    { fullName: 'Лукас Матеус Перейра да Роша',  quote: 'Готовлю к жизни, работе и реальным ситуациям. Минимум воды, максимум полезного языка.', specializations: ['Бразильский для работы', 'Деловая коммуникация'] },
-    { fullName: 'Рената Лима Фигейреду',         quote: 'Помогаю подготовиться к экзаменам без паники. Чётко объясняю формат, требования и типичные ошибки.', specializations: ['Письменная речь', 'Подготовка к CELPE-BRAS'] },
-  ],
-  en: [
-    { fullName: 'João Pedro Almeida',            quote: 'My lessons are calm and structured. I help you clear up confusion and finally understand how the grammar works.', specializations: ['Grammar', 'For A1'] },
-    { fullName: 'Maria Fernanda Souza da Silva',  quote: 'I explain simply and without boring theory. I love real-life examples from Brazil and natural speech over textbook language.', specializations: ['Conversational Practice'] },
-    { fullName: 'Ana Carolina Ribeiro Costa',     quote: 'I focus on confident speech and correct pronunciation. I correct you gently but effectively.', specializations: ['Pronunciation', 'Conversational Practice'] },
-    { fullName: 'Lucas Mateus Pereira da Rocha',  quote: 'I prepare you for real life, work, and everyday situations. Minimum filler, maximum useful language.', specializations: ['Brazilian for Work', 'Business Communication'] },
-    { fullName: 'Renata Lima Figueiredo',         quote: 'I help you prepare for exams without the panic. I clearly explain the format, requirements, and common mistakes.', specializations: ['Written Skills', 'CELPE-BRAS Prep'] },
-  ],
-  pt: [
-    { fullName: 'João Pedro Almeida',            quote: 'Minhas aulas são calmas e estruturadas. Ajudo você a organizar as ideias e finalmente entender como a gramática funciona.', specializations: ['Gramática', 'Para A1'] },
-    { fullName: 'Maria Fernanda Souza da Silva',  quote: 'Explico de forma simples e sem enrolação. Gosto de exemplos da vida real no Brasil e da fala natural, não do plástico dos livros didáticos.', specializations: ['Prática Conversacional'] },
-    { fullName: 'Ana Carolina Ribeiro Costa',     quote: 'Foco na fala segura e na pronúncia correta. Corrijo com suavidade, mas com eficácia.', specializations: ['Pronúncia', 'Prática Conversacional'] },
-    { fullName: 'Lucas Mateus Pereira da Rocha',  quote: 'Preparo para a vida, o trabalho e situações reais. Mínimo de enrolação, máximo de linguagem útil.', specializations: ['Português para o Trabalho', 'Comunicação Empresarial'] },
-    { fullName: 'Renata Lima Figueiredo',         quote: 'Ajudo a se preparar para os exames sem pânico. Explico claramente o formato, os requisitos e os erros comuns.', specializations: ['Escrita', 'Preparação para o CELPE-BRAS'] },
-  ],
-}
-
-const STUB_BASE: Omit<Tutor, 'fullName' | 'quote' | 'specializations'>[] = [
-  { id: 1, imageUrl: '/tutors/avatars/joau.png',   languages: [{ code: 'pt-BR', name: 'Português', flagPath: '/flags/brazil.png' }, { code: 'ru', name: 'Русский', flagPath: '/flags/russia.png' }], interests: [] },
-  { id: 2, imageUrl: '/tutors/avatars/maria.png',  languages: [{ code: 'pt-BR', name: 'Português', flagPath: '/flags/brazil.png' }, { code: 'ru', name: 'Русский', flagPath: '/flags/russia.png' }], interests: [] },
-  { id: 3, imageUrl: '/tutors/avatars/ana.png',    languages: [{ code: 'pt-BR', name: 'Português', flagPath: '/flags/brazil.png' }, { code: 'en', name: 'English', flagPath: '/flags/usa.png'    }], interests: [] },
-  { id: 4, imageUrl: '/tutors/avatars/lucas.png',  languages: [{ code: 'pt-BR', name: 'Português', flagPath: '/flags/brazil.png' }, { code: 'en', name: 'English', flagPath: '/flags/usa.png'    }, { code: 'ru', name: 'Русский', flagPath: '/flags/russia.png' }], interests: [] },
-  { id: 5, imageUrl: '/tutors/avatars/renate.png', languages: [{ code: 'pt-BR', name: 'Português', flagPath: '/flags/brazil.png' }, { code: 'en', name: 'English', flagPath: '/flags/usa.png'    }, { code: 'ru', name: 'Русский', flagPath: '/flags/russia.png' }], interests: [] },
-]
-
-function getStubTutors(locale: Locale): Tutor[] {
-  return STUB_BASE.map((base, i) => ({ ...base, ...STUB_DATA[locale][i] }))
-}
-
 // ─── Main component ───────────────────────────────────────────────────────────
 
 interface TutorsSectionProps {
-  data:    TutorsProps['data']
-  tutors:  Tutor[]
-  locale:  Locale
+  data:         TutorsProps['data']
+  tutors:       Tutor[]
+  locale:       Locale
+  modalStrings: FreeLessonModalStrings
 }
 
-export default function Tutors({ data, tutors, locale }: TutorsSectionProps) {
-  const specializationsLabel = SPEC_LABEL[locale]
-  const selectLabel          = SELECT_LABEL[locale]
+export default function Tutors({ data, tutors, locale, modalStrings }: TutorsSectionProps) {
+  const specializationsLabel = data.specLabel
+  const selectLabel          = data.selectLabel
   const displayTutors        = tutors.length > 0 ? tutors : getStubTutors(locale)
 
   const [modalOpen,     setModalOpen]     = useState(false)
@@ -330,7 +280,7 @@ export default function Tutors({ data, tutors, locale }: TutorsSectionProps) {
   }
 
   return (
-    <section id="tutors" className="w-full py-[80px]">
+    <section id="tutors" className="w-full scroll-mt-[136px] lg:scroll-mt-[147px]">
       <div className="flex flex-col gap-[64px] lg:gap-[80px] max-w-[1720px] mx-auto w-full">
 
         {/* ══ Headings row ══ */}
@@ -393,6 +343,7 @@ export default function Tutors({ data, tutors, locale }: TutorsSectionProps) {
       <FreeLessonModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
+        strings={modalStrings}
         locale={locale}
         initialTutor={selectedTutor}
         allTutors={displayTutors.map(t => ({

@@ -24,8 +24,8 @@ function XMark() {
 
 export default function Comparison({ data }: ComparisonProps) {
   return (
-    <section id="comparison" className="w-full">
-      <div className="flex flex-col gap-[64px] lg:gap-[100px] items-center max-w-[1720px] mx-auto w-full pt-[80px]">
+    <section id="comparison" className="w-full scroll-mt-[136px] lg:scroll-mt-[147px]">
+      <div className="flex flex-col gap-[64px] lg:gap-[100px] items-center max-w-[1720px] mx-auto w-full">
 
         {/* ══ Heading ══ */}
         <h2

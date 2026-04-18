@@ -1,9 +1,9 @@
 import type { HeroProps } from "@/types";
-import FreeLessonButton from '@/components/FreeLessonButton'
+import FreeLessonButton from '@/components/ui/FreeLessonButton'
 
 export default function Hero({ data }: HeroProps) {
   return (
-    <section id="hero" className="w-full pt-[80px] pb-[80px]">
+    <section id="hero" className="w-full pt-[80px]">
 
       <div className="max-w-[1720px] mx-auto w-full">
 

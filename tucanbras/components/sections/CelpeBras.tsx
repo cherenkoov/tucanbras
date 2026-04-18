@@ -1,5 +1,5 @@
 import { CelpeBrasProps } from '@/types'
-import CelpeBrasStack from '@/components/CelpeBrasStack'
+import CelpeBrasStack from '@/components/sections/CelpeBrasStack'
 
 // ─── Static card config (icon + bg color — not from CMS) ─────────────────────
 const CARD_CONFIG = [
@@ -43,7 +43,7 @@ export default function CelpeBras({ data }: CelpeBrasProps) {
   const [c0, c1, c2, c3, c4] = data.cards
 
   return (
-    <section id="celpe-bras" className="w-full">
+    <section id="celpe-bras" className="w-full scroll-mt-[136px] lg:scroll-mt-[147px]">
       <div className="flex flex-col gap-[64px] max-w-[1720px] mx-auto w-full">
 
         {/* ══ Heading ══ */}

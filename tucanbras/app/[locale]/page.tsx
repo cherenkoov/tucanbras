@@ -11,6 +11,7 @@ import Plans from '@/components/sections/Plans'
 import Footer from '@/components/sections/Footer'
 
 import { getTutors } from '@/lib/tutors'
+import { getStubTutors } from '@/lib/tutorStubs'
 import {
   getHeaderData,
   getHeroData,
@@ -20,6 +21,7 @@ import {
   getCelpeBrasData,
   getPlansData,
   getFooterData,
+  getFreeLessonModalData,
 } from '@/lib/notion'
 
 // Anchor hrefs are structural — labels come from Notion
@@ -46,6 +48,7 @@ export default async function Home({
     plansData,
     footerData,
     tutors,
+    modalStrings,
   ] = await Promise.all([
     getHeaderData(locale),
     getHeroData(locale),
@@ -56,7 +59,10 @@ export default async function Home({
     getPlansData(locale),
     getFooterData(locale),
     getTutors(locale).catch(() => []),
+    getFreeLessonModalData(locale),
   ])
+
+  const displayTutors = tutors.length > 0 ? tutors : getStubTutors(locale)
 
   const navLinks = NAV_HREFS.map((href, i) => ({
     href,
@@ -71,20 +77,27 @@ export default async function Home({
       </div>
       {/* Компенсация высоты fixed хедера */}
       <main className="px-s600 pt-[128px] lg:pt-[139px]">
-        {/* 2 */}
-        <Hero data={heroData} />
-        {/* 3 */}
-        <About data={aboutData} />
-        {/* 4 */}
-        <Comparison data={comparisonData} />
-        {/* 5 */}
-        <Tutors data={tutorsData} tutors={tutors} locale={locale} />
-        {/* 6 */}
-        <CelpeBras data={celpeBrasData} />
-        {/* 7 */}
-        <Plans data={plansData} />
-        {/* 8 */}
-        <Footer data={footerData} />
+        <div className="flex flex-col gap-[80px]">
+          {/* 2 */}
+          <Hero data={heroData} />
+          {/* 3 */}
+          <About data={aboutData} />
+          {/* 4 */}
+          <Comparison data={comparisonData} />
+          {/* 5 */}
+          <Tutors data={tutorsData} tutors={tutors} locale={locale} modalStrings={modalStrings} />
+          {/* 6 */}
+          <CelpeBras data={celpeBrasData} />
+          {/* 7 */}
+          <Plans data={plansData} />
+          {/* 8 */}
+          <Footer
+              data={footerData}
+              tutors={displayTutors}
+              planNames={[footerData.formFreeLessonOption, ...plansData.plans.map(p => p.name)]}
+              locale={locale}
+            />
+        </div>
       </main>
     </>
   )

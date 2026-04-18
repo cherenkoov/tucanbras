@@ -1,12 +1,12 @@
 import type { PlansProps } from '@/types'
-import { PlanSection } from '@/components/PlanSectionShared'
-import PlansStack from '@/components/PlansStack'
+import { PlanSection } from '@/components/sections/PlanSectionShared'
+import PlansStack from '@/components/sections/PlansStack'
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function Plans({ data }: PlansProps) {
   return (
-    <section id="plans" className="w-full">
+    <section id="plans" className="w-full scroll-mt-[136px] lg:scroll-mt-[147px]">
       <div className="flex flex-col gap-[60px] max-w-[1720px] mx-auto w-full lg:overflow-hidden rounded-[28px]"
         style={{}}
       >

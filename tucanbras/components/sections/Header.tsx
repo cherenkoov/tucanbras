@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import type { HeaderProps } from '@/types'
-import LanguageSwitcher from '@/components/LanguageSwitcher'
+import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
 
 
 // Nav pill colors — index-matched to NAV_LINKS order, uses CSS tokens from globals.css

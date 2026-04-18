@@ -3,6 +3,13 @@
 
 export type Locale = 'ru' | 'en' | 'pt'
 
+// ─── Shared ──────────────────────────────────────────────────────────────────
+export interface TutorRef {
+  id:       number
+  fullName: string
+  imageUrl: string | null
+}
+
 // ─── 1. Header ───────────────────────────────────────────────────────────────
 export interface NavLink {
   label: string;
@@ -68,6 +75,24 @@ export interface TutorsData {
   description: string;
   ctaText: string;
   ctaHref: string; // TODO: TBD
+  specLabel: string;   // "Специализации" / "Specializations" / "Especializações"
+  selectLabel: string; // "Выбрать" / "Select" / "Selecionar"
+}
+
+// ─── FreeLessonModal strings ──────────────────────────────────────────────────
+export interface FreeLessonModalStrings {
+  title: string;
+  tutorPh: string;
+  namePh: string;
+  telegramPh: string;
+  emailPh: string;
+  submit: string;
+  successMsg: string;
+  errorMsg: string;
+  nameError: string;
+  telegramError: string;
+  contactError: string; // shown when neither telegram nor email is filled
+  emailError: string;   // shown when email format is invalid
 }
 
 export interface TutorsProps {
@@ -124,7 +149,13 @@ export interface FaqGroup {
 export interface FooterData {
   formTitle: string;
   formNamePlaceholder: string;
+  formTutorPlaceholder: string;
+  formPlanPlaceholder: string;
+  formFreeLessonOption: string;   // "Пробный урок" — first option in plan dropdown
   formTelegramPlaceholder: string;
+  formEmailPlaceholder: string;
+  formContactError: string;       // shown when neither telegram nor email is filled
+  formEmailError: string;         // shown when email format is invalid
   formSubmitText: string;
   brandDescription: string;
   legalTitle: string;
@@ -137,4 +168,7 @@ export interface FooterData {
 
 export interface FooterProps {
   data: FooterData;
+  tutors: TutorRef[];
+  planNames: string[];  // formFreeLessonOption prepended, then plan names from Notion
+  locale: string;
 }

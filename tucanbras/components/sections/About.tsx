@@ -12,7 +12,7 @@ const IMG_HIBISCUS_DOWN    = '/about/hibiscus-down.svg'
 
 export default function About({ data }: AboutProps) {
   return (
-    <section id="about" className="w-full">
+    <section id="about" className="w-full scroll-mt-[136px] lg:scroll-mt-[147px]">
       <div
         className="
           flex flex-col gap-[12px] overflow-visible lg:overflow-clip
@@ -102,7 +102,7 @@ export default function About({ data }: AboutProps) {
 
                 {/* CTA button */}
                 <a
-                  href={data.ctaHref} // TODO: TBD
+                  href="#comparison"
                   className="relative flex items-center justify-center w-full overflow-hidden rounded-[66px]"
                   style={{
                     backgroundColor: '#f26434',

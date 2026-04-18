@@ -4,6 +4,7 @@ import type {
   Locale,
   HeaderData, HeroData, AboutData, ComparisonData,
   TutorsData, CelpeBrasData, PlansData, FooterData,
+  FreeLessonModalStrings,
 } from '@/types'
 
 // ─── Client ──────────────────────────────────────────────────────────────────
@@ -14,15 +15,16 @@ const notion = new Client({ auth: process.env.NOTION_TOKEN })
 // Use collection IDs (not database page IDs) for dataSources.query in v5+
 
 const DS = {
-  header:     'ca0467db-b849-4f50-9b84-674552459190',
-  hero:       '85488e04-ab91-4ab6-ae75-036a3b8bba8b',
-  about:      '57379dbf-0c6b-4e41-ae6b-130255c6d6e9',
-  comparison: '59456564-1b8f-47c0-9d81-69746fbd8252',
-  tutors:     '111e5c3d-c6be-486e-a1d1-0d7b846873fd',
-  celpeBras:  '767b519e-e318-4e02-b64f-c08f4b3957b1',
-  footer:     '04e13201-1cbb-445a-ae3b-d2b8daf31fc5',
-  plans:      '5e15c263-ca6e-43d5-84cd-302b8ddabea0',
-  faq:        '3ec80b2a-3d65-4d5d-aabf-b061efbb2eb3',
+  header:          'ca0467db-b849-4f50-9b84-674552459190',
+  hero:            '85488e04-ab91-4ab6-ae75-036a3b8bba8b',
+  about:           '57379dbf-0c6b-4e41-ae6b-130255c6d6e9',
+  comparison:      '59456564-1b8f-47c0-9d81-69746fbd8252',
+  tutors:          '111e5c3d-c6be-486e-a1d1-0d7b846873fd',
+  celpeBras:       '767b519e-e318-4e02-b64f-c08f4b3957b1',
+  footer:          '04e13201-1cbb-445a-ae3b-d2b8daf31fc5',
+  plans:           '5e15c263-ca6e-43d5-84cd-302b8ddabea0',
+  faq:             '3ec80b2a-3d65-4d5d-aabf-b061efbb2eb3',
+  freeLessonModal: 'da396f0c-6aac-4da7-b5ee-609567e091db',
 }
 
 // ─── Query helpers ────────────────────────────────────────────────────────────
@@ -113,13 +115,51 @@ export async function getComparisonData(locale: Locale): Promise<ComparisonData>
 
 export async function getTutorsData(locale: Locale): Promise<TutorsData> {
   const [row] = await queryLocale(DS.tutors, locale)
-  if (!row) return { heading1: '', heading2: '', description: '', ctaText: '', ctaHref: '#' }
+  if (!row) return { heading1: '', heading2: '', description: '', ctaText: '', ctaHref: '#', specLabel: '', selectLabel: '' }
   return {
     heading1:    pt(row, 'heading1'),
     heading2:    pt(row, 'heading2'),
     description: pt(row, 'description'),
     ctaText:     pt(row, 'ctaText'),
     ctaHref:     '#',
+    specLabel:   pt(row, 'specLabel'),
+    selectLabel: pt(row, 'selectLabel'),
+  }
+}
+
+const CONTACT_ERROR_FALLBACK: Record<Locale, string> = {
+  ru: 'Укажите Telegram или email',
+  en: 'Please enter Telegram or email',
+  pt: 'Por favor, informe o Telegram ou email',
+}
+const EMAIL_ERROR_FALLBACK: Record<Locale, string> = {
+  ru: 'Введите корректный email',
+  en: 'Please enter a valid email',
+  pt: 'Por favor, insira um email válido',
+}
+
+export async function getFreeLessonModalData(locale: Locale): Promise<FreeLessonModalStrings> {
+  const [row] = await queryLocale(DS.freeLessonModal, locale)
+  if (!row) return {
+    title: '', tutorPh: '', namePh: '', telegramPh: '',
+    emailPh: '', submit: '', successMsg: '', errorMsg: '',
+    nameError: '', telegramError: '',
+    contactError: CONTACT_ERROR_FALLBACK[locale],
+    emailError:   EMAIL_ERROR_FALLBACK[locale],
+  }
+  return {
+    title:         pt(row, 'title'),
+    tutorPh:       pt(row, 'tutorPh'),
+    namePh:        pt(row, 'namePh'),
+    telegramPh:    pt(row, 'telegramPh'),
+    emailPh:       pt(row, 'emailPh'),
+    submit:        pt(row, 'submit'),
+    successMsg:    pt(row, 'successMsg'),
+    errorMsg:      pt(row, 'errorMsg'),
+    nameError:     pt(row, 'nameError'),
+    telegramError: pt(row, 'telegramError'),
+    contactError:  pt(row, 'contactError') || CONTACT_ERROR_FALLBACK[locale],
+    emailError:    pt(row, 'emailError')   || EMAIL_ERROR_FALLBACK[locale],
   }
 }
 
@@ -169,15 +209,8 @@ export async function getFooterData(locale: Locale): Promise<FooterData> {
   }
   const faqGroups = Array.from(groupMap.values())
 
-  const POLICY_LABELS: Record<Locale, string[]> = {
-    ru: ['Пользовательское соглашение', 'Политика конфиденциальности', 'Условия оплаты', 'Обработка персональных данных'],
-    en: ['Terms of Use', 'Privacy Policy', 'Payment Terms', 'Personal Data Processing'],
-    pt: ['Termos de Uso', 'Política de Privacidade', 'Condições de Pagamento', 'Processamento de Dados Pessoais'],
-  }
-
   const base = {
     faqGroups,
-    policyLinks: POLICY_LABELS[locale].map(label => ({ label, href: '#' })),
     socialLinks: [
       { label: 'Telegram',  href: '#', iconUrl: '/footer/telegram.svg'  },
       { label: 'Instagram', href: '#', iconUrl: '/footer/instagram.svg' },
@@ -185,22 +218,60 @@ export async function getFooterData(locale: Locale): Promise<FooterData> {
     ],
   }
 
+  const policyLinks = footerRow
+    ? [
+        { label: pt(footerRow, 'policyTerms'),        href: '#' },
+        { label: pt(footerRow, 'policyPrivacy'),       href: '#' },
+        { label: pt(footerRow, 'policyPayment'),       href: '#' },
+        { label: pt(footerRow, 'policyPersonalData'),  href: '#' },
+      ].filter(l => l.label)
+    : []
+
+  const FOOTER_CONTACT_ERROR: Record<Locale, string> = {
+    ru: 'Укажите Telegram или email',
+    en: 'Please enter Telegram or email',
+    pt: 'Por favor, informe o Telegram ou email',
+  }
+  const FOOTER_EMAIL_PH: Record<Locale, string> = {
+    ru: 'Email (необязательно)',
+    en: 'Email (optional)',
+    pt: 'Email (opcional)',
+  }
+  const FOOTER_EMAIL_ERROR: Record<Locale, string> = {
+    ru: 'Введите корректный email',
+    en: 'Please enter a valid email',
+    pt: 'Por favor, insira um email válido',
+  }
+
   if (!footerRow) return {
-    formTitle: '', formNamePlaceholder: '', formTelegramPlaceholder: '',
+    formTitle: '', formNamePlaceholder: '',
+    formTutorPlaceholder: '', formPlanPlaceholder: '', formFreeLessonOption: '',
+    formTelegramPlaceholder: '',
+    formEmailPlaceholder: FOOTER_EMAIL_PH[locale],
+    formContactError:     FOOTER_CONTACT_ERROR[locale],
+    formEmailError:       FOOTER_EMAIL_ERROR[locale],
     formSubmitText: '', brandDescription: '', legalTitle: '',
     copyright: '', allRightsReserved: '',
+    policyLinks,
     ...base,
   }
 
   return {
     formTitle:               pt(footerRow, 'formTitle'),
     formNamePlaceholder:     pt(footerRow, 'formNamePlaceholder'),
+    formTutorPlaceholder:    pt(footerRow, 'formTutorPlaceholder'),
+    formPlanPlaceholder:     pt(footerRow, 'formPlanPlaceholder'),
+    formFreeLessonOption:    pt(footerRow, 'formFreeLessonOption'),
     formTelegramPlaceholder: pt(footerRow, 'formTelegramPlaceholder'),
+    formEmailPlaceholder:    pt(footerRow, 'formEmailPlaceholder') || FOOTER_EMAIL_PH[locale],
+    formContactError:        pt(footerRow, 'formContactError')     || FOOTER_CONTACT_ERROR[locale],
+    formEmailError:          pt(footerRow, 'formEmailError')       || FOOTER_EMAIL_ERROR[locale],
     formSubmitText:          pt(footerRow, 'formSubmitText'),
     brandDescription:        pt(footerRow, 'brandDescription'),
     legalTitle:              pt(footerRow, 'legalTitle'),
     copyright:               pt(footerRow, 'copyright'),
     allRightsReserved:       pt(footerRow, 'allRightsReserved'),
+    policyLinks,
     ...base,
   }
 }

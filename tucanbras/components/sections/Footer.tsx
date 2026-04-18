@@ -1,5 +1,6 @@
 import type { FooterProps, FaqGroup as FaqGroupType } from '@/types'
-import LanguageSwitcher from '@/components/LanguageSwitcher'
+import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
+import FooterForm from '@/components/ui/FooterForm'
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
 const IMG_LOGO      = '/footer/TUCANBRAS.svg'
@@ -60,7 +61,7 @@ function FaqAccordion({ group }: { group: FaqGroupType }) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function Footer({ data }: FooterProps) {
+export default function Footer({ data, tutors, planNames, locale }: FooterProps) {
   return (
     <footer id="footer" className="w-full">
       {/* ══ Outer green container ══ */}
@@ -71,59 +72,20 @@ export default function Footer({ data }: FooterProps) {
 
         {/* ══ Form card ══ */}
         <div className="relative z-[4] pb-[12px]">
-          <form
-            className="bg-cream rounded-[26px] p-[36px] flex flex-col gap-[24px]"
-            action="#" // TODO: TBD — form submission handler
-          >
-            {/* Title */}
-            <div className="px-[8px]">
-              <p
-                className="font-heading font-medium text-ink"
-                style={{ fontSize: 'clamp(36px, 5vw, 72px)', lineHeight: '1.13' }}
-              >
-                {data.formTitle}
-              </p>
-            </div>
-
-            {/* Inputs */}
-            <div className="flex flex-col gap-[24px]">
-              <label className="border-2 border-[#323031] rounded-[66px] px-[32px] py-[24px] block">
-                <input
-                  type="text"
-                  name="name"
-                  placeholder={data.formNamePlaceholder}
-                  className="w-full bg-transparent font-heading font-normal text-ink placeholder:text-ink outline-none"
-                  style={{ fontSize: 'clamp(20px, 2.5vw, 32px)', lineHeight: '36px' }}
-                />
-              </label>
-              <label className="border-2 border-[#323031] rounded-[66px] px-[32px] py-[24px] block">
-                <input
-                  type="text"
-                  name="telegram"
-                  placeholder={data.formTelegramPlaceholder}
-                  className="w-full bg-transparent font-heading font-normal text-ink placeholder:text-ink outline-none"
-                  style={{ fontSize: 'clamp(20px, 2.5vw, 32px)', lineHeight: '36px' }}
-                />
-              </label>
-            </div>
-
-            {/* Submit */}
-            <button
-              type="submit"
-              className="flex items-center justify-center w-full rounded-[66px] px-[36px] py-[36px]"
-              style={{
-                backgroundColor: '#323031',
-                boxShadow: '0px 1px 4px 0px rgba(0,0,0,0.18), inset 0px 1px 2px 0px rgba(255,255,255,0.18)',
-              }}
-            >
-              <span
-                className="font-sans font-bold text-cream"
-                style={{ fontSize: 'clamp(20px, 2.5vw, 32px)', lineHeight: '32px' }}
-              >
-                {data.formSubmitText}
-              </span>
-            </button>
-          </form>
+          <FooterForm
+            formTitle={data.formTitle}
+            formNamePlaceholder={data.formNamePlaceholder}
+            formTutorPlaceholder={data.formTutorPlaceholder}
+            formPlanPlaceholder={data.formPlanPlaceholder}
+            formTelegramPlaceholder={data.formTelegramPlaceholder}
+            formEmailPlaceholder={data.formEmailPlaceholder}
+            formContactError={data.formContactError}
+            formEmailError={data.formEmailError}
+            formSubmitText={data.formSubmitText}
+            tutors={tutors}
+            planNames={planNames}
+            locale={locale}
+          />
         </div>
 
         {/* ══ Footer content card ══ */}
@@ -135,11 +97,11 @@ export default function Footer({ data }: FooterProps) {
           {/* ── Logo + description ── */}
           <div className="flex flex-wrap items-center justify-center gap-[30px]">
             {/* Logo */}
-            <div className="flex-1 min-w-[280px] min-h-[140px] lg:min-h-[192px] relative">
+            <div className="flex-1 min-w-[280px]">
               <img
                 src={IMG_LOGO}
                 alt="TucanBRAS"
-                className="absolute inset-0 w-full h-full object-contain object-left"
+                className="w-full h-auto"
               />
             </div>
             {/* Description */}

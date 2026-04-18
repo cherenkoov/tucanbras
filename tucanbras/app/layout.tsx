@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "TucanBRAS — онлайн-школа бразильского португальского",
-  description: "Учите португальский с носителями языка и готовьтесь к CELPE-BRAS",
+  title: "TucanBRAS — Online Brazilian Portuguese School",
+  description: "Learn Portuguese with native speakers and prepare for CELPE-BRAS",
 };
 
 export default function RootLayout({
@@ -12,7 +12,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ru" className="h-full antialiased">
+    <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col overflow-x-clip" style={{ background: '#ffffff' }}>{children}</body>
     </html>
   );

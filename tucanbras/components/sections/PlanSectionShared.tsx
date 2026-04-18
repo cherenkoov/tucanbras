@@ -68,9 +68,7 @@ export function PlanSection({ plan, index }: { plan: PlanCard; index: number }) 
   const isLast = index === 3
 
   const handleCtaClick = () => {
-    const url = new URL(window.location.href)
-    url.searchParams.set('plan', plan.name)
-    window.history.pushState({}, '', url.toString())
+    window.dispatchEvent(new CustomEvent('plan-selected', { detail: plan.name }))
     const footer = document.getElementById('footer')
     if (footer) scrollToElement(footer)
   }

@@ -33,7 +33,7 @@ function TutorCard({
     const dy = Math.abs(e.changedTouches[0].clientY - touchStart.current.y)
     touchStart.current = null
     // Only treat as tap if finger barely moved — otherwise it's a scroll gesture
-    if (dx < 8 && dy < 8) {
+    if (dx < 5 && dy < 5) {
       e.preventDefault()
       onSelect()
     }

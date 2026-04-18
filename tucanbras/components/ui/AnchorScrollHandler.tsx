@@ -2,9 +2,11 @@
 
 import { useEffect } from 'react'
 
-// Intercepts all <a href="#..."> clicks and applies smooth scroll with header offset.
-// Needed because CSS scroll-margin-top is unreliable on iOS Safari < 14.5,
-// and CSS scroll-behavior: smooth has issues on iOS with fixed headers.
+// Intercepts all <a href="#..."> clicks before iOS Safari processes hash navigation.
+// Uses capture phase so e.preventDefault() fires before the browser's anchor scroll.
+// Uses scrollIntoView so the browser dynamically tracks element position (avoids
+// layout-shift errors from getBoundingClientRect + window.scrollY pre-calculation).
+// scroll-margin-top on each section provides the fixed-header offset.
 export default function AnchorScrollHandler() {
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -17,15 +19,14 @@ export default function AnchorScrollHandler() {
       e.preventDefault()
       scrollToElement(el as HTMLElement)
     }
-    document.addEventListener('click', handleClick)
-    return () => document.removeEventListener('click', handleClick)
+    // capture:true — fires before iOS Safari processes the anchor navigation
+    document.addEventListener('click', handleClick, { capture: true })
+    return () => document.removeEventListener('click', handleClick, { capture: true })
   }, [])
 
   return null
 }
 
 export function scrollToElement(el: HTMLElement) {
-  const headerOffset = window.innerWidth >= 1024 ? 147 : 136
-  const top = el.getBoundingClientRect().top + window.scrollY - headerOffset
-  window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' })
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }

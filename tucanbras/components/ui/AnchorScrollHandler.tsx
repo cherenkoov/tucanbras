@@ -66,7 +66,7 @@ export function scrollToElement(el: HTMLElement) {
     if (startTime === null) startTime = timestamp
     const elapsed  = timestamp - startTime
     const progress = Math.min(elapsed / SCROLL_DURATION_MS, 1)
-    window.scrollTo(0, start + distance * easeInOutCubic(progress))
+    window.scrollTo({ top: start + distance * easeInOutCubic(progress), behavior: 'instant' })
     if (progress < 1) requestAnimationFrame(step)
   }
 

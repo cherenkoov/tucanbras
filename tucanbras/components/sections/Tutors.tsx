@@ -206,11 +206,11 @@ function TutorCarousel({
   }
 
   return (
-    <div className="flex flex-col gap-6 -mx-6">
+    <div className="flex flex-col gap-6 w-screen ml-[calc(-50vw+50%)]">
       <div
         ref={ref}
         onScroll={onScroll}
-        className="flex items-center overflow-x-auto snap-x snap-mandatory gap-[12px] px-6"
+        className="flex items-center overflow-x-auto snap-x snap-mandatory gap-[12px] px-6 py-[20px] -my-[20px]"
         style={{ scrollbarWidth: 'none', scrollPaddingInline: '24px' }}
       >
         {tutors.map((tutor, i) => (

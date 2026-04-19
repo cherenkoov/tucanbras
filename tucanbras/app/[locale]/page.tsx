@@ -74,12 +74,12 @@ export default async function Home({
     <>
       <AnchorScrollHandler />
       {/* 1 — fixed, вне main (не блюрится), z-50 */}
-      <div className="fixed top-0 left-0 right-0 z-50 pt-[43px] px-s600">
+      <div className="fixed top-0 left-0 right-0 z-50 pt-[43px] px-s600 lg:px-[var(--spacing-landing-x)]">
         <Header navLinks={navLinks} />
       </div>
       {/* Компенсация высоты fixed хедера */}
-      <main className="px-s600 pt-[128px] lg:pt-[139px]">
-        <div className="flex flex-col gap-[80px]">
+      <main className="px-s600 lg:px-[var(--spacing-landing-x)] pt-[128px] lg:pt-[139px]">
+        <div className="max-w-[1440px] mx-auto flex flex-col gap-[80px]">
           {/* 2 */}
           <Hero data={heroData} />
           {/* 3 */}

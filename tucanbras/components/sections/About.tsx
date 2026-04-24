@@ -1,13 +1,14 @@
 import Image from 'next/image'
 import { AboutProps } from '@/types'
+import ScrollRotate         from '@/components/ui/ScrollRotate'
+import FernAnimated         from '@/components/ui/FernAnimated'
+import HibiscusUpAnimated   from '@/components/ui/HibiscusUpAnimated'
+import HibiscusDownAnimated from '@/components/ui/HibiscusDownAnimated'
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
 const IMG_SCREEN_DASHBOARD = '/images/about/screen-dashboard.png'
 const IMG_SCREEN_CALENDAR  = '/images/about/screen-calendar.png'
-const IMG_FERN             = '/about/fern.svg'
 const IMG_FLOWER           = '/about/flower.svg'
-const IMG_HIBISCUS_UP      = '/about/hibiscus-up.svg'
-const IMG_HIBISCUS_DOWN    = '/about/hibiscus-down.svg'
 
 // ─── Main component ──────────────────────────────────────────────────────────
 
@@ -45,7 +46,9 @@ export default function About({ data }: AboutProps) {
 
               {/* Flower — absolute, overflows block bottom-right */}
               <div className="absolute bottom-[-107px] right-[-30px] w-[140px] h-[118px] pointer-events-none z-10">
-                <img alt="" src={IMG_FLOWER} className="w-full h-full" />
+                <ScrollRotate degreesPerScreen={180} transformOrigin="47% 44%">
+                  <img alt="" src={IMG_FLOWER} className="w-full h-full" />
+                </ScrollRotate>
               </div>
             </div>
 
@@ -81,27 +84,28 @@ export default function About({ data }: AboutProps) {
               <div className="relative w-full mt-[40px] lg:mt-0">
 
                 {/* Hibiscus orange (upsideup) */}
-                <div className="absolute h-[237px] right-[22px] top-[-221px] w-[148px] pointer-events-none z-10">
-                  <img alt="" src={IMG_HIBISCUS_UP} className="w-full h-full" />
+                <div className="absolute h-[250px] right-[-30px] top-[-205px] w-[260px] pointer-events-none z-10">
+                  <HibiscusUpAnimated
+                    stemMaxDegrees={8}
+                    leafMaxDegrees={6}
+                    velocitySensitivity={0.2}
+                  />
                 </div>
 
                 {/* Hibiscus green (upsidedown) */}
-                <div className="absolute h-[159px] right-[-59px] top-[-435px] w-[132px] pointer-events-none">
-                  <img alt="" src={IMG_HIBISCUS_DOWN} className="w-full h-full" />
+                <div className="absolute h-[159px] right-[-48px] top-[-435px] w-[132px] pointer-events-none">
+                  <HibiscusDownAnimated
+                    stemMaxDegrees={8}
+                    leafMaxDegrees={6}
+                    velocitySensitivity={0.2}
+                  />
                 </div>
 
                 {/* Fern — large, extends left outside block */}
-                <div
+                <FernAnimated
                   className="absolute pointer-events-none z-0"
                   style={{ height: '511px', width: '620px', left: '-260px', top: '-348px' }}
-                >
-                  <img
-                    alt=""
-                    src={IMG_FERN}
-                    className="w-full h-full"
-                    style={{ transform: 'rotate(-15.08deg)' }}
-                  />
-                </div>
+                />
 
                 {/* CTA button */}
                 <a

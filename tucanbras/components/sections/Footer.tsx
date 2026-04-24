@@ -59,9 +59,10 @@ function FaqAccordion({ group }: { group: FaqGroupType }) {
   )
 }
 
-function FooterTucan() {
+// className controls wrapper size; SVG fills the wrapper.
+function FooterTucan({ className = 'w-[80px] h-[79px] shrink-0' }: { className?: string }) {
   return (
-    <div className="w-[80px] h-[79px] shrink-0 pointer-events-none select-none" aria-hidden="true">
+    <div className={`pointer-events-none select-none ${className}`} aria-hidden="true">
       <style>{`
         .tucan-footer-wing {
           transform-box: fill-box;
@@ -100,7 +101,12 @@ function FooterTucan() {
           .tucan-lid-lower { animation: none; }
         }
       `}</style>
-      <svg width="223" height="219" viewBox="0 0 223 219" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg
+        viewBox="0 0 223 219"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-full h-full block"
+      >
         <defs>
           <clipPath id="tucan-ft-eye-clip">
             <ellipse cx="47.4" cy="70.9" rx="6.1" ry="9.8"/>
@@ -177,23 +183,33 @@ export default function Footer({ data, tutors, planNames, locale }: FooterProps)
         style={{ backgroundColor: '#8fd096' }}
       >
 
-        {/* ══ Form card ══ */}
-        <div className="relative z-[4] pb-[12px]">
-          <FooterForm
-            formTitle={data.formTitle}
-            formNamePlaceholder={data.formNamePlaceholder}
-            formTutorPlaceholder={data.formTutorPlaceholder}
-            formPlanPlaceholder={data.formPlanPlaceholder}
-            formTelegramPlaceholder={data.formTelegramPlaceholder}
-            formEmailPlaceholder={data.formEmailPlaceholder}
-            formContactError={data.formContactError}
-            formEmailError={data.formEmailError}
-            formErrorMsg={data.formErrorMsg}
-            formSubmitText={data.formSubmitText}
-            tutors={tutors}
-            planNames={planNames}
-            locale={locale}
-          />
+        {/* ══ Form + Tucan row ══ */}
+        <div className="relative z-[4] pb-[12px] flex flex-col lg:flex-row gap-[12px]">
+
+          {/* Form: 60% on desktop, full width on mobile */}
+          <div className="lg:flex-[6] min-w-0">
+            <FooterForm
+              formTitle={data.formTitle}
+              formNamePlaceholder={data.formNamePlaceholder}
+              formTutorPlaceholder={data.formTutorPlaceholder}
+              formPlanPlaceholder={data.formPlanPlaceholder}
+              formTelegramPlaceholder={data.formTelegramPlaceholder}
+              formEmailPlaceholder={data.formEmailPlaceholder}
+              formContactError={data.formContactError}
+              formEmailError={data.formEmailError}
+              formErrorMsg={data.formErrorMsg}
+              formSubmitText={data.formSubmitText}
+              tutors={tutors}
+              planNames={planNames}
+              locale={locale}
+            />
+          </div>
+
+          {/* Tucan: 40% on desktop only */}
+          <div className="hidden lg:flex lg:flex-[4] items-end justify-center">
+            <FooterTucan className="w-full h-auto" />
+          </div>
+
         </div>
 
         {/* ══ Footer content card ══ */}

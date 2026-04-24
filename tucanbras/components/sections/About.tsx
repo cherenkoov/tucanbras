@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import { AboutProps } from '@/types'
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
@@ -50,9 +51,11 @@ export default function About({ data }: AboutProps) {
 
             {/* Dashboard phone */}
             <div className="flex flex-col flex-nowrap justify-start items-end overflow-visible rounded-bl-[60px] rounded-tr-[60px] w-full lg:h-[200px]">
-              <img
+              <Image
                 alt="TucanBRAS app — dashboard"
                 src={IMG_SCREEN_DASHBOARD}
+                width={1200}
+                height={2478}
                 className="w-full h-auto block pointer-events-none lg:w-[600px] lg:max-w-none"
               />
             </div>
@@ -125,9 +128,11 @@ export default function About({ data }: AboutProps) {
 
             {/* Calendar phone */}
             <div className="overflow-visible rounded-bl-[60px] rounded-tr-[60px] w-full lg:flex-none lg:w-[600px] lg:h-[1012px]">
-              <img
+              <Image
                 alt="TucanBRAS app — calendar"
                 src={IMG_SCREEN_CALENDAR}
+                width={992}
+                height={1992}
                 className="w-full h-auto block pointer-events-none"
               />
             </div>

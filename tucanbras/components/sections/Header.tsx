@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { HeaderProps } from '@/types'
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
 
@@ -17,6 +17,9 @@ const NAV_PILL_STYLES = [
 
 // Inner shadow overlay used on nav pills (from Figma "Round Inner" effect → --shadow-round-inner)
 const PILL_INNER_SHADOW = 'var(--shadow-round-inner)'
+
+// Gap (px) at which the last 2 nav pills collapse into the ⋮ button
+const COLLAPSE_GAP = 16
 
 // ─── Tucan bird logo ─────────────────────────────────────────────────────────
 // Two-layer approach matching the original design:
@@ -154,7 +157,15 @@ function NavPill({ label, href, bg, text }: {
 // ─── Header component ─────────────────────────────────────────────────────────
 
 export default function Header({ navLinks }: HeaderProps) {
-  const [menuOpen, setMenuOpen] = useState(false)
+  const [menuOpen,  setMenuOpen]  = useState(false)
+  const [collapsed, setCollapsed] = useState(false)
+  const [dotsOpen,  setDotsOpen]  = useState(false)
+
+  const brandRef       = useRef<HTMLAnchorElement>(null)
+  const navRef         = useRef<HTMLElement>(null)
+  const dotsRef        = useRef<HTMLDivElement>(null)
+  // Width of the nav when all 4 pills are visible — used for hysteresis check
+  const fullNavWidthRef = useRef(0)
 
   useEffect(() => {
     document.body.classList.toggle('menu-open', menuOpen)
@@ -164,6 +175,52 @@ export default function Header({ navLinks }: HeaderProps) {
       document.body.style.overflow = ''
     }
   }, [menuOpen])
+
+  // Collision detection: collapse last 2 pills into ⋮ when gap ≤ COLLAPSE_GAP
+  useEffect(() => {
+    const check = () => {
+      const brand = brandRef.current
+      const nav   = navRef.current
+      if (!brand || !nav) return
+
+      const brandRight = brand.getBoundingClientRect().right
+      const navRect    = nav.getBoundingClientRect()
+
+      setCollapsed(prev => {
+        // When not collapsed, measure the real (full) nav gap.
+        // When collapsed, project what the gap *would be* if all 4 pills were shown.
+        const effectiveNavLeft = prev
+          ? navRect.right - fullNavWidthRef.current
+          : navRect.left
+        const gap = effectiveNavLeft - brandRight
+
+        if (!prev && gap <= COLLAPSE_GAP) {
+          fullNavWidthRef.current = navRect.width
+          return true
+        }
+        if (prev && gap > COLLAPSE_GAP) {
+          return false
+        }
+        return prev
+      })
+    }
+
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+
+  // Close ⋮ dropdown on outside click
+  useEffect(() => {
+    if (!dotsOpen) return
+    const onPointer = (e: PointerEvent) => {
+      if (dotsRef.current && !dotsRef.current.contains(e.target as Node)) {
+        setDotsOpen(false)
+      }
+    }
+    document.addEventListener('pointerdown', onPointer)
+    return () => document.removeEventListener('pointerdown', onPointer)
+  }, [dotsOpen])
 
   return (
     // overflow-visible lets the tucan head peek above the bar
@@ -216,7 +273,7 @@ export default function Header({ navLinks }: HeaderProps) {
         <div className="relative flex items-center justify-between h-full px-0">
 
           {/* Brand — tucan bird + logotype, grouped left */}
-          <a href="#hero" className="relative z-10 flex items-center gap-0 shrink-0 overflow-visible h-full">
+          <a ref={brandRef} href="#hero" className="relative z-10 flex items-center gap-0 shrink-0 overflow-visible h-full">
             <div className="block lg:hidden h-full"><TucanLogo bodyW={100} /></div>
             <div className="hidden lg:block h-full"><TucanLogo bodyW={135} /></div>
             <span
@@ -233,10 +290,11 @@ export default function Header({ navLinks }: HeaderProps) {
 
           {/* Desktop nav + language switcher */}
           <nav
+            ref={navRef}
             className="relative z-10 hidden lg:flex w-fit items-start justify-start gap-3 pt-3 pb-4 px-3 shrink-0 h-full"
             aria-label="Основная навигация"
           >
-            {navLinks.map((link, i) => (
+            {(collapsed ? navLinks.slice(0, 2) : navLinks).map((link, i) => (
               <NavPill
                 key={link.href}
                 label={link.label}
@@ -245,6 +303,89 @@ export default function Header({ navLinks }: HeaderProps) {
                 text={NAV_PILL_STYLES[i]?.text ?? 'var(--color-ink)'}
               />
             ))}
+
+            {/* ⋮ button — shown when last 2 pills are collapsed */}
+            {collapsed && (
+              <div ref={dotsRef} className="relative shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setDotsOpen(v => !v)}
+                  className="relative flex items-center justify-center overflow-hidden rounded-btn font-semibold whitespace-nowrap select-none"
+                  style={{
+                    color:        'var(--color-cream)',
+                    boxShadow:    PILL_INNER_SHADOW,
+                    lineHeight:   '32px',
+                    paddingTop:   '8px',
+                    paddingBottom:'8px',
+                    paddingLeft:  'clamp(8px, 0.83vw, 16px)',
+                    paddingRight: 'clamp(8px, 0.83vw, 16px)',
+                  }}
+                  aria-haspopup="true"
+                  aria-expanded={dotsOpen}
+                  aria-label="Ещё пункты меню"
+                >
+                  {/* Blurred colour circles — background layer */}
+                  <svg
+                    className="absolute inset-0 w-full h-full"
+                    viewBox="0 0 40 48"
+                    preserveAspectRatio="xMidYMid slice"
+                    aria-hidden
+                  >
+                    <defs>
+                      <filter id="dots-menu-blur" x="-100%" y="-100%" width="300%" height="300%">
+                        <feGaussianBlur stdDeviation="7"/>
+                      </filter>
+                    </defs>
+                    {/* cx/cy — position, r — size, stdDeviation above — blur intensity */}
+                    <circle cx="4"  cy="10" r="28" fill="var(--color-blue)"  filter="url(#dots-menu-blur)"/>
+                    <circle cx="36" cy="6"  r="28" fill="var(--color-yellow)" filter="url(#dots-menu-blur)"/>
+                    <circle cx="6"  cy="42" r="24" fill="var(--color-green)"   filter="url(#dots-menu-blur)"/>
+                    <circle cx="38" cy="44" r="18" fill="var(--color-orange)" filter="url(#dots-menu-blur)"/>
+                  </svg>
+
+                  {/* Three-dot icon — foreground layer */}
+                  <svg width="8" height="32" viewBox="0 0 8 32" fill="currentColor" aria-hidden className="relative">
+                    <rect width="8" height="8" rx="4"/>
+                    <rect y="12" width="8" height="8" rx="4"/>
+                    <rect y="24" width="8" height="8" rx="4"/>
+                  </svg>
+                </button>
+
+                <div
+                  role="menu"
+                  className="absolute right-0 top-full mt-2 flex flex-col gap-2 z-[60]"
+                  style={{ pointerEvents: dotsOpen ? 'auto' : 'none' }}
+                >
+                  {navLinks.slice(2).map((link, i) => (
+                    <a
+                      key={link.href}
+                      href={link.href}
+                      role="menuitem"
+                      onClick={() => setDotsOpen(false)}
+                      className="relative flex items-center justify-center overflow-hidden rounded-btn font-semibold whitespace-nowrap select-none"
+                      style={{
+                        backgroundColor: NAV_PILL_STYLES[i + 2]?.bg ?? 'var(--color-green)',
+                        color:           NAV_PILL_STYLES[i + 2]?.text ?? 'var(--color-ink)',
+                        boxShadow:       'var(--shadow-pill-float)',
+                        fontSize:        'clamp(14px, 1.35vw, 26px)',
+                        lineHeight:      '32px',
+                        paddingTop:      '8px',
+                        paddingBottom:   '8px',
+                        paddingLeft:     'clamp(8px, 0.83vw, 16px)',
+                        paddingRight:    'clamp(8px, 0.83vw, 16px)',
+                        opacity:         dotsOpen ? 1 : 0,
+                        transform:       dotsOpen ? 'translateY(0)' : 'translateY(-10px)',
+                        transition:      'opacity 200ms ease, transform 200ms ease',
+                        transitionDelay: dotsOpen ? `${i * 50}ms` : '0ms',
+                      }}
+                    >
+                      {link.label}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <LanguageSwitcher variant="pill" dropDirection="down" />
           </nav>
 

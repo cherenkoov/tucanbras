@@ -41,7 +41,7 @@ export default function PlansStack({ plans }: { plans: PlanCard[] }) {
   }, [plans.length])
 
   return (
-    <div ref={sectionRef} style={{ height: `calc(${(plans.length - 1) * SCROLL_PER_CARD}px + 100vh)` }}>
+    <div ref={sectionRef} style={{ height: `calc(${(plans.length - 1) * SCROLL_PER_CARD}px + 100vh)`, overflowX: 'clip' }}>
       <div className="sticky" style={{ top: PIN_TOP, isolation: 'isolate' }}>
 
         {/* Card stack */}

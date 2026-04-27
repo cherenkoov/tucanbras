@@ -18,14 +18,21 @@ const SCROLL_PER_CARD = 400
 
 export default function CelpeBrasStack({ titles, cardConfig }: Props) {
   const [activeIndex, setActiveIndex] = useState(0)
-  const sectionRef = useRef<HTMLDivElement>(null)
+  const sectionRef    = useRef<HTMLDivElement>(null)
+  const sectionTopRef = useRef(0)
+
+  useEffect(() => {
+    const updateTop = () => {
+      sectionTopRef.current = sectionRef.current?.offsetTop ?? 0
+    }
+    updateTop()
+    window.addEventListener('resize', updateTop)
+    return () => window.removeEventListener('resize', updateTop)
+  }, [])
 
   useEffect(() => {
     const onScroll = () => {
-      const el = sectionRef.current
-      if (!el) return
-      const rect = el.getBoundingClientRect()
-      const scrolledIn = -rect.top
+      const scrolledIn = window.scrollY - sectionTopRef.current
       if (scrolledIn < 0) return
       const idx = Math.min(
         Math.floor(scrolledIn / SCROLL_PER_CARD),
@@ -39,8 +46,8 @@ export default function CelpeBrasStack({ titles, cardConfig }: Props) {
   }, [titles.length])
 
   return (
-    <div ref={sectionRef} style={{ height: `calc(${(titles.length - 1) * SCROLL_PER_CARD}px + 100vh)` }}>
-      <div className="sticky" style={{ top: 268 }}>
+    <div ref={sectionRef} style={{ height: `calc(${(titles.length - 1) * SCROLL_PER_CARD}px + 100vh)`, overflowX: 'clip' }}>
+      <div className="sticky" style={{ top: 268, isolation: 'isolate' }}>
         {/* Card stack — positioned relative to this anchor */}
         <div className="relative" style={{ height: 180 }}>
           {titles.map((title, i) => {

@@ -151,6 +151,7 @@
 }
 
 body {
+  overflow-x: hidden;
   background: var(--color-ink);
   color: var(--color-cream);
   font-family: var(--font-sans);

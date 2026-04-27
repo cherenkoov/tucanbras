@@ -204,9 +204,8 @@ export default function Header({ navLinks }: HeaderProps) {
     }
 
     check()
-    const ro = new ResizeObserver(check)
-    if (navRef.current) ro.observe(navRef.current)
-    return () => ro.disconnect()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
   }, [])
 
   // Close ⋮ dropdown on outside click

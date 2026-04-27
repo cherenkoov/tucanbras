@@ -187,8 +187,6 @@ export default function Header({ navLinks }: HeaderProps) {
       const navRect    = nav.getBoundingClientRect()
 
       setCollapsed(prev => {
-        // When not collapsed, measure the real (full) nav gap.
-        // When collapsed, project what the gap *would be* if all 4 pills were shown.
         const effectiveNavLeft = prev
           ? navRect.right - fullNavWidthRef.current
           : navRect.left
@@ -206,8 +204,9 @@ export default function Header({ navLinks }: HeaderProps) {
     }
 
     check()
-    window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
+    const ro = new ResizeObserver(check)
+    if (navRef.current) ro.observe(navRef.current)
+    return () => ro.disconnect()
   }, [])
 
   // Close ⋮ dropdown on outside click
@@ -353,7 +352,7 @@ export default function Header({ navLinks }: HeaderProps) {
 
                 <div
                   role="menu"
-                  className="absolute right-0 top-full mt-2 flex flex-col gap-2 z-[60]"
+                  className="absolute right-0 top-full mt-4 flex flex-col gap-2 z-[60]"
                   style={{ pointerEvents: dotsOpen ? 'auto' : 'none' }}
                 >
                   {navLinks.slice(2).map((link, i) => (

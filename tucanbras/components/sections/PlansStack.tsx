@@ -11,13 +11,15 @@ export default function PlansStack({ plans }: { plans: PlanCard[] }) {
   const [activeIndex, setActiveIndex] = useState(0)
   const [cardHeight, setCardHeight]   = useState(600)
 
-  const sectionRef = useRef<HTMLDivElement>(null)
-  const cardRefs   = useRef<(HTMLDivElement | null)[]>([])
+  const sectionRef    = useRef<HTMLDivElement>(null)
+  const cardRefs      = useRef<(HTMLDivElement | null)[]>([])
+  const sectionTopRef = useRef(0)
 
   const measure = useCallback(() => {
     const heights = cardRefs.current.map(el => el?.offsetHeight ?? 0)
     const maxH = Math.max(...heights)
     if (maxH > 0) setCardHeight(maxH)
+    sectionTopRef.current = sectionRef.current?.offsetTop ?? 0
   }, [])
 
   useEffect(() => {
@@ -28,10 +30,7 @@ export default function PlansStack({ plans }: { plans: PlanCard[] }) {
 
   useEffect(() => {
     const onScroll = () => {
-      const el = sectionRef.current
-      if (!el) return
-      const rect = el.getBoundingClientRect()
-      const scrolledIn = -rect.top
+      const scrolledIn = window.scrollY - sectionTopRef.current
       if (scrolledIn < 0) return
       const idx = Math.min(Math.floor(scrolledIn / SCROLL_PER_CARD), plans.length - 1)
       setActiveIndex(idx)
@@ -43,7 +42,7 @@ export default function PlansStack({ plans }: { plans: PlanCard[] }) {
 
   return (
     <div ref={sectionRef} style={{ height: `calc(${(plans.length - 1) * SCROLL_PER_CARD}px + 100vh)` }}>
-      <div className="sticky" style={{ top: PIN_TOP }}>
+      <div className="sticky" style={{ top: PIN_TOP, isolation: 'isolate' }}>
 
         {/* Card stack */}
         <div className="relative" style={{ height: cardHeight }}>
@@ -57,11 +56,11 @@ export default function PlansStack({ plans }: { plans: PlanCard[] }) {
                 key={plan.name}
                 ref={el => { cardRefs.current[i] = el }}
                 style={{
-                  position: 'absolute',
-                  top:      0,
-                  left:     0,
-                  right:    0,
-                  zIndex:        isPast ? 0 : plans.length - offset,
+                  position:   'absolute',
+                  top:        0,
+                  left:       0,
+                  right:      0,
+                  zIndex:     isPast ? 0 : plans.length - offset,
                   opacity:       isPast ? 0 : Math.max(0, 1 - offset * 0.15),
                   transform:     isPast
                     ? 'translateY(-110%) scale(0.95)'

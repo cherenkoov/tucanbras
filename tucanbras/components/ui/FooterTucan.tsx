@@ -3,8 +3,8 @@
 import { useRef, useEffect } from 'react'
 
 const BLINK_DURATION = 400 // ms — one full blink cycle
-const MIN_INTERVAL   = 2000
-const MAX_INTERVAL   = 9000
+const MIN_INTERVAL   = 800
+const MAX_INTERVAL   = 4000
 
 type Layer = 'body' | 'head'
 

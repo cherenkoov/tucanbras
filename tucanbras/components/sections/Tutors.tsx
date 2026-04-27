@@ -27,7 +27,7 @@ function TutorCard({
       type="button"
       onClick={onSelect}
       className="relative flex flex-col w-full max-w-[410px] mx-auto cursor-pointer select-none active:opacity-80 lg:active:opacity-100 transition-opacity bg-transparent border-0 p-0 text-left"
-      style={{ touchAction: 'manipulation' }}
+      style={{ touchAction: 'pan-x' }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onMouseMove={e => {
@@ -210,8 +210,8 @@ function TutorCarousel({
       <div
         ref={ref}
         onScroll={onScroll}
-        className="flex items-center overflow-x-auto snap-x snap-mandatory gap-[12px] px-6 py-[20px] -my-[20px]"
-        style={{ scrollbarWidth: 'none', scrollPaddingInline: '24px' }}
+        className="flex items-center overflow-x-auto overflow-y-hidden snap-x snap-mandatory gap-[12px] px-6 py-[20px] -my-[20px]"
+        style={{ scrollbarWidth: 'none', scrollPaddingInline: '24px', touchAction: 'pan-x' }}
       >
         {tutors.map((tutor, i) => (
           <div

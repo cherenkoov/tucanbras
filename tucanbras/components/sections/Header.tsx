@@ -275,8 +275,8 @@ export default function Header({ navLinks }: HeaderProps) {
             <div className="block lg:hidden h-full"><TucanLogo bodyW={100} /></div>
             <div className="hidden lg:block h-full"><TucanLogo bodyW={135} /></div>
             <span
-              className="flex items-center justify-center font-bold tracking-normal select-none text-green font-accent pb-2 h-full w-full ml-3"
-              style={{ fontSize: 'clamp(28px, 4.69vw, 90px)', lineHeight: '0.9' }}
+              className="flex items-center justify-center font-bold tracking-normal select-none text-green font-accent h-full w-full ml-3"
+              style={{ fontSize: 'clamp(28px, 4.69vw, 90px)', lineHeight: '1', transform: 'translateY(-0.1em)' }}
             >
               <span className="logo-xs">TUCAN</span>
               <span className="logo-mob">TucanBRAS</span>

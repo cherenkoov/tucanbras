@@ -36,8 +36,8 @@ function TutorCard({
       }}
     >
 
-      {/* Photo — overlaps 56px into card body */}
-      <div className="relative w-full flex justify-center z-0 mb-[-64px]">
+      {/* Photo — overlaps into card body */}
+      <div className="relative w-full flex justify-center z-0 mb-[-80px]">
         <div
           className="relative overflow-hidden rounded-[21px]"
           style={{ width: 'calc(100% - 80px)', maxWidth: '326px', aspectRatio: '1/1' }}
@@ -61,7 +61,7 @@ function TutorCard({
 
       {/* Card body */}
       <div
-        className="relative rounded-[36px] pt-[72px] pb-[24px] px-[12px] z-10"
+        className="relative rounded-[36px] pt-[88px] pb-[24px] px-[12px] z-10"
         style={{
           backgroundImage: 'url(/tutors/cover.svg)',
           backgroundSize: '100% 100%',
@@ -210,8 +210,8 @@ function TutorCarousel({
       <div
         ref={ref}
         onScroll={onScroll}
-        className="flex items-center overflow-x-auto overflow-y-hidden snap-x snap-mandatory gap-[12px] px-6 py-[20px] -my-[20px]"
-        style={{ scrollbarWidth: 'none', scrollPaddingInline: '24px', touchAction: 'pan-x' }}
+        className="flex items-center overflow-x-auto overflow-y-hidden snap-x snap-mandatory gap-[12px] py-[20px] -my-[20px] pl-6 lg:pl-[100px] pr-6 lg:pr-[100px]"
+        style={{ scrollbarWidth: 'none', touchAction: 'pan-x' }}
       >
         {tutors.map((tutor, i) => (
           <div

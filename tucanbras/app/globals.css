@@ -148,6 +148,13 @@
 :root {
   background: var(--color-ink);
   color: var(--color-cream);
+  --page-x: var(--spacing-s600); /* 24px — mobile */
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --page-x: max(var(--spacing-landing-x), calc((100vw - 1440px) / 2));
+  }
 }
 
 body {
@@ -191,6 +198,18 @@ body.menu-open main {
 @keyframes btn-dot-pulse {
   0%, 60%, 100% { transform: scale(1);   opacity: 0.4; }
   20%           { transform: scale(1.6); opacity: 1;   }
+}
+
+/* ── Override browser autofill background on inputs ─────────────────────── */
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0px 1000px #fffce5 inset !important;
+  box-shadow: 0 0 0px 1000px #fffce5 inset !important;
+  -webkit-text-fill-color: #323031 !important;
+  caret-color: #323031;
 }
 
 /* ── Custom scrollbar — thin rounded rectangle ───────────────────────────── */

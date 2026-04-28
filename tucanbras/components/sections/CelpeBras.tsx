@@ -119,7 +119,7 @@ export default function CelpeBras({ data }: CelpeBrasProps) {
           >
             <span
               className="font-accent text-center text-ink"
-              style={{ fontSize: 'clamp(24px, 1.2vw, 36px)', lineHeight: '32px' }}
+              style={{ fontSize: 'clamp(24px, 1.2vw, 36px)', lineHeight: '1', letterSpacing: '0.1em' }}
             >
               {data.ctaText}
             </span>

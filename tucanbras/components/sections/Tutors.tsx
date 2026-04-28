@@ -332,7 +332,7 @@ export default function Tutors({ data, tutors, locale, modalStrings }: TutorsSec
           >
             <span
               className="font-accent text-center text-cream"
-              style={{ fontSize: 'clamp(24px, 1.2vw, 36px)', lineHeight: '32px' }}
+              style={{ fontSize: 'clamp(24px, 1.2vw, 36px)', lineHeight: '1', letterSpacing: '0.1em'}}
             >
               {data.ctaText}
             </span>

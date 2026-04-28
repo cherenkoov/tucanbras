@@ -271,15 +271,17 @@ export default function Header({ navLinks }: HeaderProps) {
         <div className="relative flex items-center justify-between h-full px-0">
 
           {/* Brand — tucan bird + logotype, grouped left */}
-          <a ref={brandRef} href="#hero" className="relative z-10 flex items-center gap-0 shrink-0 overflow-visible h-full">
+          <a ref={brandRef} href="#hero" className="relative z-10 flex items-center gap-0 shrink-0 overflow-visible h-full outline-none">
             <div className="block lg:hidden h-full"><TucanLogo bodyW={100} /></div>
             <div className="hidden lg:block h-full"><TucanLogo bodyW={135} /></div>
             <span
               className="flex items-center justify-center font-bold tracking-normal select-none text-green font-accent pb-2 h-full w-full ml-3"
               style={{ fontSize: 'clamp(28px, 4.69vw, 90px)', lineHeight: '0.9' }}
             >
-              <span className="min-[460px]:hidden">TUCAN</span>
-              <span className="hidden min-[460px]:inline">TucanBRAS</span>
+              <span className="logo-xs">TUCAN</span>
+              <span className="logo-mob">TucanBRAS</span>
+              <span className="logo-sm">Tucan</span>
+              <span className="logo-full">TucanBRAS</span>
             </span>
           </a>
 

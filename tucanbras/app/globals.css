@@ -214,3 +214,25 @@ body.menu-open main {
   border-radius: 4px;
 }
 
+/* ── Header logotype responsive text ─────────────────────────────────────── */
+
+.logo-xs   { display: inline; }
+.logo-mob  { display: none; }
+.logo-sm   { display: none; }
+.logo-full { display: none; }
+
+@media (min-width: 460px) {
+  .logo-xs   { display: none; }
+  .logo-mob  { display: inline; }
+}
+
+@media (min-width: 1024px) {
+  .logo-mob  { display: none; }
+  .logo-sm   { display: inline; }
+}
+
+@media (min-width: 1366px) {
+  .logo-sm   { display: none; }
+  .logo-full { display: inline; }
+}
+

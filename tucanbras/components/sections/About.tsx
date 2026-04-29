@@ -71,7 +71,7 @@ export default function About({ data }: AboutProps) {
 
             {/* CTA block */}
             <div
-              className="relative flex flex-col gap-[320px] justify-between overflow-hidden rounded-[26px] p-[36px] flex-1 min-w-0 lg:min-w-[600px] lg:max-w-[720px] lg:h-[1012px]"
+              className="about-cta-block relative flex flex-col gap-[320px] justify-between overflow-hidden rounded-[26px] p-[36px] lg:flex-none lg:h-[1012px]"
               style={{ backgroundColor: '#fffce5' }}
             >
               {/* Description */}

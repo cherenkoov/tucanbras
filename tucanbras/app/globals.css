@@ -234,6 +234,14 @@ input:-webkit-autofill:active {
   border-radius: 4px;
 }
 
+/* ── About section — CTA block fluid width ───────────────────────────────── */
+
+@media (min-width: 1024px) {
+  .about-cta-block {
+    width: clamp(420px, calc(420px + 180 * (100vw - 1024px) / 176), 600px) !important;
+  }
+}
+
 /* ── Header logotype responsive text ─────────────────────────────────────── */
 
 .logo-xs   { display: inline; }

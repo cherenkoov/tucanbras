@@ -60,6 +60,8 @@ export default function About({ data }: AboutProps) {
                 width={1200}
                 height={2478}
                 className="w-full h-auto block pointer-events-none lg:w-[600px] lg:max-w-none"
+                loading="eager"
+                priority
               />
             </div>
           </div>

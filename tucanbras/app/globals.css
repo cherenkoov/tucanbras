@@ -159,6 +159,7 @@
 
 body {
   overflow-x: hidden;
+  overflow-anchor: none;
   background: var(--color-ink);
   color: var(--color-cream);
   font-family: var(--font-sans);

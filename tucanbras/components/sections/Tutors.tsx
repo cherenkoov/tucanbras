@@ -63,7 +63,7 @@ function TutorCard({
       <div
         className="relative rounded-[36px] pt-[88px] pb-[24px] px-[12px] z-10"
         style={{
-          backgroundImage: 'url(/tutors/cover.svg)',
+          backgroundImage: 'url(/SVG/tutors/cover.svg)',
           backgroundSize: '100% 100%',
         }}
       >

@@ -28,11 +28,11 @@ const STUB_DATA: Record<Locale, { fullName: string; quote: string; specializatio
 }
 
 const STUB_BASE: Omit<Tutor, 'fullName' | 'quote' | 'specializations'>[] = [
-  { id: 1, imageUrl: '/tutors/avatars/joau.png',   languages: [{ code: 'pt-BR', name: 'Português', flagPath: '/flags/brazil.png' }, { code: 'ru', name: 'Русский', flagPath: '/flags/russia.png' }], interests: [] },
-  { id: 2, imageUrl: '/tutors/avatars/maria.png',  languages: [{ code: 'pt-BR', name: 'Português', flagPath: '/flags/brazil.png' }, { code: 'ru', name: 'Русский', flagPath: '/flags/russia.png' }], interests: [] },
-  { id: 3, imageUrl: '/tutors/avatars/ana.png',    languages: [{ code: 'pt-BR', name: 'Português', flagPath: '/flags/brazil.png' }, { code: 'en', name: 'English', flagPath: '/flags/usa.png'    }], interests: [] },
-  { id: 4, imageUrl: '/tutors/avatars/lucas.png',  languages: [{ code: 'pt-BR', name: 'Português', flagPath: '/flags/brazil.png' }, { code: 'en', name: 'English', flagPath: '/flags/usa.png'    }, { code: 'ru', name: 'Русский', flagPath: '/flags/russia.png' }], interests: [] },
-  { id: 5, imageUrl: '/tutors/avatars/renate.png', languages: [{ code: 'pt-BR', name: 'Português', flagPath: '/flags/brazil.png' }, { code: 'en', name: 'English', flagPath: '/flags/usa.png'    }, { code: 'ru', name: 'Русский', flagPath: '/flags/russia.png' }], interests: [] },
+  { id: 1, imageUrl: '/PNG/avatars/joau.png',   languages: [{ code: 'pt-BR', name: 'Português', flagPath: '/PNG/flags/brazil.png' }, { code: 'ru', name: 'Русский', flagPath: '/PNG/flags/russia.png' }], interests: [] },
+  { id: 2, imageUrl: '/PNG/avatars/maria.png',  languages: [{ code: 'pt-BR', name: 'Português', flagPath: '/PNG/flags/brazil.png' }, { code: 'ru', name: 'Русский', flagPath: '/PNG/flags/russia.png' }], interests: [] },
+  { id: 3, imageUrl: '/PNG/avatars/ana.png',    languages: [{ code: 'pt-BR', name: 'Português', flagPath: '/PNG/flags/brazil.png' }, { code: 'en', name: 'English', flagPath: '/PNG/flags/usa.png'    }], interests: [] },
+  { id: 4, imageUrl: '/PNG/avatars/lucas.png',  languages: [{ code: 'pt-BR', name: 'Português', flagPath: '/PNG/flags/brazil.png' }, { code: 'en', name: 'English', flagPath: '/PNG/flags/usa.png'    }, { code: 'ru', name: 'Русский', flagPath: '/PNG/flags/russia.png' }], interests: [] },
+  { id: 5, imageUrl: '/PNG/avatars/renate.png', languages: [{ code: 'pt-BR', name: 'Português', flagPath: '/PNG/flags/brazil.png' }, { code: 'en', name: 'English', flagPath: '/PNG/flags/usa.png'    }, { code: 'ru', name: 'Русский', flagPath: '/PNG/flags/russia.png' }], interests: [] },
 ]
 
 export function getStubTutors(locale: Locale): Tutor[] {

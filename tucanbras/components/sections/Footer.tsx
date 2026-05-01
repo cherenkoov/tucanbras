@@ -4,12 +4,12 @@ import FooterForm from '@/components/ui/FooterForm'
 import FooterTucan from '@/components/ui/FooterTucan'
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
-const IMG_LOGO      = '/footer/TUCANBRAS.svg'
-const IMG_SOCIAL_TG = '/footer/telegram.svg'
-const IMG_SOCIAL_IG = '/footer/instagram.svg'
-const IMG_SOCIAL_YT = '/footer/youtube.svg'
+const IMG_LOGO      = '/SVG/footer/TUCANBRAS.svg'
+const IMG_SOCIAL_TG = '/SVG/footer/telegram.svg'
+const IMG_SOCIAL_IG = '/SVG/footer/instagram.svg'
+const IMG_SOCIAL_YT = '/SVG/footer/youtube.svg'
 // Arrow icon (bxs:up-arrow). Base state = up, closed accordion = rotate-180 (down).
-const ICON_ARROW    = '/footer/arrow.svg'
+const ICON_ARROW    = '/SVG/footer/arrow.svg'
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 

@@ -6,9 +6,9 @@ import HibiscusUpAnimated   from '@/components/ui/HibiscusUpAnimated'
 import HibiscusDownAnimated from '@/components/ui/HibiscusDownAnimated'
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
-const IMG_SCREEN_DASHBOARD = '/images/about/screen-dashboard.png'
-const IMG_SCREEN_CALENDAR  = '/images/about/screen-calendar.png'
-const IMG_FLOWER           = '/about/flower.svg'
+const IMG_SCREEN_DASHBOARD = '/PNG/about/screen-dashboard.png'
+const IMG_SCREEN_CALENDAR  = '/PNG/about/screen-calendar.png'
+const IMG_FLOWER           = '/SVG/about/flower.svg'
 
 // ─── Main component ──────────────────────────────────────────────────────────
 

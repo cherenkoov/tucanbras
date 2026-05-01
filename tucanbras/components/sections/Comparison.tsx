@@ -1,11 +1,11 @@
 import { ComparisonProps } from '@/types'
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
-const IMG_TUCAN_PIXEL      = '/comparison/Tucan Pixel.png'
-const IMG_STONE_PIXEL      = '/comparison/Stonehead Pixel.png'
-const IMG_MARK_TUCAN       = '/marks/Mark - Positive.svg'
-const IMG_MARK_OTHERS      = '/marks/Mark - Negative.svg'
-const IMG_COMPARISON_SYMBOL = '/comparison/Comparison Symbol.svg'
+const IMG_TUCAN_PIXEL      = '/PNG/comparison/Tucan Pixel.png'
+const IMG_STONE_PIXEL      = '/PNG/comparison/Stonehead Pixel.png'
+const IMG_MARK_TUCAN       = '/SVG/marks/Mark - Positive.svg'
+const IMG_MARK_OTHERS      = '/SVG/marks/Mark - Negative.svg'
+const IMG_COMPARISON_SYMBOL = '/SVG/comparison/Comparison Symbol.svg'
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 function CheckMark() {

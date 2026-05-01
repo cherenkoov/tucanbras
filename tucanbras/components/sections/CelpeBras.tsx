@@ -3,11 +3,11 @@ import CelpeBrasStack from '@/components/sections/CelpeBrasStack'
 
 // ─── Static card config (icon + bg color — not from CMS) ─────────────────────
 const CARD_CONFIG = [
-  { icon: '/celpe-bras/structure.svg', bg: '#fffce5', text: '#323031' },
-  { icon: '/celpe-bras/practice.svg',  bg: '#7cb082', text: '#fffce5' },
-  { icon: '/celpe-bras/train.svg',     bg: '#2e67b2', text: '#fffce5' },
-  { icon: '/celpe-bras/plan.svg',      bg: '#f26434', text: '#fffce5' },
-  { icon: '/celpe-bras/help.svg',      bg: '#ffd376', text: '#323031' },
+  { icon: '/SVG/celpe-bras/structure.svg', bg: '#fffce5', text: '#323031' },
+  { icon: '/SVG/celpe-bras/practice.svg',  bg: '#7cb082', text: '#fffce5' },
+  { icon: '/SVG/celpe-bras/train.svg',     bg: '#2e67b2', text: '#fffce5' },
+  { icon: '/SVG/celpe-bras/plan.svg',      bg: '#f26434', text: '#fffce5' },
+  { icon: '/SVG/celpe-bras/help.svg',      bg: '#ffd376', text: '#323031' },
 ]
 
 // ─── Feature card ─────────────────────────────────────────────────────────────

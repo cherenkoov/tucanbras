@@ -48,7 +48,7 @@ export function WavesAnimated() {
   })
 
   return (
-    <div ref={containerRef} className="relative w-full overflow-hidden" style={{ height: 440 }}>
+    <div ref={containerRef} className="relative w-full" style={{ height: 440 }}>
       {BANDS.map((band, i) => (
         <div
           key={i}

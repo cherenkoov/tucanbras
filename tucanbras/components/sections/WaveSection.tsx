@@ -8,6 +8,7 @@ export default function WaveSection() {
         marginLeft:  'calc(-1 * var(--page-x))',
         marginRight: 'calc(-1 * var(--page-x))',
         background:  'var(--color-yellow)',
+        overflow:    'visible',
       }}
     >
       <WavesAnimated />

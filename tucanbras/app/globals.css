@@ -146,7 +146,7 @@
 }
 
 :root {
-  background: var(--color-ink);
+  background: var(--color-yellow);
   color: var(--color-cream);
   --page-x: var(--spacing-s600); /* 24px — mobile */
 }
@@ -160,7 +160,7 @@
 body {
   overflow-x: hidden;
   overflow-anchor: none;
-  background: var(--color-ink);
+  background: var(--color-yellow);
   color: var(--color-cream);
   font-family: var(--font-sans);
 }

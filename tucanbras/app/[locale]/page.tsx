@@ -78,7 +78,7 @@ export default async function Home({
         <Header navLinks={navLinks} />
       </div>
       {/* Компенсация высоты fixed хедера */}
-      <main className="px-s600 lg:px-[var(--spacing-landing-x)] pt-[128px] lg:pt-[139px]" style={{ overflowX: 'clip' }}>
+      <main className="px-[var(--page-x)] pt-[128px] lg:pt-[139px]" style={{ overflowX: 'clip' }}>
         <div className="max-w-[1440px] mx-auto flex flex-col gap-[80px]">
           {/* 2 */}
           <Hero data={heroData} />

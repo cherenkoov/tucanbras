@@ -6,6 +6,7 @@ import Hero from '@/components/sections/Hero'
 import About from '@/components/sections/About'
 import Comparison from '@/components/sections/Comparison'
 import Tutors from '@/components/sections/Tutors'
+import WaveSection from '@/components/sections/WaveSection'
 import CelpeBras from '@/components/sections/CelpeBras'
 import Plans from '@/components/sections/Plans'
 import Footer from '@/components/sections/Footer'
@@ -88,11 +89,13 @@ export default async function Home({
           <Comparison data={comparisonData} />
           {/* 5 */}
           <Tutors data={tutorsData} tutors={tutors} locale={locale} modalStrings={modalStrings} />
-          {/* 6 */}
-          <CelpeBras data={celpeBrasData} />
+          {/* 6 — decorative, no CMS data */}
+          <WaveSection />
           {/* 7 */}
-          <Plans data={plansData} />
+          <CelpeBras data={celpeBrasData} />
           {/* 8 */}
+          <Plans data={plansData} />
+          {/* 9 */}
           <Footer
               data={footerData}
               tutors={displayTutors}

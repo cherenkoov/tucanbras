@@ -38,7 +38,7 @@ export function WavesAnimated() {
     maxDegrees:          MAX_VELOCITY,
     decay:               FRICTION,
     velocitySensitivity: SCROLL_SCALE,
-    setup: () => (velocity) => {
+    setup: (_el) => (velocity) => {
       BANDS.forEach((band, i) => {
         positions.current[i] += band.dir * velocity * band.speed * POSITION_SCALE
         const el = bandRefs.current[i]

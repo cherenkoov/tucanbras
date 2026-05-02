@@ -87,10 +87,10 @@ export default async function Home({
           <About data={aboutData} />
           {/* 4 */}
           <Comparison data={comparisonData} />
-          {/* 5 */}
-          <Tutors data={tutorsData} tutors={tutors} locale={locale} modalStrings={modalStrings} />
-          {/* 6 — decorative, no CMS data */}
+          {/* 5 — decorative, no CMS data */}
           <WaveSection />
+          {/* 6 */}
+          <Tutors data={tutorsData} tutors={tutors} locale={locale} modalStrings={modalStrings} />
           {/* 7 */}
           <CelpeBras data={celpeBrasData} />
           {/* 8 */}

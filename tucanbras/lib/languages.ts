@@ -5,15 +5,15 @@
 export interface Language {
   code: string
   name: string
-  flagPath: string // path under /public, e.g. "/flags/pt-br.svg"
+  flagPath: string // path under /public, e.g. "/PNG/flags/brazil.png"
 }
 
 export const LANGUAGES: Record<string, Language> = {
-  'pt-BR': { code: 'pt-BR', name: 'Português',  flagPath: '/flags/pt-br.svg' },
-  'ru':    { code: 'ru',    name: 'Русский',     flagPath: '/flags/ru.svg'    },
-  'en':    { code: 'en',    name: 'English',     flagPath: '/flags/en.svg'    },
-  'pt-PT': { code: 'pt-PT', name: 'Português (PT)', flagPath: '/flags/pt-pt.svg' },
-  'es':    { code: 'es',    name: 'Español',     flagPath: '/flags/es.svg'    },
+  'pt-BR': { code: 'pt-BR', name: 'Português',       flagPath: '/PNG/flags/brazil.png'   },
+  'ru':    { code: 'ru',    name: 'Русский',          flagPath: '/PNG/flags/russia.png'   },
+  'en':    { code: 'en',    name: 'English',          flagPath: '/PNG/flags/usa.png'      },
+  'pt-PT': { code: 'pt-PT', name: 'Português (PT)',   flagPath: '/PNG/flags/portugal.png' },
+  'es':    { code: 'es',    name: 'Español',          flagPath: '/PNG/flags/spain.png'    },
 }
 
 // Resolve a raw DB language entry to a Language object.
@@ -24,5 +24,5 @@ export function resolveLanguage(entry: { code?: string; flag?: string; name?: st
   const match = Object.values(LANGUAGES).find(l =>
     l.name.toLowerCase() === (entry.name ?? '').toLowerCase()
   )
-  return match ?? { code: 'unknown', name: entry.name ?? '', flagPath: '/flags/unknown.svg' }
+  return match ?? { code: 'unknown', name: entry.name ?? '', flagPath: '' }
 }

@@ -4,20 +4,20 @@ import { scrollToElement } from '@/components/ui/AnchorScrollHandler'
 import type { PlanCard } from '@/types'
 
 export const BG = [
-  '/plans/cover-1.svg',
-  '/plans/cover-2.svg',
-  '/plans/cover-3.svg',
-  '/plans/cover-4.svg',
+  '/SVG/plans/cover-1.svg',
+  '/SVG/plans/cover-2.svg',
+  '/SVG/plans/cover-3.svg',
+  '/SVG/plans/cover-4.svg',
 ]
 
 const MOBILE_BG = [
-  '/plans/cover-mobile-1.svg',
-  '/plans/cover-mobile-2.svg',
-  '/plans/cover-mobile-3.svg',
-  '/plans/cover-mobile-4.svg',
+  '/SVG/plans/cover-mobile-1.svg',
+  '/SVG/plans/cover-mobile-2.svg',
+  '/SVG/plans/cover-mobile-3.svg',
+  '/SVG/plans/cover-mobile-4.svg',
 ]
 
-const ICON_CHECK = '/marks/Mark%20-%20Positive.svg'
+const ICON_CHECK = '/SVG/marks/Mark%20-%20Positive.svg'
 
 export const CONFIG = [
   { featuresFirst: true,  textCream: false, mobileTextCream: false, accent: '#8FD096', btnText: null      },

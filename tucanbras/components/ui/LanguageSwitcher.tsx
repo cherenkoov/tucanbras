@@ -6,9 +6,9 @@ import { useState, useRef, useEffect } from 'react'
 import type { Locale } from '@/types'
 
 const LOCALES: { code: Locale; label: string; flagUrl: string }[] = [
-  { code: 'en', label: 'EN', flagUrl: '/flags/usa.png'    },
-  { code: 'pt', label: 'PT', flagUrl: '/flags/brazil.png' },
-  { code: 'ru', label: 'RU', flagUrl: '/flags/russia.png' },
+  { code: 'en', label: 'EN', flagUrl: '/PNG/flags/usa.png'    },
+  { code: 'pt', label: 'PT', flagUrl: '/PNG/flags/brazil.png' },
+  { code: 'ru', label: 'RU', flagUrl: '/PNG/flags/russia.png' },
 ]
 
 // Shared pill geometry — matches desktop NavPill

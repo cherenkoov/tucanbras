@@ -212,9 +212,9 @@ export async function getFooterData(locale: Locale): Promise<FooterData> {
   const base = {
     faqGroups,
     socialLinks: [
-      { label: 'Telegram',  href: '#', iconUrl: '/footer/telegram.svg'  },
-      { label: 'Instagram', href: '#', iconUrl: '/footer/instagram.svg' },
-      { label: 'YouTube',   href: '#', iconUrl: '/footer/youtube.svg'   },
+      { label: 'Telegram',  href: '#', iconUrl: '/SVG/footer/telegram.svg'  },
+      { label: 'Instagram', href: '#', iconUrl: '/SVG/footer/instagram.svg' },
+      { label: 'YouTube',   href: '#', iconUrl: '/SVG/footer/youtube.svg'   },
     ],
   }
 

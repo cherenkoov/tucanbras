@@ -8,10 +8,19 @@
 ---
 
 ## Стек
-- **Next.js 14** (App Router)
-- **TypeScript** — все компоненты типизированы
-- **Tailwind CSS** — стилизация строго по Figma, не придумывать отступы самостоятельно
-- **Notion API** — единственный источник контента (CMS)
+
+| Слой | Технология | Версия |
+|------|-----------|--------|
+| Framework | Next.js App Router | 16.2.2 |
+| Runtime | React | 19.2.4 |
+| Language | TypeScript | 5.x strict |
+| Styling | Tailwind CSS | v4 (PostCSS) |
+| CMS | Notion API (`@notionhq/client`) | 5.17.0 |
+| Database | PostgreSQL (`pg`) | 8.20.0 |
+| Email | Resend | 6.12.0 |
+| Deploy | Netlify | (plugin v5) |
+
+Tailwind v4 не имеет `tailwind.config.ts` — все токены (цвета, тени, шрифты) объявлены в `app/globals.css`. Всегда использовать `var(--color-*)`, никогда не вводить сырые hex-значения.
 
 ---
 
@@ -20,24 +29,56 @@
 ```
 tucanbras/
 ├── app/
-│   └── page.tsx               # Собирает все секции по порядку
+│   ├── [locale]/page.tsx        # Собирает секции; генерирует статику для ru/en/pt
+│   ├── api/free-lesson/route.ts # Lead capture: Notion + PostgreSQL + Telegram + email
+│   ├── layout.tsx               # Root layout, metadata
+│   └── globals.css              # Дизайн-токены, шрифты, CSS-анимации
 ├── components/
-│   └── sections/
-│       ├── Header.tsx
-│       ├── Hero.tsx
-│       ├── About.tsx
-│       ├── Comparison.tsx
-│       ├── Tutors.tsx
-│       ├── CelpeBras.tsx
-│       ├── Plans.tsx
-│       └── Footer.tsx         # Footer + Form + FAQ
+│   ├── sections/                # Полноэкранные секции
+│   │   ├── Header.tsx
+│   │   ├── Hero.tsx
+│   │   ├── About.tsx
+│   │   ├── Comparison.tsx
+│   │   ├── Tutors.tsx
+│   │   ├── WaveSection.tsx      # Декоративная секция (волны + пальмы)
+│   │   ├── CelpeBras.tsx
+│   │   ├── Plans.tsx
+│   │   └── Footer.tsx
+│   └── ui/                      # Переиспользуемые компоненты и анимации
+│       ├── background/          # Фоновый коллаж (BackgroundCanvas + сцены)
+│       │   ├── BackgroundCanvas.tsx
+│       │   ├── useScrollScene.ts
+│       │   ├── Scene1Mountain.tsx
+│       │   ├── Scene2Forest.tsx
+│       │   ├── Scene3Beach.tsx
+│       │   ├── Scene4Cliff.tsx
+│       │   └── SceneTransition.tsx
+│       ├── FreeLessonModal.tsx
+│       ├── FooterForm.tsx
+│       ├── FernAnimated.tsx
+│       ├── HibiscusUpAnimated.tsx
+│       ├── HibiscusDownAnimated.tsx
+│       ├── WavesAnimated.tsx    # 3 SVG-слоя волн
+│       ├── PalmTopAnimated.tsx  # Корона пальмы вид сверху
+│       └── ...
+├── hooks/
+│   └── useScrollAnimation.ts   # Общий RAF + scroll hook с idle detection
 ├── lib/
-│   └── notion.ts              # Все функции получения данных из Notion
+│   ├── notion.ts               # Данные всех секций из Notion
+│   ├── tutors.ts               # PostgreSQL запрос репетиторов
+│   ├── db.ts                   # PostgreSQL connection pool
+│   └── email.ts                # Resend welcome emails (ru/en/pt)
 ├── types/
-│   └── index.ts               # TypeScript-интерфейсы для всех секций
+│   └── index.ts                # TypeScript-интерфейсы
 ├── public/
-│   └── images/
-└── .env.local                 # NOTION_TOKEN + ID страниц
+│   ├── fonts/                  # Involve (4 weights) + Rimma Sans
+│   ├── PNG/                    # Фото, скриншоты дашборда, аватары
+│   └── SVG/                    # Иконки, иллюстрации, флаги
+├── docs/superpowers/
+│   ├── plans/                  # Планы реализации
+│   └── specs/                  # Дизайн-документы
+├── docker-compose.yml          # PostgreSQL dev container
+└── netlify.toml                # Deploy config
 ```
 
 ---
@@ -49,71 +90,43 @@ tucanbras/
 2. Hero
 3. About
 4. Comparison
-5. Tutors
-6. CelpeBras
-7. Plans
-8. Footer (+ Form + FAQ)
+5. WaveSection      ← декоративная, без CMS-контента
+6. Tutors
+7. CelpeBras
+8. Plans
+9. Footer (+ Form + FAQ)
 ```
 
 Порядок **не менять** без явной команды.
 
 ---
 
-## Секции — что в каждой
+## Background Collage — фоновая система
 
-### 1. Header
-- Логотип: TucanBRAS
-- Навигационное меню: О тукане / Репетиторы / CELPE-BRAS / Тарифы
-- Мобильная версия: бургер-меню
-- Меню ведёт к якорным ссылкам на соответствующие секции
-- Названия пунктов меню фиксированы — не менять
+`BackgroundCanvas` — фиксированный слой за всем контентом (z-index: 0), отображает визуальное путешествие по Бразилии при скролле.
 
-### 2. Hero
-- Заголовок: *Учите португальский — и летите в Бразилию*
-- Primary CTA: кнопка **Бесплатный урок**
-- Назначение CTA — TBD (пока заглушка)
+| Сцена | Секции | Визуал |
+|-------|--------|--------|
+| 1 — Гора | Hero | Небо, гора Корковаду, статуя Христа |
+| 2 — Лес | About, Comparison | Джунгли, кроны деревьев, лианы |
+| 3 — Пляж | WaveSection, Tutors (heading) | Океан, волны, пальмы |
+| 4 — Обрыв | Tutors (cards) | Скала, океан далеко внизу |
 
-### 3. About
-- Два смысловых блока с текстом
-- CTA: **Ещё** (раскрывает дополнительный контент)
+Статуя Христа: реализация пока открыта — SVG (стилизованная 2D) или Three.js (интерактивная 3D). Обе опции валидны.
 
-### 4. Comparison
-- Заголовок: *Почему TucanBRAS?*
-- Два блока: **Наш тукан** (список плюсов) vs **Обычные скучные школы** (список минусов)
-- Итоговый описательный абзац
+Правила:
+- Один scroll listener — в `BackgroundCanvas`
+- `prefers-reduced-motion`: показывать статичный первый кадр
+- Мобильные: только opacity-переход между сценами, parallax отключён
 
-### 5. Tutors
-- Заголовок 1: *Наши репетиторы — люди, которые любят язык и жизнь*
-- Заголовок 2: *С ними ты не просто учишься — ты начинаешь думать на португальском.*
-- Карточки репетиторов (repeatable): имя, языки, описание, теги специальности, опционально — теги интересов
-- Описание секции: *Мы не просто команда репетиторов — мы проводники в культуру, язык и бразильский образ жизни.*
-- CTA: **Выбрать репетитора** (назначение TBD)
+---
 
-### 6. CelpeBras
-- Заголовок
-- 5 карточек с фичами (контент TBD)
-- Цитата
-- Описательная строка
-- CTA: **Связаться** (назначение TBD)
+## Анимации — правила
 
-### 7. Plans
-- Заголовок 1: *Выбирай удобный формат: от одного пробного занятия до полной подготовки к CELPE-BRAS.*
-- Заголовок 2: *Мы не прячем условия — всё честно, как под солнцем Бразилии*
-- 4 тарифных карточки:
-  | Тариф | CTA | Цена |
-  |---|---|---|
-  | Одно занятие | Попробовать | $17 / 1 урок |
-  | Базовый пакет | Хочу этот пакет | $199 / 10 уроков |
-  | Продвинутый курс | Учусь всерьёз | $449 / 30 уроков |
-  | Учись без ограничений | Готовлюсь к экзамену | $749 / 1 месяц |
-
-### 8. Footer
-- Форма: поля Имя + Telegram + кнопка **Отправить**
-- Бренд-блок
-- FAQ (3 группы вопросов)
-- Ссылки на политику
-- Ссылки на соцсети
-- Нижний футер-контейнер
+- Все scroll-driven анимации используют `hooks/useScrollAnimation.ts`
+- Анимации обновляют DOM напрямую через ref — никогда не через React state
+- `prefers-reduced-motion` проверяется в каждом анимационном компоненте
+- Idle detection: останавливать RAF после 60 кадров с |target| < 0.001
 
 ---
 
@@ -131,14 +144,23 @@ tucanbras/
 **Что хардкодится в коде:**
 - Структура навигации и якорные ссылки
 - Порядок секций
-- Анимации и hover-эффекты
+- Анимации, hover-эффекты, декоративная логика
 - Логика отправки формы
+- `WaveSection` — полностью хардкод (декоративная, без CMS)
+
+---
+
+## Формы и захват лидов
+
+Два входа: `FreeLessonModal` (popup) и `FooterForm` (встроенная форма).
+Оба POST на `/api/free-lesson`.
+Пайплайн: Notion → PostgreSQL → Telegram-уведомление → Resend welcome email.
 
 ---
 
 ## Дизайн
 
-Все компоненты строятся строго по Figma. Не придумывать цвета, отступы, размеры шрифтов самостоятельно — только то, что есть в макете.
+Все компоненты строятся строго по Figma. Не придумывать цвета, отступы, размеры шрифтов — только токены из `globals.css` и значения из макета.
 
 > Ссылку на Figma добавить сюда после настройки доступа.
 
@@ -149,23 +171,40 @@ tucanbras/
 - Порядок секций фиксирован — не менять
 - Названия пунктов меню фиксированы — не менять
 - CTA-тексты берутся из Notion — не хардкодить
-- Мобильная версия обязательна для всех секций (Header имеет бургер-меню)
-- Локализация (EN) — в скоупе, но поведение TBD
+- Мобильная версия обязательна для всех секций
+- Локализация: ru / en / pt — статическая генерация через `generateStaticParams`
+- `<Image>` из `next/image` везде — никаких `<img>` для растровых изображений
 
 ---
 
-## Open Questions (не реализовывать до решения)
+## Фазы разработки
 
-- Куда ведёт CTA **Бесплатный урок** — форма / booking / контакт?
-- Куда ведёт **Выбрать репетитора** — страница / каталог / модалка?
-- Куда ведёт **Связаться** в CELPE-BRAS?
-- Что происходит после отправки формы (имя + Telegram)?
-- Контент 5 карточек CELPE-BRAS?
-- Фото репетиторов — обязательно или нет?
-- Политика и соцсети — финальные URL?
-- Поведение переключателя языка EN?
+**Фаза 0 — Техдолг** (завершить optimization plan 2026-04-24)
+Финализировать `useScrollAnimation`, рефакторинг FernAnimated + Hibiscus, `prefers-reduced-motion` везде.
 
-Для всех TBD-элементов использовать заглушки с пометкой `// TODO: TBD`.
+**Фаза 1 — Background Collage**
+Реализовать `BackgroundCanvas` и сцены 1–4.
+
+**Фаза 2 — WaveSection**
+Новая декоративная секция: `WavesAnimated` (3 SVG-слоя) + `PalmTopAnimated` (кроны сверху).
+
+**Фаза 3 — Дополнительные декоративные элементы**
+`TropicalFlower`, `VineAnimated`, `LeafDrop` по секциям.
+
+**Фаза 4 — Аналитика** (отложена)
+GA4 / Vercel Analytics, конверсионные события, UTM → Notion.
+
+Полный дизайн: `docs/superpowers/specs/2026-05-01-development-plan-design.md`
+
+---
+
+## Open Questions
+
+- Статуя Христа: SVG или Three.js? Решить когда дизайн-ассеты готовы.
+- Финальные URL соцсетей (TG, IG, YouTube)
+- Финальные URL политики конфиденциальности
+- `NEXT_PUBLIC_TG_BOT_URL` — финальный URL Telegram-бота
+- Figma ссылка — добавить после настройки доступа
 
 ---
 

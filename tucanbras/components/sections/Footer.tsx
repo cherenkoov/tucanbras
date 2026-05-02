@@ -194,22 +194,22 @@ export default function Footer({ data, tutors, planNames, locale }: FooterProps)
           {/* ── Bottom bar: copyright + language ── */}
           <div className="flex flex-wrap gap-y-[20px] items-center justify-between w-full">
             {/* Copyright */}
-            <div className="flex flex-col gap-[8px]">
+            <div className="flex flex-col gap-[0]">
               <p
                 className="font-sans font-bold text-ink"
-                style={{ fontSize: 'clamp(16px, 2vw, 32px)', lineHeight: '36px' }}
+                style={{ fontSize: 'clamp(16px, 2vw, 32px)', lineHeight: '1' }}
               >
                 {data.copyright}
               </p>
               <p
                 className="font-sans font-bold text-ink"
-                style={{ fontSize: 'clamp(16px, 2vw, 32px)', lineHeight: '36px' }}
+                style={{ fontSize: 'clamp(16px, 2vw, 32px)', lineHeight: '1' }}
               >
                 {data.allRightsReserved}
               </p>
             </div>
             {/* Language selector */}
-            <LanguageSwitcher style={{ fontSize: 'clamp(16px, 2vw, 32px)', lineHeight: '36px' }} />
+            <LanguageSwitcher style={{ fontSize: 'clamp(16px, 2vw, 32px)', lineHeight: '1' }} />
           </div>
 
         </div>

@@ -62,16 +62,26 @@ export function useScrollAnimation({
       startRAF()
     }
 
+    let isNear = false
+
     const observer = new IntersectionObserver(
-      ([entry]) => { if (!entry.isIntersecting) { stopRAF(); target = 0 } },
-      { threshold: 0 },
+      ([entry]) => {
+        isNear = entry.isIntersecting
+        if (!isNear) { stopRAF(); target = 0 }
+      },
+      { threshold: 0, rootMargin: '300px 0px 300px 0px' },
     )
 
+    const onScrollGuarded = () => {
+      if (!isNear) return
+      onScroll()
+    }
+
     observer.observe(el)
-    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('scroll', onScrollGuarded, { passive: true })
 
     return () => {
-      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('scroll', onScrollGuarded)
       stopRAF()
       observer.disconnect()
     }

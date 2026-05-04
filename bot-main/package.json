@@ -2,9 +2,10 @@
   "name": "tucan-bot",
   "version": "1.0.0",
   "description": "",
-  "main": "bot/bot.js",
+  "main": "server.js",
   "scripts": {
-    "start": "nodemon bot/bot.js"
+    "start": "nodemon server.js",
+    "start:prod": "node server.js"
   },
   "keywords": [],
   "author": "",

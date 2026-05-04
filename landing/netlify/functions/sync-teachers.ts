@@ -4,7 +4,8 @@ import type { PageObjectResponse } from '@notionhq/client/build/src/api-endpoint
 import { Pool } from 'pg'
 
 const notion = new Client({ auth: process.env.NOTION_TOKEN })
-const DB_ID  = process.env.NOTION_TEACHERS_DB_ID!
+const DB_ID  = process.env.NOTION_TEACHERS_DB_ID!   // database page ID (for creating pages)
+const DS_ID  = process.env.NOTION_TEACHERS_DS_ID!   // collection/data source ID (for querying)
 
 const pool = new Pool(
   process.env.DATABASE_URL
@@ -95,7 +96,7 @@ async function syncTeachers() {
 
   do {
     const res = await notion.dataSources.query({
-      data_source_id: DB_ID,
+      data_source_id: DS_ID,
       filter: { property: 'isPublished', checkbox: { equals: true } },
       start_cursor: cursor,
       page_size: 100,

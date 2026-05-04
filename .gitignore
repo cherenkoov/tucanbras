@@ -1,0 +1,26 @@
+# Dependencies
+**/node_modules/
+
+# Next.js
+landing/.next/
+landing/tsconfig.tsbuildinfo
+
+# Env files
+**/.env
+**/.env.local
+**/.env*.local
+
+# Logs
+**/logs/
+**/*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+**/.claude/
+
+# Bot static uploads (large binary files)
+bot-main/static/

@@ -1,0 +1,125 @@
+<style>
+  .wave-demo {
+    position: relative;
+    width: 100%;
+    height: 160px;
+    overflow: hidden;
+    border-radius: 8px;
+    background: #fffce5;
+    margin: 8px 0;
+  }
+  .wave-stripe {
+    position: absolute;
+    left: 0;
+    width: 200%;
+    height: 60px;
+  }
+  .wave-stripe svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* A: Scroll-driven — static preview */
+  #demo-a .stripe-1 { top: 0; }
+  #demo-a .stripe-2 { top: 50px; transform: translateX(-15%); }
+  #demo-a .stripe-3 { top: 100px; transform: translateX(-8%); }
+
+  /* B: CSS auto-animation */
+  #demo-b .stripe-1 { top: 0; animation: drift-b1 4s linear infinite; }
+  #demo-b .stripe-2 { top: 50px; animation: drift-b2 6s linear infinite; }
+  #demo-b .stripe-3 { top: 100px; animation: drift-b3 5s linear infinite; }
+
+  @keyframes drift-b1 { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  @keyframes drift-b2 { from { transform: translateX(-10%); } to { transform: translateX(-60%); } }
+  @keyframes drift-b3 { from { transform: translateX(-5%); } to { transform: translateX(-55%); } }
+
+  /* C: Hybrid — auto + pulse on hover to simulate scroll */
+  #demo-c .stripe-1 { top: 0; animation: drift-c1 5s linear infinite; }
+  #demo-c .stripe-2 { top: 50px; animation: drift-c2 8s linear infinite; }
+  #demo-c .stripe-3 { top: 100px; animation: drift-c3 3.5s linear infinite; }
+  #demo-c:hover .stripe-1 { animation-duration: 1.5s; }
+  #demo-c:hover .stripe-2 { animation-duration: 2.5s; }
+  #demo-c:hover .stripe-3 { animation-duration: 1s; }
+
+  @keyframes drift-c1 { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  @keyframes drift-c2 { from { transform: translateX(-8%); } to { transform: translateX(-58%); } }
+  @keyframes drift-c3 { from { transform: translateX(-15%); } to { transform: translateX(-65%); } }
+
+  .demo-label {
+    font-size: 11px;
+    color: #5b595a;
+    text-align: center;
+    margin-top: 4px;
+    font-style: italic;
+  }
+
+  .card-image { padding: 0 !important; overflow: hidden; }
+</style>
+
+<h2>Анимация волн — как двигаются полосы?</h2>
+<p class="subtitle">Три подхода. Все демо — живые. Вариант C: наведи мышь чтобы увидеть эффект скролла.</p>
+
+<div class="cards">
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="wave-demo" id="demo-a">
+        <div class="wave-stripe stripe-1">
+          <svg viewBox="0 0 1879 60" preserveAspectRatio="none"><path d="M0 20 C100 5, 200 35, 300 20 C400 5, 500 35, 600 20 C700 5, 800 35, 900 20 C1000 5, 1100 35, 1200 20 C1300 5, 1400 35, 1500 20 C1600 5, 1700 35, 1800 20 L1879 20 L1879 60 L0 60 Z" fill="#323031"/></svg>
+        </div>
+        <div class="wave-stripe stripe-2">
+          <svg viewBox="0 0 1879 60" preserveAspectRatio="none"><path d="M0 25 C100 8, 200 42, 300 25 C400 8, 500 42, 600 25 C700 8, 800 42, 900 25 C1000 8, 1100 42, 1200 25 C1300 8, 1400 42, 1500 25 C1600 8, 1700 42, 1800 25 L1879 25 L1879 60 L0 60 Z" fill="#323031" opacity="0.6"/></svg>
+        </div>
+        <div class="wave-stripe stripe-3">
+          <svg viewBox="0 0 1879 60" preserveAspectRatio="none"><path d="M0 30 C100 12, 200 48, 300 30 C400 12, 500 48, 600 30 C700 12, 800 48, 900 30 C1000 12, 1100 48, 1200 30 C1300 12, 1400 48, 1500 30 C1600 12, 1700 48, 1800 30 L1879 30 L1879 60 L0 60 Z" fill="#323031" opacity="0.35"/></svg>
+        </div>
+      </div>
+      <div class="demo-label">Статично — полосы смещаются только при скролле страницы</div>
+    </div>
+    <div class="card-body">
+      <h3>A — Scroll-driven</h3>
+      <p>Волны смещаются горизонтально пропорционально прокрутке. Каждый слой — свой коэффициент скорости. Использует <code>useScrollAnimation</code>. Эффект параллакса.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="wave-demo" id="demo-b">
+        <div class="wave-stripe stripe-1">
+          <svg viewBox="0 0 1879 60" preserveAspectRatio="none"><path d="M0 20 C100 5, 200 35, 300 20 C400 5, 500 35, 600 20 C700 5, 800 35, 900 20 C1000 5, 1100 35, 1200 20 C1300 5, 1400 35, 1500 20 C1600 5, 1700 35, 1800 20 L1879 20 L1879 60 L0 60 Z" fill="#323031"/></svg>
+        </div>
+        <div class="wave-stripe stripe-2">
+          <svg viewBox="0 0 1879 60" preserveAspectRatio="none"><path d="M0 25 C100 8, 200 42, 300 25 C400 8, 500 42, 600 25 C700 8, 800 42, 900 25 C1000 8, 1100 42, 1200 25 C1300 8, 1400 42, 1500 25 C1600 8, 1700 42, 1800 25 L1879 25 L1879 60 L0 60 Z" fill="#323031" opacity="0.6"/></svg>
+        </div>
+        <div class="wave-stripe stripe-3">
+          <svg viewBox="0 0 1879 60" preserveAspectRatio="none"><path d="M0 30 C100 12, 200 48, 300 30 C400 12, 500 48, 600 30 C700 12, 800 48, 900 30 C1000 12, 1100 48, 1200 30 C1300 12, 1400 48, 1500 30 C1600 12, 1700 48, 1800 30 L1879 30 L1879 60 L0 60 Z" fill="#323031" opacity="0.35"/></svg>
+        </div>
+      </div>
+      <div class="demo-label">Автоматический дрейф — смотри как слои плывут в разных темпах</div>
+    </div>
+    <div class="card-body">
+      <h3>B — CSS Auto-animation</h3>
+      <p>Волны непрерывно дрейфуют горизонтально через CSS <code>@keyframes</code>. Не зависит от скролла. Работает сразу как секция появляется в экране. Нет RAF.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="wave-demo" id="demo-c">
+        <div class="wave-stripe stripe-1">
+          <svg viewBox="0 0 1879 60" preserveAspectRatio="none"><path d="M0 20 C100 5, 200 35, 300 20 C400 5, 500 35, 600 20 C700 5, 800 35, 900 20 C1000 5, 1100 35, 1200 20 C1300 5, 1400 35, 1500 20 C1600 5, 1700 35, 1800 20 L1879 20 L1879 60 L0 60 Z" fill="#323031"/></svg>
+        </div>
+        <div class="wave-stripe stripe-2">
+          <svg viewBox="0 0 1879 60" preserveAspectRatio="none"><path d="M0 25 C100 8, 200 42, 300 25 C400 8, 500 42, 600 25 C700 8, 800 42, 900 25 C1000 8, 1100 42, 1200 25 C1300 8, 1400 42, 1500 25 C1600 8, 1700 42, 1800 25 L1879 25 L1879 60 L0 60 Z" fill="#323031" opacity="0.6"/></svg>
+        </div>
+        <div class="wave-stripe stripe-3">
+          <svg viewBox="0 0 1879 60" preserveAspectRatio="none"><path d="M0 30 C100 12, 200 48, 300 30 C400 12, 500 48, 600 30 C700 12, 800 48, 900 30 C1000 12, 1100 48, 1200 30 C1300 12, 1400 48, 1500 30 C1600 12, 1700 48, 1800 30 L1879 30 L1879 60 L0 60 Z" fill="#323031" opacity="0.35"/></svg>
+        </div>
+      </div>
+      <div class="demo-label">Наведи мышь → ускорение (имитирует скролл)</div>
+    </div>
+    <div class="card-body">
+      <h3>C — Гибрид</h3>
+      <p>Базовый CSS-дрейф всегда активен + скоростной множитель от <code>useScrollAnimation</code>. При быстром скролле волны ускоряются, при остановке — замедляются. Самый живой эффект.</p>
+    </div>
+  </div>
+</div>

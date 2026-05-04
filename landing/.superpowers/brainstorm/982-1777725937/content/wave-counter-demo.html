@@ -1,0 +1,135 @@
+<style>
+  .demo-wrapper {
+    width: 100%;
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+    margin: 16px 0;
+  }
+  .wave-section-preview {
+    width: 100%;
+    height: 420px;
+    background: #ffd376;
+    overflow: hidden;
+    position: relative;
+  }
+  .wave-band {
+    position: absolute;
+    left: -10%;
+    width: 120%;
+    height: 207px;
+    will-change: transform;
+  }
+  .wave-band svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .scrubber-wrap {
+    background: #1a1a1a;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .scrubber-label { color: #888; font-size: 12px; white-space: nowrap; }
+  input[type=range] {
+    flex: 1;
+    accent-color: #fffce5;
+    cursor: pointer;
+  }
+  .scrubber-val { color: #fffce5; font-size: 12px; width: 60px; text-align: right; }
+
+  .info-row {
+    display: flex;
+    gap: 20px;
+    margin-top: 12px;
+  }
+  .info-chip {
+    flex: 1;
+    background: #f5f3e0;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: #323031;
+    border-left: 4px solid #323031;
+  }
+  .info-chip.cream { border-left-color: #fffce5; background: #323031; color: #fffce5; }
+  .info-chip strong { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.6; margin-bottom: 4px; }
+</style>
+
+<h2>Волны с контр-анимацией по скроллу</h2>
+<p class="subtitle">Чёрные ← влево, белые → вправо. Тяни слайдер — симулирует скролл страницы.</p>
+
+<div class="demo-wrapper">
+  <div class="wave-section-preview" id="wavePreview">
+    <!-- bands inserted by JS -->
+  </div>
+  <div class="scrubber-wrap">
+    <span class="scrubber-label">↑ Скролл ↓</span>
+    <input type="range" id="scrollSim" min="0" max="100" value="0">
+    <span class="scrubber-val" id="scrollVal">0 px</span>
+  </div>
+</div>
+
+<div class="info-row">
+  <div class="info-chip">
+    <strong>Чёрные полосы (ink)</strong>
+    translateX(-progress × speed)<br>движутся влево при скролле вниз
+  </div>
+  <div class="info-chip cream">
+    <strong>Белые полосы (cream)</strong>
+    translateX(+progress × speed)<br>движутся вправо при скролле вниз
+  </div>
+</div>
+
+<div class="info-row" style="margin-top:8px">
+  <div class="info-chip" style="border-left-color:#8fd096">
+    <strong>Реализация</strong>
+    useScrollAnimation hook → RAF → прямое изменение style.transform на ref.<br>
+    Idle stop после 60 кадров без движения. prefers-reduced-motion → статика.
+  </div>
+</div>
+
+<script>
+const wavePath = "M0 146.506C97.5 150.096 0 3.50391 121 3.50391C234.5 3.50391 158.5 143.003 235 145.504C328.5 148.56 232.104 2.50119 358.5 2.50586C469.5 2.50996 392.078 143.999 469.578 144.005C567.5 144.005 469.5 1 590.5 1C704 1 628 140.498 704.5 142.998C798 146.054 701.604 -0.00466522 828 3.35749e-06C939 0.00410325 865 141.5 939 141.5C1037 142.59 940 3.50391 1061 3.50391C1174.5 3.50391 1098.5 143.003 1175 145.504C1268.5 148.56 1172.1 2.50119 1298.5 2.50586C1409.5 2.50996 1332.08 143.999 1409.58 144.005C1507.5 144.005 1409.5 1 1530.5 1C1644 1 1568 140.498 1644.5 142.998C1738 146.054 1641.6 -0.00466846 1768 1.11916e-07C1879 0.0041 1800.5 147.5 1879 141.5V199.002C1800.5 205.002 1879 71.002 1767.5 68.502C1641.5 73.502 1738 205.558 1644.5 202.502C1563 199.838 1644.5 69.002 1531 69.002C1414.5 69.002 1508 201.508 1409.5 201.508C1332 199.531 1409.5 73.5078 1298 71.0078C1172 76.0078 1268.5 208.064 1175 205.008C1093.5 202.344 1175 71.5078 1061.5 71.5078C945 71.5078 1037.5 199.002 939 199.002C865 199.002 939 71.002 827.5 68.502C701.5 73.502 798 205.558 704.5 202.502C623 199.838 704.5 69.002 591 69.002C474.5 69.002 568 201.508 469.5 201.508C392 199.531 469.5 73.5078 358 71.0078C232 76.0078 328.5 208.064 235 205.008C153.5 202.344 235 71.5078 121.5 71.5078C5 71.5078 98 208.508 0 206.008V146.506Z";
+
+// bands: [color, topOffset, speed, direction]
+// direction: 1 = right (cream), -1 = left (ink)
+const bands = [
+  ['#323031', -80,  0.18, -1],  // ink,   top row
+  ['#fffce5', -25,  0.12,  1],  // cream
+  ['#323031',  30,  0.20, -1],  // ink
+  ['#fffce5',  85,  0.14,  1],  // cream
+  ['#323031', 140,  0.18, -1],  // ink
+  ['#fffce5', 195,  0.10,  1],  // cream (bottom)
+];
+
+const preview = document.getElementById('wavePreview');
+const bandEls = [];
+
+bands.forEach(([color, top, speed, dir], i) => {
+  const div = document.createElement('div');
+  div.className = 'wave-band';
+  div.style.top = top + 'px';
+  div.innerHTML = `<svg viewBox="0 0 1879 207" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="${wavePath}" fill="${color}"/>
+  </svg>`;
+  preview.appendChild(div);
+  bandEls.push({ el: div, speed, dir });
+});
+
+const slider = document.getElementById('scrollSim');
+const valLabel = document.getElementById('scrollVal');
+
+slider.addEventListener('input', () => {
+  const progress = parseInt(slider.value); // 0–100
+  const px = progress * 6; // simulate up to 600px scroll
+  valLabel.textContent = px + ' px';
+
+  bandEls.forEach(({ el, speed, dir }) => {
+    const tx = dir * px * speed;
+    el.style.transform = `translateX(${tx}%)`;
+  });
+});
+</script>

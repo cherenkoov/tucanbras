@@ -131,8 +131,7 @@ export default function ChristScene() {
           }}
         />
 
-        {/* ── Perspective wrapper — covers statue bounding box exactly ── */}
-        {/* left=32, top=8, 516×505 mirrors Figma "Statue" vector bounds.  */}
+        {/* ── Statue wrapper — Figma bounds: left=32, top=8, 516×505 ── */}
         <div
           style={{
             position: 'absolute',
@@ -140,8 +139,6 @@ export default function ChristScene() {
             top: 8,
             width: 516,
             height: 505,
-            perspective: '800px',
-            perspectiveOrigin: '50% 96%',
           }}
         >
           {/* Statue — 3D mouse-tracked */}

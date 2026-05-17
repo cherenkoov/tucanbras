@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import ChristScene from './ChristScene'
 import { injectRailPath } from './utils/injectRailPath'
 import { useParallaxBackground } from './useParallaxBackground'
+import { useTrainAnimation } from './useTrainAnimation'
 
 function Placeholder() {
   return (
@@ -29,6 +30,7 @@ export default function BackgroundCanvas() {
   }, [])
 
   useParallaxBackground(containerRef, { enabled: !!svgContent })
+  useTrainAnimation(containerRef, { enabled: !!svgContent })
 
   return (
     <div

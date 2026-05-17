@@ -24,3 +24,12 @@ Thumbs.db
 
 # Bot static uploads (large binary files)
 bot-main/static/
+
+# Superpowers generated files
+.superpowers/
+
+# Design reference assets (binary, not source)
+Assets/Background/
+
+# Superpowers plan/spec docs
+landing/docs/superpowers/

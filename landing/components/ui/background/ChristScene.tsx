@@ -61,7 +61,7 @@ export default function ChristScene() {
     <div
       ref={wrapperRef}
       style={{
-        width: `clamp(260px, 30vw, ${W}px)`,
+        width: `clamp(234px, 27vw, 522px)`,
         aspectRatio: `${W} / ${H}`,
         position: 'relative',
         overflow: 'visible',

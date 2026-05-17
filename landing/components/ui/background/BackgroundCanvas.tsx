@@ -24,6 +24,7 @@ export default function BackgroundCanvas() {
     fetch('/SVG/background/background [Vectorized].svg')
       .then(r => r.text())
       .then(raw => setSvgContent(injectRailPath(raw)))
+      .catch(err => console.warn('BackgroundCanvas: SVG fetch failed', err))
   }, [])
 
   return (

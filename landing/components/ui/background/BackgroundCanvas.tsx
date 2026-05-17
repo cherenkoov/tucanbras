@@ -1,43 +1,46 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
 import ChristScene from './ChristScene'
+import { injectRailPath } from './utils/injectRailPath'
 
-export default function BackgroundCanvas() {
+function Placeholder() {
   return (
     <div
+      style={{
+        width: '100%',
+        aspectRatio: '800 / 2430',
+        background: 'linear-gradient(to bottom, #1a2a4a 0%, #2a5298 15%, #1e3a6e 40%, #1a3a0d 70%)',
+      }}
+    />
+  )
+}
+
+export default function BackgroundCanvas() {
+  const [svgContent, setSvgContent] = useState('')
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    fetch('/SVG/background/background [Vectorized].svg')
+      .then(r => r.text())
+      .then(raw => setSvgContent(injectRailPath(raw)))
+  }, [])
+
+  return (
+    <div
+      ref={containerRef}
       className="absolute top-0 left-0 w-full z-0 pointer-events-none"
       style={{ overflow: 'visible' }}
     >
-      {/* Sharp background — natural image height, no parallax */}
-      <img
-        alt=""
-        src="/PNG/background/background.png"
-        className="w-full h-auto block"
-        draggable={false}
-      />
+      {!svgContent && <Placeholder />}
+      {svgContent && (
+        <div dangerouslySetInnerHTML={{ __html: svgContent }} />
+      )}
 
-      {/* Blurred overlay — gradient mask ties blur to image coordinates */}
-      <div
-        className="absolute inset-0"
-        style={{
-          maskImage: 'linear-gradient(to bottom, transparent 25%, black 65%)',
-          WebkitMaskImage: 'linear-gradient(to bottom, transparent 25%, black 65%)',
-          overflow: 'hidden',
-        }}
-      >
-        <img
-          alt=""
-          src="/PNG/background/background.png"
-          className="w-full h-auto block"
-          style={{ filter: 'blur(10px)', transform: 'scale(1.02)' }}
-          draggable={false}
-        />
-      </div>
-
-      {/* Christ scene — positioned at mountain peak */}
+      {/* ChristScene sits on top of SVG, position matches mountain peak */}
       <div
         className="absolute"
-        style={{ left: '62%', top: '1.5%', transform: 'translateX(-50%)' }}
+        style={{ left: '72%', top: '5%', transform: 'translateX(-50%)' }}
       >
         <ChristScene />
       </div>

@@ -15,23 +15,26 @@ const RAIL_PATH_D =
 const RAIL_TRANSFORM = 'translate(290, 1044) scale(0.47, 0.25)'
 
 export function injectRailPath(svgString: string): string {
+  // 0a. Make SVG stretch to full container width (keep viewBox for scaling)
+  let patched = svgString.replace(
+    /(<svg[^>]*)\swidth="800"([^>]*>)/,
+    '$1 width="100%"$2'
+  )
+
+  // 0b. Remove the dark background rect (#1E1E1E) — let page background show through
+  patched = patched.replace('<rect width="800" height="2430" fill="#1E1E1E"/>', '')
+
   // 1. Inject #rail-path into <defs> (creates <defs> if missing)
   const railPathEl =
     `<path id="rail-path" d="${RAIL_PATH_D}" transform="${RAIL_TRANSFORM}" fill="none" visibility="hidden"/>`
 
-  let patched: string
-  if (svgString.includes('<defs>')) {
-    patched = svgString.replace('<defs>', `<defs>${railPathEl}`)
+  if (patched.includes('<defs>')) {
+    patched = patched.replace('<defs>', `<defs>${railPathEl}`)
   } else {
-    // No <defs> — insert one right after the opening <svg ...> tag
-    patched = svgString.replace(/(<svg[^>]*>)/, `$1<defs>${railPathEl}</defs>`)
+    patched = patched.replace(/(<svg[^>]*>)/, `$1<defs>${railPathEl}</defs>`)
   }
 
-  // 2. Stamp id="cable-path" on the inner <path> inside #Road_2 group.
-  // The inner path currently has id="Road_3" — we add cable-path as an alias
-  // by replacing id="Road_3" with id="Road_3" and adding a data attribute,
-  // but simpler: GSAP will use '#Road_3' directly. We expose it as cable-path
-  // by replacing the id value so the hook has a stable target name.
+  // 2. Rename inner cable wire path to stable ID for useCarAnimation
   patched = patched.replace('id="Road_3"', 'id="cable-path"')
 
   return patched

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import ChristScene from './ChristScene'
 import { injectRailPath } from './utils/injectRailPath'
+import { useParallaxBackground } from './useParallaxBackground'
 
 function Placeholder() {
   return (
@@ -26,6 +27,8 @@ export default function BackgroundCanvas() {
       .then(raw => setSvgContent(injectRailPath(raw)))
       .catch(err => console.warn('BackgroundCanvas: SVG fetch failed', err))
   }, [])
+
+  useParallaxBackground(containerRef, { enabled: !!svgContent })
 
   return (
     <div

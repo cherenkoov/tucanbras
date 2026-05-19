@@ -19,10 +19,10 @@ export function useTrainAnimation(
     if (!container) return
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
-    const train = container.querySelector<SVGElement>('#Train')
+    const train = container.querySelector<SVGElement>('#train')
     const railPath = container.querySelector<SVGPathElement>('#rail-path')
     if (!train || !railPath) {
-      console.warn('useTrainAnimation: #Train or #rail-path not found in DOM')
+      console.warn('useTrainAnimation: #train or #rail-path not found in DOM')
       return
     }
 

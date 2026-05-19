@@ -160,7 +160,7 @@
 body {
   overflow-x: hidden;
   overflow-anchor: none;
-  background: var(--color-yellow);
+  background: transparent;
   color: var(--color-cream);
   font-family: var(--font-sans);
 }

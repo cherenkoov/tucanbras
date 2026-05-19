@@ -103,34 +103,6 @@ export default function ChristScene() {
           ))}
         </div>
 
-        {/* ── Pedestal (static) — Figma: left=202, top=493 in scene ── */}
-        <img
-          src={`${BASE}/pedestal.svg`}
-          alt=""
-          draggable={false}
-          style={{
-            position: 'absolute',
-            left: 202,
-            top: 493,
-            width: 185,
-            height: 150,
-          }}
-        />
-
-        {/* ── Plug (static) — Figma: left=219, top=493 in scene ── */}
-        <img
-          src={`${BASE}/plug.svg`}
-          alt=""
-          draggable={false}
-          style={{
-            position: 'absolute',
-            left: 219,
-            top: 493,
-            width: 145,
-            height: 18,
-          }}
-        />
-
         {/* ── Statue wrapper — Figma bounds: left=32, top=8, 516×505 ── */}
         <div
           style={{
@@ -159,6 +131,20 @@ export default function ChristScene() {
             />
           </div>
         </div>
+
+        {/* ── Pedestal (static) — Figma: left=202, top=493 in scene ── */}
+        <img
+          src={`${BASE}/pedestal.svg`}
+          alt=""
+          draggable={false}
+          style={{
+            position: 'absolute',
+            left: 202,
+            top: 493,
+            width: 185,
+            height: 150,
+          }}
+        />
       </div>
     </div>
   )

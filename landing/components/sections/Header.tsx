@@ -19,7 +19,10 @@ const NAV_PILL_STYLES = [
 const PILL_INNER_SHADOW = 'var(--shadow-round-inner)'
 
 // Gap (px) at which the last 2 nav pills collapse into the ⋮ button
-const COLLAPSE_GAP = 16
+const COLLAPSE_GAP = 8
+
+// x position of background shape step in SVG viewBox (0 0 1728 120) — the width transition point
+const SHAPE_STEP_RATIO = 984.43 / 1728
 
 // ─── Tucan bird logo ─────────────────────────────────────────────────────────
 // Two-layer approach matching the original design:
@@ -157,13 +160,14 @@ function NavPill({ label, href, bg, text }: {
 // ─── Header component ─────────────────────────────────────────────────────────
 
 export default function Header({ navLinks }: HeaderProps) {
-  const [menuOpen,  setMenuOpen]  = useState(false)
-  const [collapsed, setCollapsed] = useState(false)
-  const [dotsOpen,  setDotsOpen]  = useState(false)
+  const [menuOpen,       setMenuOpen]       = useState(false)
+  const [collapsedCount, setCollapsedCount] = useState(0)   // 0 = all pills, 1 = last hidden, 2 = last two hidden
+  const [dotsOpen,       setDotsOpen]       = useState(false)
 
-  const brandRef       = useRef<HTMLAnchorElement>(null)
-  const navRef         = useRef<HTMLElement>(null)
-  const dotsRef        = useRef<HTMLDivElement>(null)
+  const brandRef        = useRef<HTMLAnchorElement>(null)
+  const navRef          = useRef<HTMLElement>(null)
+  const dotsRef         = useRef<HTMLDivElement>(null)
+  const containerRef    = useRef<HTMLDivElement>(null)
   // Width of the nav when all 4 pills are visible — used for hysteresis check
   const fullNavWidthRef = useRef(0)
 
@@ -176,28 +180,31 @@ export default function Header({ navLinks }: HeaderProps) {
     }
   }, [menuOpen])
 
-  // Collision detection: collapse last 2 pills into ⋮ when gap ≤ COLLAPSE_GAP
+  // Progressively collapse pills into ⋮ one at a time when nav crosses shape step boundary
   useEffect(() => {
     const check = () => {
-      const brand = brandRef.current
-      const nav   = navRef.current
-      if (!brand || !nav) return
+      const container = containerRef.current
+      const nav       = navRef.current
+      if (!container || !nav) return
 
-      const brandRight = brand.getBoundingClientRect().right
-      const navRect    = nav.getBoundingClientRect()
+      const containerRect = container.getBoundingClientRect()
+      const thresholdX    = containerRect.left + containerRect.width * SHAPE_STEP_RATIO
+      const navRect       = nav.getBoundingClientRect()
 
-      setCollapsed(prev => {
-        const effectiveNavLeft = prev
-          ? navRect.right - fullNavWidthRef.current
-          : navRect.left
-        const gap = effectiveNavLeft - brandRight
+      setCollapsedCount(prev => {
+        // Actual left of nav as currently rendered
+        const actualGap = navRect.left - thresholdX
+        // Hypothetical left if all pills were restored — used for hysteresis on expand
+        const hypotheticalGap = prev > 0
+          ? navRect.right - fullNavWidthRef.current - thresholdX
+          : actualGap
 
-        if (!prev && gap <= COLLAPSE_GAP) {
-          fullNavWidthRef.current = navRect.width
-          return true
+        if (prev < 2 && actualGap <= COLLAPSE_GAP) {
+          if (prev === 0) fullNavWidthRef.current = navRect.width
+          return prev + 1
         }
-        if (prev && gap > COLLAPSE_GAP) {
-          return false
+        if (prev > 0 && hypotheticalGap > COLLAPSE_GAP) {
+          return prev - 1
         }
         return prev
       })
@@ -225,7 +232,7 @@ export default function Header({ navLinks }: HeaderProps) {
     <header id="header" className="relative z-50 w-full overflow-visible">
 
       {/* ── Main bar ── */}
-      <div className="relative h-[85px] lg:h-[96px] max-w-[1720px] mx-auto overflow-visible">
+      <div ref={containerRef} className="relative h-[85px] lg:h-[96px] max-w-[1720px] mx-auto overflow-visible">
 
         {/* Background plate — mobile: простой прямоугольник с radius-card */}
         <div
@@ -294,7 +301,7 @@ export default function Header({ navLinks }: HeaderProps) {
             className="relative z-10 hidden lg:flex w-fit items-start justify-start gap-3 pt-3 pb-4 px-3 shrink-0 h-full"
             aria-label="Основная навигация"
           >
-            {(collapsed ? navLinks.slice(0, 2) : navLinks).map((link, i) => (
+            {navLinks.slice(0, navLinks.length - collapsedCount).map((link, i) => (
               <NavPill
                 key={link.href}
                 label={link.label}
@@ -304,8 +311,8 @@ export default function Header({ navLinks }: HeaderProps) {
               />
             ))}
 
-            {/* ⋮ button — shown when last 2 pills are collapsed */}
-            {collapsed && (
+            {/* ⋮ button — shown when 1 or 2 pills are collapsed */}
+            {collapsedCount > 0 && (
               <div ref={dotsRef} className="relative shrink-0">
                 <button
                   type="button"
@@ -356,7 +363,7 @@ export default function Header({ navLinks }: HeaderProps) {
                   className="absolute right-0 top-full mt-4 flex flex-col gap-2 z-[60]"
                   style={{ pointerEvents: dotsOpen ? 'auto' : 'none' }}
                 >
-                  {navLinks.slice(2).map((link, i) => (
+                  {navLinks.slice(navLinks.length - collapsedCount).map((link, i) => (
                     <a
                       key={link.href}
                       href={link.href}
@@ -364,8 +371,8 @@ export default function Header({ navLinks }: HeaderProps) {
                       onClick={() => setDotsOpen(false)}
                       className="relative flex items-center justify-center overflow-hidden rounded-btn font-semibold whitespace-nowrap select-none"
                       style={{
-                        backgroundColor: NAV_PILL_STYLES[i + 2]?.bg ?? 'var(--color-green)',
-                        color:           NAV_PILL_STYLES[i + 2]?.text ?? 'var(--color-ink)',
+                        backgroundColor: NAV_PILL_STYLES[navLinks.length - collapsedCount + i]?.bg ?? 'var(--color-green)',
+                        color:           NAV_PILL_STYLES[navLinks.length - collapsedCount + i]?.text ?? 'var(--color-ink)',
                         boxShadow:       'var(--shadow-pill-float)',
                         fontSize:        'clamp(14px, 1.35vw, 26px)',
                         lineHeight:      '32px',

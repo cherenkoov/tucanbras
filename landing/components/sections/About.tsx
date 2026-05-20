@@ -17,25 +17,32 @@ export default function About({ data }: AboutProps) {
     <section id="about" className="w-full scroll-mt-[136px] lg:scroll-mt-[147px]">
       <div
         className="
-          flex flex-col gap-[12px] overflow-visible lg:overflow-clip
-          rounded-[38px] lg:rounded-[44px]
+          flex flex-col gap-[12px] overflow-clip
+          rounded-[38px]
           p-[12px]
           max-w-[1720px] mx-auto w-full
           shadow-[0px_2px_4px_0px_rgba(0,0,0,0.18)]
+        backdrop-blur-[4px]
         "
-        style={{ backgroundColor: '#7cb082' }}
+        style={{
+          backgroundColor: '#7cb08299',
+          boxShadow: 'var(--shadow-hero)',
+        }}
       >
 
         {/* ══ Row 1: Inspiration + CTA columns ══ */}
         <div className="flex flex-col lg:flex-row gap-[18px] lg:gap-[12px] items-stretch w-full">
 
           {/* ── Column 1: Heading block + Calendar phone ── */}
-          <div className="flex flex-col gap-[12px] lg:gap-[40px] items-start shrink-0 lg:w-[363px]">
+          <div className="flex flex-col gap-[12px] items-start shrink-0 lg:w-[363px] lg:self-stretch">
 
             {/* Heading block */}
             <div
-              className="relative flex flex-col gap-0 items-center w-full rounded-[26px] p-[36px] overflow-visible"
-              style={{ backgroundColor: '#fffce5' }}
+              className="relative flex flex-col gap-0 items-center w-full rounded-[26px] p-[36px] overflow-visible backdrop-blur-[4px]"
+              style={{
+                backgroundColor: 'rgba(255, 252, 229, 0.72)',
+                boxShadow: 'var(--shadow-hero)',
+              }}
             >
               <p
                 className="w-full font-accent font-bold text-green"
@@ -53,13 +60,13 @@ export default function About({ data }: AboutProps) {
             </div>
 
             {/* Dashboard phone */}
-            <div className="flex flex-col flex-nowrap justify-start items-end overflow-visible rounded-bl-[60px] rounded-tr-[60px] w-full lg:h-[200px]">
+            <div className="overflow-hidden w-full">
               <Image
                 alt="TucanBRAS app — dashboard"
                 src={IMG_SCREEN_DASHBOARD}
                 width={1200}
                 height={2478}
-                className="w-full h-auto block pointer-events-none lg:w-[600px] lg:max-w-none"
+                className="w-full h-auto block pointer-events-none"
                 loading="eager"
                 priority
               />
@@ -71,8 +78,11 @@ export default function About({ data }: AboutProps) {
 
             {/* CTA block */}
             <div
-              className="about-cta-block relative flex flex-col gap-[320px] justify-between overflow-hidden rounded-[26px] p-[36px] lg:flex-none lg:h-[1012px]"
-              style={{ backgroundColor: '#fffce5' }}
+              className="about-cta-block relative flex flex-col overflow-hidden rounded-[26px] p-[36px] lg:flex-none lg:self-stretch backdrop-blur-[4px]"
+              style={{
+                backgroundColor: 'rgba(255, 252, 229, 0.72)',
+                boxShadow: 'var(--shadow-hero)',
+              }}
             >
               {/* Description */}
               <p
@@ -81,6 +91,8 @@ export default function About({ data }: AboutProps) {
               >
                 {data.description}
               </p>
+
+              <div className="flex-1" />
 
               {/* Button container — plants positioned relative to it */}
               <div className="relative w-full mt-[40px] lg:mt-0">
@@ -133,13 +145,13 @@ export default function About({ data }: AboutProps) {
             </div>
 
             {/* Calendar phone */}
-            <div className="overflow-visible rounded-bl-[60px] rounded-tr-[60px] w-full lg:flex-none lg:w-[600px] lg:h-[1012px]">
+            <div className="relative overflow-hidden rounded-bl-[60px] rounded-tr-[60px] w-full min-h-[300px] lg:flex-none lg:w-[600px] lg:self-stretch">
               <Image
                 alt="TucanBRAS app — calendar"
                 src={IMG_SCREEN_CALENDAR}
-                width={992}
-                height={1992}
-                className="w-full h-auto block pointer-events-none"
+                fill
+                sizes="(max-width: 1024px) 100vw, 600px"
+                className="object-contain object-left-top pointer-events-none"
               />
             </div>
           </div>
@@ -147,8 +159,12 @@ export default function About({ data }: AboutProps) {
 
         {/* ══ Row 2: Motivation quote ══ */}
         <div
-          className="flex flex-col items-center justify-center rounded-[36px] p-[36px] w-full z-10"
-          style={{ backgroundColor: '#fffce5', minHeight: '264px' }}
+          className="flex flex-col items-center justify-center rounded-[26px] p-[36px] w-full z-10 backdrop-blur-[4px]"
+          style={{
+            backgroundColor: 'rgba(255, 252, 229, 0.72)',
+            boxShadow: 'var(--shadow-hero)',
+            minHeight: '264px',
+          }}
         >
           <p
             className="font-accent font-bold text-center w-full"

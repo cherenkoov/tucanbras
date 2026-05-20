@@ -38,11 +38,8 @@ export default function About({ data }: AboutProps) {
 
             {/* Heading block */}
             <div
-              className="relative flex flex-col gap-0 items-center w-full rounded-[26px] p-[36px] overflow-visible backdrop-blur-[4px]"
-              style={{
-                backgroundColor: 'rgba(255, 252, 229, 0.72)',
-                boxShadow: 'var(--shadow-hero)',
-              }}
+              className="relative flex flex-col gap-0 items-center w-full rounded-[26px] p-[36px] overflow-visible backdrop-blur-[4px] hover:backdrop-blur-none bg-[rgba(255,252,229,0.72)] hover:bg-[#fffce5] transition-all duration-300"
+              style={{ boxShadow: 'var(--shadow-hero)' }}
             >
               <p
                 className="w-full font-accent font-bold text-green"
@@ -78,11 +75,8 @@ export default function About({ data }: AboutProps) {
 
             {/* CTA block */}
             <div
-              className="about-cta-block relative flex flex-col overflow-hidden rounded-[26px] p-[36px] lg:flex-none lg:self-stretch backdrop-blur-[4px]"
-              style={{
-                backgroundColor: 'rgba(255, 252, 229, 0.72)',
-                boxShadow: 'var(--shadow-hero)',
-              }}
+              className="about-cta-block relative flex flex-col overflow-hidden rounded-[26px] p-[36px] lg:flex-none lg:self-stretch backdrop-blur-[4px] hover:backdrop-blur-none bg-[rgba(255,252,229,0.72)] hover:bg-[#fffce5] transition-all duration-300"
+              style={{ boxShadow: 'var(--shadow-hero)' }}
             >
               {/* Description */}
               <p
@@ -159,12 +153,8 @@ export default function About({ data }: AboutProps) {
 
         {/* ══ Row 2: Motivation quote ══ */}
         <div
-          className="flex flex-col items-center justify-center rounded-[26px] p-[36px] w-full z-10 backdrop-blur-[4px]"
-          style={{
-            backgroundColor: 'rgba(255, 252, 229, 0.72)',
-            boxShadow: 'var(--shadow-hero)',
-            minHeight: '264px',
-          }}
+          className="flex flex-col items-center justify-center rounded-[26px] p-[36px] w-full z-10 backdrop-blur-[4px] hover:backdrop-blur-none bg-[rgba(255,252,229,0.72)] hover:bg-[#fffce5] transition-all duration-300"
+          style={{ boxShadow: 'var(--shadow-hero)', minHeight: '264px' }}
         >
           <p
             className="font-accent font-bold text-center w-full"

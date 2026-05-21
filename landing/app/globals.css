@@ -146,7 +146,7 @@
 }
 
 :root {
-  background: var(--color-yellow);
+  background: var(--color-cream);
   color: var(--color-cream);
   --page-x: var(--spacing-s600); /* 24px — mobile */
 }
@@ -241,6 +241,7 @@ input:-webkit-autofill:active {
     width: clamp(420px, calc(420px + 180 * (100vw - 1024px) / 176), 600px) !important;
   }
 }
+
 
 /* ── Header logotype responsive text ─────────────────────────────────────── */
 

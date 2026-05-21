@@ -34,14 +34,18 @@ async function queryLocale(
   locale: Locale,
   sortProp?: string,
 ): Promise<PageObjectResponse[]> {
-  const res = await (notion.dataSources as any).query({
-    data_source_id: dsId,
-    filter: { property: 'locale', select: { equals: locale } },
-    sorts: sortProp ? [{ property: sortProp, direction: 'ascending' }] : undefined,
-  })
-  return (res.results ?? []).filter(
-    (r: any): r is PageObjectResponse => r.object === 'page' && 'properties' in r,
-  )
+  try {
+    const res = await (notion.dataSources as any).query({
+      data_source_id: dsId,
+      filter: { property: 'locale', select: { equals: locale } },
+      sorts: sortProp ? [{ property: sortProp, direction: 'ascending' }] : undefined,
+    })
+    return (res.results ?? []).filter(
+      (r: any): r is PageObjectResponse => r.object === 'page' && 'properties' in r,
+    )
+  } catch {
+    return []
+  }
 }
 
 // ─── Property extractors ──────────────────────────────────────────────────────

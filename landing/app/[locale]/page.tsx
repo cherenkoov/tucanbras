@@ -13,6 +13,7 @@ import Footer from '@/components/sections/Footer'
 
 import AnchorScrollHandler from '@/components/ui/AnchorScrollHandler'
 import BackgroundCanvas from '@/components/ui/background/BackgroundCanvas'
+import NotionRetry from '@/components/ui/NotionRetry'
 import { getTutors } from '@/lib/tutors'
 import { getStubTutors } from '@/lib/tutorStubs'
 import {
@@ -26,6 +27,7 @@ import {
   getFooterData,
   getFreeLessonModalData,
 } from '@/lib/notion'
+import snapshot from '@/lib/notionSnapshot.json'
 
 // Anchor hrefs are structural — labels come from Notion
 const NAV_HREFS = ['#about', '#tutors', '#celpe-bras', '#plans']
@@ -34,6 +36,8 @@ export function generateStaticParams() {
   return [{ locale: 'ru' }, { locale: 'en' }, { locale: 'pt' }]
 }
 
+const VALID_LOCALES = new Set(['ru', 'en', 'pt'])
+
 export default async function Home({
   params,
 }: {
@@ -41,29 +45,39 @@ export default async function Home({
 }) {
   const { locale } = await params
 
-  const [
-    headerData,
-    heroData,
-    aboutData,
-    comparisonData,
-    tutorsData,
-    celpeBrasData,
-    plansData,
-    footerData,
-    tutors,
-    modalStrings,
-  ] = await Promise.all([
+  if (!VALID_LOCALES.has(locale)) {
+    const { notFound } = await import('next/navigation')
+    notFound()
+  }
+
+  const [notionHeader, notionHero, notionAbout, notionComparison, notionTutors] = await Promise.all([
     getHeaderData(locale),
     getHeroData(locale),
     getAboutData(locale),
     getComparisonData(locale),
     getTutorsData(locale),
+  ])
+
+  const [notionCelpeBras, notionPlans, notionFooter, notionModal, tutors] = await Promise.all([
     getCelpeBrasData(locale),
     getPlansData(locale),
     getFooterData(locale),
-    getTutors(locale).catch(() => []),
     getFreeLessonModalData(locale),
+    getTutors(locale).catch(() => []),
   ])
+
+  const notionFailed = !notionHeader.nav0
+  const snap = (snapshot as Record<string, typeof snapshot.ru>)[locale]
+
+  const headerData    = notionFailed ? snap.header    : notionHeader
+  const heroData      = notionFailed ? snap.hero      : notionHero
+  const aboutData     = notionFailed ? snap.about     : notionAbout
+  const comparisonData = notionFailed ? snap.comparison : notionComparison
+  const tutorsData    = notionFailed ? snap.tutors    : notionTutors
+  const celpeBrasData = notionFailed ? snap.celpeBras : notionCelpeBras
+  const plansData     = notionFailed ? snap.plans     : notionPlans
+  const footerData    = notionFailed ? snap.footer    : notionFooter
+  const modalStrings  = notionFailed ? snap.modal     : notionModal
 
   const displayTutors = tutors.length > 0 ? tutors : getStubTutors(locale)
 
@@ -74,6 +88,7 @@ export default async function Home({
 
   return (
     <div className="relative">
+      {notionFailed && <NotionRetry />}
       <AnchorScrollHandler />
       {/* Background — absolute, anchored to page top */}
       <BackgroundCanvas />

@@ -6,7 +6,8 @@
     "dev": "next dev --hostname 0.0.0.0",
     "build": "next build",
     "start": "next start --hostname 0.0.0.0",
-    "lint": "eslint"
+    "lint": "eslint",
+    "snapshot": "tsx --env-file=.env.local scripts/snapshot-notion.ts"
   },
   "dependencies": {
     "@notionhq/client": "^5.17.0",

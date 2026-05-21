@@ -1,0 +1,779 @@
+{
+  "ru": {
+    "header": {
+      "nav0": "О тукане",
+      "nav1": "Репетиторы",
+      "nav2": "CELPE-BRAS",
+      "nav3": "Тарифы"
+    },
+    "hero": {
+      "heading1": "Учите португальский —",
+      "heading2": "и летите в Бразилию",
+      "ctaText": "Бесплатный урок",
+      "ctaHref": "#"
+    },
+    "about": {
+      "message1": "Учись, где и когда угодно",
+      "description": "Мы — современная онлайн-школа португальского языка с бразильским акцентом. Готовим к CELPE-BRAS, гарантируем уровень B1 за шесть месяцев и помогаем с получением гражданства.",
+      "message2": "С нами учиться — приятно, а результат — гарантирован.",
+      "ctaText": "Ещё",
+      "ctaHref": "#"
+    },
+    "comparison": {
+      "heading": "Почему TucanBRAS?",
+      "tucanTitle": "Наш ТУКАН",
+      "schoolTitle": "Обычные скучные школы",
+      "tucanPros": [
+        "Зарегистрирован в Бразилии",
+        "Готовим к экзаменам",
+        "Бразильский диалект",
+        "Записываем на CELPE-BRAS",
+        "Гибкие тарифы",
+        "Личный кабинет в Telegram-боте",
+        "Крипто-френдли",
+        "Гарантируем B1 через 6 месяцев"
+      ],
+      "schoolCons": [
+        "Другая юрисдикция",
+        "Обычные курсы",
+        "Европейский португальский",
+        "Не записывают",
+        "Невыгодные тарифы",
+        "Старомодные сайты",
+        "Устаревшие платежи",
+        "Не заинтересованы в результате"
+      ],
+      "summaryText": "Мы не конкурируем со школами — мы просто делаем то, что сами хотели бы пройти."
+    },
+    "tutors": {
+      "heading1": "Наши репетиторы — люди, которые любят язык и жизнь",
+      "heading2": "С ними ты не просто учишься — ты начинаешь думать на португальском.",
+      "description": "Мы не просто команда репетиторов — мы проводники в культуру, язык и бразильский образ жизни.",
+      "ctaText": "Выбрать репетитора",
+      "ctaHref": "#",
+      "specLabel": "Специализации",
+      "selectLabel": "Выбрать"
+    },
+    "celpeBras": {
+      "heading": "CELPE-BRAS — твой билет в новую жизнь",
+      "cards": [
+        "Разбираем структуру экзамена",
+        "Практикуем реальные задачи",
+        "Тренируем устную часть",
+        "Учебный план по CELPE-BRAS",
+        "Помогаем записаться на экзамен"
+      ],
+      "quote": "Мы прошли этот путь сами и теперь проводим по нему других. Без стресса, без бюрократии — с улыбкой и уверенностью.",
+      "hintText": "Или просто узнай, как проходит экзамен — мы расскажем лично",
+      "ctaText": "Связаться",
+      "ctaHref": "#"
+    },
+    "plans": {
+      "heading1": "Выбирай удобный формат: от одного пробного занятия до полной подготовки к CELPE-BRAS.",
+      "heading2": "Мы не прячем условия — всё честно, как под солнцем Бразилии",
+      "plans": [
+        {
+          "name": "Одно занятие",
+          "priceAmount": "$17/",
+          "pricePeriod": "1 урок",
+          "subtitle": "Попробуй формат и познакомься с преподавателем",
+          "features": [
+            "Подходит новичкам",
+            "Доступ к Telegram-кабинету"
+          ],
+          "ctaText": "Попробовать",
+          "ctaHref": "#"
+        },
+        {
+          "name": "Базовый пакет",
+          "priceAmount": "$199/",
+          "pricePeriod": "10 уроков",
+          "subtitle": "Лучший вариант для системного старта",
+          "features": [
+            "Индивидуальные занятия",
+            "Гибкое расписание"
+          ],
+          "ctaText": "Хочу этот пакет",
+          "ctaHref": "#"
+        },
+        {
+          "name": "Продвинутый курс",
+          "priceAmount": "$449/",
+          "pricePeriod": "30 уроков",
+          "subtitle": "Идеален для достижения уровня B1",
+          "features": [
+            "Индивидуальные занятия",
+            "Гибкое расписание"
+          ],
+          "ctaText": "Учусь всерьёз",
+          "ctaHref": "#"
+        },
+        {
+          "name": "Учись без ограничений",
+          "priceAmount": "$749/",
+          "pricePeriod": "1 месяц",
+          "subtitle": "Сколько уроков — решаешь ты",
+          "features": [
+            "Неограниченные занятия",
+            "Телеграмм-статистика"
+          ],
+          "ctaText": "Готовлюсь к экзамену",
+          "ctaHref": "#"
+        }
+      ]
+    },
+    "footer": {
+      "formTitle": "Стань частью школы",
+      "formNamePlaceholder": "Имя",
+      "formTutorPlaceholder": "Выберите репетитора",
+      "formPlanPlaceholder": "Выберите тариф",
+      "formFreeLessonOption": "Пробный урок",
+      "formTelegramPlaceholder": "Телеграм",
+      "formEmailPlaceholder": "Email (необязательно)",
+      "formContactError": "Укажите Telegram или email",
+      "formEmailError": "Введите корректный email",
+      "formErrorMsg": "Ошибка отправки. Попробуй ещё раз.",
+      "formSubmitText": "Отправить",
+      "brandDescription": "Учим языку для жизни, работы и переезда, а не для галочки.",
+      "legalTitle": "Правовая информация",
+      "copyright": "© TucanBRAS, 2026",
+      "allRightsReserved": "Все права защищены",
+      "policyLinks": [
+        {
+          "label": "Пользовательское соглашение",
+          "href": "#"
+        },
+        {
+          "label": "Политика конфиденциальности",
+          "href": "#"
+        },
+        {
+          "label": "Условия оплаты",
+          "href": "#"
+        },
+        {
+          "label": "Обработка персональных данных",
+          "href": "#"
+        }
+      ],
+      "faqGroups": [
+        {
+          "title": "Студентам",
+          "items": [
+            {
+              "question": "Можно ли сменить преподавателя?",
+              "answer": "Да, без вопросов — подберём нового под ваши цели."
+            },
+            {
+              "question": "Как проходит первый урок?",
+              "answer": "Знакомимся, определяем уровень и цели, выстраиваем план."
+            },
+            {
+              "question": "Как записаться?",
+              "answer": "Оставьте заявку на сайте или напишите в Telegram — ответим в течение часа."
+            },
+            {
+              "question": "Как оплатить?",
+              "answer": "Принимаем карты, переводы и крипту."
+            },
+            {
+              "question": "Что входит в стоимость?",
+              "answer": "Занятие с преподавателем, материалы и доступ к кабинету в Telegram-боте."
+            }
+          ]
+        },
+        {
+          "title": "Репетиторам",
+          "items": [
+            {
+              "question": "Как устроено расписание?",
+              "answer": "Вы сами устанавливаете доступные часы, мы подбираем студентов."
+            },
+            {
+              "question": "Как стать преподавателем в TucanBRAS?",
+              "answer": "Напишите в Telegram — расскажем условия и проведём интервью."
+            },
+            {
+              "question": "Какие требования к преподавателям?",
+              "answer": "Свободное владение португальским, опыт и любовь к языку."
+            }
+          ]
+        },
+        {
+          "title": "Обучение",
+          "items": [
+            {
+              "question": "Гарантируете ли вы результат?",
+              "answer": "Да, гарантируем уровень B1 за 6 месяцев при регулярных занятиях."
+            },
+            {
+              "question": "Можно ли совмещать с работой?",
+              "answer": "Да, занятия планируются под ваш график."
+            },
+            {
+              "question": "Какой диалект вы преподаёте?",
+              "answer": "Только бразильский португальский."
+            },
+            {
+              "question": "Какой уровень нужен для старта?",
+              "answer": "Любой, в том числе нулевой — начнём с основ."
+            },
+            {
+              "question": "Как проходят занятия?",
+              "answer": "Онлайн в формате 1 на 1, в удобное для вас время."
+            }
+          ]
+        }
+      ],
+      "socialLinks": [
+        {
+          "label": "Telegram",
+          "href": "#",
+          "iconUrl": "/SVG/footer/telegram.svg"
+        },
+        {
+          "label": "Instagram",
+          "href": "#",
+          "iconUrl": "/SVG/footer/instagram.svg"
+        },
+        {
+          "label": "YouTube",
+          "href": "#",
+          "iconUrl": "/SVG/footer/youtube.svg"
+        }
+      ]
+    },
+    "modal": {
+      "title": "Записаться на бесплатный урок",
+      "tutorPh": "Выбрать преподавателя",
+      "namePh": "Ваше имя",
+      "telegramPh": "Ваш Telegram",
+      "emailPh": "Email (необязательно)",
+      "submit": "Записаться",
+      "successMsg": "Спасибо! Переходим в бот…",
+      "errorMsg": "Что-то пошло не так. Попробуйте ещё раз.",
+      "nameError": "Пожалуйста, введите ваше имя",
+      "telegramError": "Пожалуйста, введите Telegram username",
+      "contactError": "Укажите Telegram или email",
+      "emailError": "Введите корректный email"
+    }
+  },
+  "en": {
+    "header": {
+      "nav0": "About us",
+      "nav1": "Tutors",
+      "nav2": "CELPE-BRAS",
+      "nav3": "Plans"
+    },
+    "hero": {
+      "heading1": "Learn Portuguese —",
+      "heading2": "and fly to Brazil",
+      "ctaText": "Free lesson",
+      "ctaHref": "#"
+    },
+    "about": {
+      "message1": "Learn anywhere, anytime",
+      "description": "We are a modern online school of Portuguese with a Brazilian accent. We prepare for CELPE-BRAS, guarantee B1 level in six months and help with citizenship.",
+      "message2": "Learning with us is enjoyable — and results are guaranteed.",
+      "ctaText": "More",
+      "ctaHref": "#"
+    },
+    "comparison": {
+      "heading": "Why TucanBRAS?",
+      "tucanTitle": "Our TUCAN",
+      "schoolTitle": "Ordinary boring schools",
+      "tucanPros": [
+        "Registered in Brazil",
+        "Exam preparation",
+        "Brazilian dialect",
+        "CELPE-BRAS enrollment",
+        "Flexible plans",
+        "Personal Telegram cabinet",
+        "Crypto-friendly",
+        "B1 guaranteed in 6 months"
+      ],
+      "schoolCons": [
+        "Different jurisdiction",
+        "Standard courses",
+        "European Portuguese",
+        "No enrollment help",
+        "Unfavorable pricing",
+        "Outdated websites",
+        "Outdated payments",
+        "Not results-focused"
+      ],
+      "summaryText": "We don't compete with schools — we just do what we'd want for ourselves."
+    },
+    "tutors": {
+      "heading1": "Our tutors — people who love language and life",
+      "heading2": "With them you don't just study — you start thinking in Portuguese.",
+      "description": "We're not just a team of tutors — we're guides into culture, language and the Brazilian way of life.",
+      "ctaText": "Choose a tutor",
+      "ctaHref": "#",
+      "specLabel": "Specializations",
+      "selectLabel": "Select"
+    },
+    "celpeBras": {
+      "heading": "CELPE-BRAS — your ticket to a new life",
+      "cards": [
+        "We analyze the exam structure",
+        "Practice real tasks",
+        "Train the oral part",
+        "CELPE-BRAS study plan",
+        "Help you register for the exam"
+      ],
+      "quote": "We've been through this ourselves and now guide others. No stress, no bureaucracy — with a smile and confidence.",
+      "hintText": "Or just find out how the exam works — we'll explain personally",
+      "ctaText": "Contact us",
+      "ctaHref": "#"
+    },
+    "plans": {
+      "heading1": "Choose your format: from one trial lesson to full CELPE-BRAS preparation.",
+      "heading2": "We don't hide the terms — everything is clear, like the Brazilian sun",
+      "plans": [
+        {
+          "name": "Single lesson",
+          "priceAmount": "$17/",
+          "pricePeriod": "1 lesson",
+          "subtitle": "Try the format and meet your tutor",
+          "features": [
+            "Perfect for beginners",
+            "Telegram cabinet access"
+          ],
+          "ctaText": "Try it",
+          "ctaHref": "#"
+        },
+        {
+          "name": "Basic package",
+          "priceAmount": "$199/",
+          "pricePeriod": "10 lessons",
+          "subtitle": "Best option for a systematic start",
+          "features": [
+            "Individual lessons",
+            "Flexible schedule"
+          ],
+          "ctaText": "I want this package",
+          "ctaHref": "#"
+        },
+        {
+          "name": "Advanced course",
+          "priceAmount": "$449/",
+          "pricePeriod": "30 lessons",
+          "subtitle": "Perfect for reaching B1 level",
+          "features": [
+            "Individual lessons",
+            "Flexible schedule"
+          ],
+          "ctaText": "I'm serious about learning",
+          "ctaHref": "#"
+        },
+        {
+          "name": "Learn without limits",
+          "priceAmount": "$749/",
+          "pricePeriod": "1 month",
+          "subtitle": "You decide how many lessons",
+          "features": [
+            "Unlimited lessons",
+            "Telegram statistics"
+          ],
+          "ctaText": "Preparing for the exam",
+          "ctaHref": "#"
+        }
+      ]
+    },
+    "footer": {
+      "formTitle": "Join the school",
+      "formNamePlaceholder": "Name",
+      "formTutorPlaceholder": "Choose a tutor",
+      "formPlanPlaceholder": "Choose a plan",
+      "formFreeLessonOption": "Trial lesson",
+      "formTelegramPlaceholder": "Telegram",
+      "formEmailPlaceholder": "Email (optional)",
+      "formContactError": "Please enter Telegram or email",
+      "formEmailError": "Please enter a valid email",
+      "formErrorMsg": "Send error. Please try again.",
+      "formSubmitText": "Send",
+      "brandDescription": "We teach language for life, work and relocation — not just for a checkmark.",
+      "legalTitle": "Legal information",
+      "copyright": "© TucanBRAS, 2026",
+      "allRightsReserved": "All rights reserved",
+      "policyLinks": [
+        {
+          "label": "Terms of Use",
+          "href": "#"
+        },
+        {
+          "label": "Privacy Policy",
+          "href": "#"
+        },
+        {
+          "label": "Payment Terms",
+          "href": "#"
+        },
+        {
+          "label": "Personal Data Processing",
+          "href": "#"
+        }
+      ],
+      "faqGroups": [
+        {
+          "title": "Learning",
+          "items": [
+            {
+              "question": "Can I combine it with work?",
+              "answer": "Yes, lessons are scheduled around your timetable."
+            },
+            {
+              "question": "What level do I need to start?",
+              "answer": "Any level, including zero — we start from the basics."
+            },
+            {
+              "question": "Which dialect do you teach?",
+              "answer": "Brazilian Portuguese only."
+            },
+            {
+              "question": "Do you guarantee results?",
+              "answer": "Yes, we guarantee B1 level in 6 months with regular lessons."
+            },
+            {
+              "question": "How do lessons work?",
+              "answer": "Online 1-on-1, at a time that suits you."
+            }
+          ]
+        },
+        {
+          "title": "Students",
+          "items": [
+            {
+              "question": "How do I sign up?",
+              "answer": "Leave a request on the site or message us on Telegram — we respond within an hour."
+            },
+            {
+              "question": "How do I pay?",
+              "answer": "We accept cards, transfers and crypto."
+            },
+            {
+              "question": "What happens in the first lesson?",
+              "answer": "We get acquainted, assess your level and goals, and build a plan."
+            },
+            {
+              "question": "Can I change my tutor?",
+              "answer": "Yes, no questions — we'll find a new one to match your goals."
+            },
+            {
+              "question": "What is included in the price?",
+              "answer": "A lesson with a tutor, materials, and access to your Telegram cabinet."
+            }
+          ]
+        },
+        {
+          "title": "For tutors",
+          "items": [
+            {
+              "question": "How do I become a tutor at TucanBRAS?",
+              "answer": "Message us on Telegram — we'll explain the terms and hold an interview."
+            },
+            {
+              "question": "What are the requirements for tutors?",
+              "answer": "Fluent Portuguese, experience and a love of the language."
+            },
+            {
+              "question": "How is the schedule organized?",
+              "answer": "You set your available hours, we match you with students."
+            }
+          ]
+        }
+      ],
+      "socialLinks": [
+        {
+          "label": "Telegram",
+          "href": "#",
+          "iconUrl": "/SVG/footer/telegram.svg"
+        },
+        {
+          "label": "Instagram",
+          "href": "#",
+          "iconUrl": "/SVG/footer/instagram.svg"
+        },
+        {
+          "label": "YouTube",
+          "href": "#",
+          "iconUrl": "/SVG/footer/youtube.svg"
+        }
+      ]
+    },
+    "modal": {
+      "title": "Sign up for a free lesson",
+      "tutorPh": "Choose a tutor",
+      "namePh": "Your name",
+      "telegramPh": "Your Telegram",
+      "emailPh": "Email (optional)",
+      "submit": "Sign up",
+      "successMsg": "Thank you! Redirecting to bot…",
+      "errorMsg": "Something went wrong. Please try again.",
+      "nameError": "Please enter your name",
+      "telegramError": "Please enter your Telegram username",
+      "contactError": "Please enter Telegram or email",
+      "emailError": "Please enter a valid email"
+    }
+  },
+  "pt": {
+    "header": {
+      "nav0": "Sobre nós",
+      "nav1": "Professores",
+      "nav2": "CELPE-BRAS",
+      "nav3": "Planos"
+    },
+    "hero": {
+      "heading1": "Aprenda português —",
+      "heading2": "e voe para o Brasil",
+      "ctaText": "Aula grátis",
+      "ctaHref": "#"
+    },
+    "about": {
+      "message1": "Aprenda onde e quando quiser",
+      "description": "Somos uma escola online moderna de português com sotaque brasileiro. Preparamos para o CELPE-BRAS, garantimos nível B1 em seis meses e ajudamos com a cidadania.",
+      "message2": "Aprender conosco é agradável — e o resultado é garantido.",
+      "ctaText": "Mais",
+      "ctaHref": "#"
+    },
+    "comparison": {
+      "heading": "Por que TucanBRAS?",
+      "tucanTitle": "Nosso TUCANO",
+      "schoolTitle": "Escolas chatas e comuns",
+      "tucanPros": [
+        "Registrada no Brasil",
+        "Preparação para exames",
+        "Dialeto brasileiro",
+        "Inscrição no CELPE-BRAS",
+        "Planos flexíveis",
+        "Painel pessoal no Telegram",
+        "Crypto-friendly",
+        "B1 garantido em 6 meses"
+      ],
+      "schoolCons": [
+        "Outra jurisdição",
+        "Cursos comuns",
+        "Português europeu",
+        "Sem apoio na inscrição",
+        "Preços desvantajosos",
+        "Sites ultrapassados",
+        "Pagamentos antiquados",
+        "Sem foco em resultado"
+      ],
+      "summaryText": "Não competimos com escolas — apenas fazemos o que gostaríamos de ter feito."
+    },
+    "tutors": {
+      "heading1": "Nossos professores — pessoas que amam o idioma e a vida",
+      "heading2": "Com eles você não só aprende — você começa a pensar em português.",
+      "description": "Não somos apenas uma equipe de professores — somos guias para a cultura, o idioma e o estilo de vida brasileiro.",
+      "ctaText": "Escolher professor",
+      "ctaHref": "#",
+      "specLabel": "Especializações",
+      "selectLabel": "Selecionar"
+    },
+    "celpeBras": {
+      "heading": "CELPE-BRAS — seu passaporte para uma nova vida",
+      "cards": [
+        "Analisamos a estrutura do exame",
+        "Praticamos tarefas reais",
+        "Treinamos a parte oral",
+        "Plano de estudos para o CELPE-BRAS",
+        "Ajudamos na inscrição do exame"
+      ],
+      "quote": "Passamos por esse caminho e agora guiamos outros. Sem estresse, sem burocracia — com sorriso e confiança.",
+      "hintText": "Ou descubra como funciona o exame — explicamos pessoalmente",
+      "ctaText": "Falar conosco",
+      "ctaHref": "#"
+    },
+    "plans": {
+      "heading1": "Escolha o formato ideal: de uma aula experimental à preparação completa para o CELPE-BRAS.",
+      "heading2": "Não escondemos as condições — tudo é transparente, como o sol do Brasil",
+      "plans": [
+        {
+          "name": "Aula avulsa",
+          "priceAmount": "$17/",
+          "pricePeriod": "1 aula",
+          "subtitle": "Experimente o formato e conheça seu professor",
+          "features": [
+            "Ideal para iniciantes",
+            "Acesso ao painel no Telegram"
+          ],
+          "ctaText": "Experimentar",
+          "ctaHref": "#"
+        },
+        {
+          "name": "Pacote básico",
+          "priceAmount": "$199/",
+          "pricePeriod": "10 aulas",
+          "subtitle": "A melhor opção para um início estruturado",
+          "features": [
+            "Aulas individuais",
+            "Horário flexível"
+          ],
+          "ctaText": "Quero este pacote",
+          "ctaHref": "#"
+        },
+        {
+          "name": "Curso avançado",
+          "priceAmount": "$449/",
+          "pricePeriod": "30 aulas",
+          "subtitle": "Ideal para alcançar o nível B1",
+          "features": [
+            "Aulas individuais",
+            "Horário flexível"
+          ],
+          "ctaText": "Estudo a sério",
+          "ctaHref": "#"
+        },
+        {
+          "name": "Aprenda sem limites",
+          "priceAmount": "$749/",
+          "pricePeriod": "1 mês",
+          "subtitle": "Você decide quantas aulas quer",
+          "features": [
+            "Aulas ilimitadas",
+            "Estatísticas no Telegram"
+          ],
+          "ctaText": "Preparando para o exame",
+          "ctaHref": "#"
+        }
+      ]
+    },
+    "footer": {
+      "formTitle": "Faça parte da escola",
+      "formNamePlaceholder": "Nome",
+      "formTutorPlaceholder": "Escolha um professor",
+      "formPlanPlaceholder": "Escolha um plano",
+      "formFreeLessonOption": "Aula experimental",
+      "formTelegramPlaceholder": "Telegram",
+      "formEmailPlaceholder": "Email (opcional)",
+      "formContactError": "Por favor, informe o Telegram ou email",
+      "formEmailError": "Por favor, insira um email válido",
+      "formErrorMsg": "Erro ao enviar. Tente novamente.",
+      "formSubmitText": "Enviar",
+      "brandDescription": "Ensinamos português para a vida, o trabalho e a mudança — não só para marcar presença.",
+      "legalTitle": "Informações legais",
+      "copyright": "© TucanBRAS, 2026",
+      "allRightsReserved": "Todos os direitos reservados",
+      "policyLinks": [
+        {
+          "label": "Termos de Uso",
+          "href": "#"
+        },
+        {
+          "label": "Política de Privacidade",
+          "href": "#"
+        },
+        {
+          "label": "Condições de Pagamento",
+          "href": "#"
+        },
+        {
+          "label": "Processamento de Dados Pessoais",
+          "href": "#"
+        }
+      ],
+      "faqGroups": [
+        {
+          "title": "Para professores",
+          "items": [
+            {
+              "question": "Como funciona a agenda?",
+              "answer": "Você define os horários disponíveis e nós indicamos alunos."
+            },
+            {
+              "question": "Como me tornar professor no TucanBRAS?",
+              "answer": "Escreva pelo Telegram — explicamos as condições e fazemos uma entrevista."
+            },
+            {
+              "question": "Quais são os requisitos para professores?",
+              "answer": "Fluência em português, experiência e amor pelo idioma."
+            }
+          ]
+        },
+        {
+          "title": "Aprendizado",
+          "items": [
+            {
+              "question": "Posso conciliar com o trabalho?",
+              "answer": "Sim, as aulas são agendadas conforme sua disponibilidade."
+            },
+            {
+              "question": "Como funcionam as aulas?",
+              "answer": "Online, individual, no horário que você preferir."
+            },
+            {
+              "question": "Vocês garantem resultados?",
+              "answer": "Sim, garantimos nível B1 em 6 meses com aulas regulares."
+            },
+            {
+              "question": "Qual dialeto vocês ensinam?",
+              "answer": "Somente português brasileiro."
+            },
+            {
+              "question": "Qual nível preciso ter para começar?",
+              "answer": "Qualquer nível, incluindo zero — começamos do básico."
+            }
+          ]
+        },
+        {
+          "title": "Estudantes",
+          "items": [
+            {
+              "question": "O que está incluído no preço?",
+              "answer": "Uma aula com o professor, materiais e acesso ao painel no Telegram."
+            },
+            {
+              "question": "Como é a primeira aula?",
+              "answer": "Nos conhecemos, avaliamos seu nível e objetivos e montamos um plano."
+            },
+            {
+              "question": "Como faço o pagamento?",
+              "answer": "Aceitamos cartões, transferências e criptomoedas."
+            },
+            {
+              "question": "Como me inscrever?",
+              "answer": "Deixe uma solicitação no site ou escreva pelo Telegram — respondemos em até uma hora."
+            },
+            {
+              "question": "Posso trocar de professor?",
+              "answer": "Sim, sem problemas — encontraremos um que se encaixe nos seus objetivos."
+            }
+          ]
+        }
+      ],
+      "socialLinks": [
+        {
+          "label": "Telegram",
+          "href": "#",
+          "iconUrl": "/SVG/footer/telegram.svg"
+        },
+        {
+          "label": "Instagram",
+          "href": "#",
+          "iconUrl": "/SVG/footer/instagram.svg"
+        },
+        {
+          "label": "YouTube",
+          "href": "#",
+          "iconUrl": "/SVG/footer/youtube.svg"
+        }
+      ]
+    },
+    "modal": {
+      "title": "Inscreva-se para uma aula gratuita",
+      "tutorPh": "Escolha um professor",
+      "namePh": "Seu nome",
+      "telegramPh": "Seu Telegram",
+      "emailPh": "E-mail (opcional)",
+      "submit": "Inscrever-se",
+      "successMsg": "Obrigado! Redirecionando para o bot…",
+      "errorMsg": "Algo deu errado. Tente novamente.",
+      "nameError": "Por favor, insira seu nome",
+      "telegramError": "Por favor, insira seu usuário do Telegram",
+      "contactError": "Por favor, informe o Telegram ou email",
+      "emailError": "Por favor, insira um email válido"
+    }
+  }
+}

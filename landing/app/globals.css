@@ -234,13 +234,6 @@ input:-webkit-autofill:active {
   border-radius: 4px;
 }
 
-/* ── About section — CTA block fluid width ───────────────────────────────── */
-
-@media (min-width: 1024px) {
-  .about-cta-block {
-    width: clamp(420px, calc(420px + 180 * (100vw - 1024px) / 176), 600px) !important;
-  }
-}
 
 
 /* ── Header logotype responsive text ─────────────────────────────────────── */
@@ -275,5 +268,11 @@ input:-webkit-autofill:active {
 
 @media (prefers-reduced-motion: reduce) {
   img[src*="Star"] { animation: none !important; }
+}
+
+/* ── About — calendar hidden between 1024px and 1409px ──────────────────── */
+
+@media (min-width: 1024px) and (max-width: 1409px) {
+  .about-calendar { display: none !important; }
 }
 

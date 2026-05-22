@@ -21,8 +21,7 @@ export default function About({ data }: AboutProps) {
           rounded-[38px]
           p-[12px]
           max-w-[1720px] mx-auto w-full
-          shadow-[0px_2px_4px_0px_rgba(0,0,0,0.18)]
-        backdrop-blur-[4px]
+          backdrop-blur-[4px]
         "
         style={{
           backgroundColor: '#7cb08299',
@@ -33,7 +32,7 @@ export default function About({ data }: AboutProps) {
         {/* ══ Row 1: Inspiration + CTA columns ══ */}
         <div className="flex flex-col lg:flex-row gap-[18px] lg:gap-[12px] items-stretch w-full">
 
-          {/* ── Column 1: Heading block + Calendar phone ── */}
+          {/* ── Column 1: Heading block + Dashboard phone ── */}
           <div className="flex flex-col gap-[12px] items-start shrink-0 lg:w-[363px] lg:self-stretch">
 
             {/* Heading block */}
@@ -70,12 +69,12 @@ export default function About({ data }: AboutProps) {
             </div>
           </div>
 
-          {/* ── Column 2: CTA block + Dashboard phone ── */}
+          {/* ── Column 2: CTA block + Calendar phone ── */}
           <div className="flex flex-col lg:flex-row flex-nowrap gap-[18px] lg:gap-[12px] items-start flex-1 min-w-0">
 
             {/* CTA block */}
             <div
-              className="about-cta-block relative flex flex-col overflow-hidden rounded-[26px] p-[36px] lg:flex-none lg:self-stretch backdrop-blur-[4px] hover:backdrop-blur-none bg-[rgba(255,252,229,0.72)] hover:bg-[#fffce5] transition-all duration-300"
+              className="relative flex flex-col overflow-hidden rounded-[26px] p-[36px] lg:flex-1 lg:min-w-[clamp(420px,_calc(420px_+_180_*_(100vw_-_1024px)_/_176),_600px)] lg:self-stretch backdrop-blur-[4px] hover:backdrop-blur-none bg-[rgba(255,252,229,0.72)] hover:bg-[#fffce5] transition-all duration-300"
               style={{ boxShadow: 'var(--shadow-hero)' }}
             >
               {/* Description */}
@@ -138,14 +137,15 @@ export default function About({ data }: AboutProps) {
               </div>
             </div>
 
-            {/* Calendar phone */}
-            <div className="relative overflow-hidden rounded-bl-[60px] rounded-tr-[60px] w-full min-h-[300px] lg:flex-none lg:w-[600px] lg:self-stretch">
+            {/* Calendar phone — hidden 1024–1409px, visible on mobile and ≥1410px */}
+            <div className="about-calendar overflow-hidden w-full min-[1410px]:flex-none min-[1410px]:w-[600px] min-[1410px]:self-stretch min-[1410px]:rounded-bl-[60px] min-[1410px]:rounded-tr-[60px]">
               <Image
                 alt="TucanBRAS app — calendar"
                 src={IMG_SCREEN_CALENDAR}
-                fill
-                sizes="(max-width: 1024px) 100vw, 600px"
-                className="object-contain object-left-top pointer-events-none"
+                width={1200}
+                height={2478}
+                className="w-full h-auto block pointer-events-none"
+                sizes="(max-width: 1024px) 100vw, (min-width: 1410px) 600px, 0px"
               />
             </div>
           </div>

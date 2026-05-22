@@ -87,7 +87,7 @@ export default function LanguageSwitcher({ variant = 'text', dropDirection = 'do
                 href={switchPath(l.code)}
                 role="option"
                 onClick={() => setOpen(false)}
-                className="flex items-center justify-center overflow-hidden rounded-btn font-semibold whitespace-nowrap select-none"
+                className="flex items-center justify-center overflow-hidden rounded-btn font-semibold whitespace-nowrap select-none cursor-pointer transition-transform duration-[120ms] ease-out hover:scale-[1.04] active:scale-[0.95]"
                 style={{ ...PILL_STYLE, boxShadow: 'var(--shadow-pill-float)', pointerEvents: open ? 'auto' : 'none' }}
               >
                 <img src={l.flagUrl} alt={l.label} style={{ height: '32px', width: 'auto', display: 'block' }} />
@@ -99,7 +99,7 @@ export default function LanguageSwitcher({ variant = 'text', dropDirection = 'do
           <button
             type="button"
             onClick={() => setOpen(v => !v)}
-            className="relative flex items-center justify-center overflow-hidden rounded-btn font-semibold whitespace-nowrap select-none shrink-0"
+            className="relative flex items-center justify-center overflow-hidden rounded-btn font-semibold whitespace-nowrap select-none shrink-0 cursor-pointer transition-transform duration-[120ms] ease-out hover:scale-[1.04] active:scale-[0.95]"
             style={PILL_STYLE}
             aria-haspopup="listbox"
             aria-expanded={open}
@@ -120,7 +120,7 @@ export default function LanguageSwitcher({ variant = 'text', dropDirection = 'do
         <button
           type="button"
           onClick={() => setOpen(v => !v)}
-          className="relative flex items-center justify-center overflow-hidden rounded-btn font-semibold whitespace-nowrap select-none"
+          className="relative flex items-center justify-center overflow-hidden rounded-btn font-semibold whitespace-nowrap select-none cursor-pointer transition-transform duration-[120ms] ease-out hover:scale-[1.04] active:scale-[0.95]"
           style={PILL_STYLE}
           aria-haspopup="listbox"
           aria-expanded={open}
@@ -140,7 +140,7 @@ export default function LanguageSwitcher({ variant = 'text', dropDirection = 'do
               href={switchPath(l.code)}
               role="option"
               onClick={() => setOpen(false)}
-              className="flex items-center justify-center overflow-hidden rounded-btn font-semibold whitespace-nowrap select-none"
+              className="flex items-center justify-center overflow-hidden rounded-btn font-semibold whitespace-nowrap select-none cursor-pointer hover:scale-[1.04] active:scale-[0.95]"
               style={{
                 ...PILL_STYLE,
                 boxShadow:       'var(--shadow-pill-float)',

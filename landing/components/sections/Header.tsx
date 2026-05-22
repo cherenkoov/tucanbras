@@ -13,6 +13,8 @@ const NAV_PILL_STYLES = [
   { bg: 'var(--color-orange)', text: 'var(--color-cream)' }, // Тарифы
 ] as const
 
+const PILL_HOVER = 'hover:scale-[1.04] active:scale-[0.95]'
+
 // Anchor hrefs are hardcoded — labels come from Notion via page.tsx
 
 // Inner shadow overlay used on nav pills (from Figma "Round Inner" effect → --shadow-round-inner)
@@ -139,7 +141,7 @@ function NavPill({ label, href, bg, text }: {
   return (
     <a
       href={href}
-      className="relative flex items-center justify-center overflow-hidden rounded-btn min-w-[50px] font-semibold whitespace-nowrap select-none"
+      className={`relative flex items-center justify-center overflow-hidden rounded-btn min-w-[50px] font-semibold whitespace-nowrap select-none cursor-pointer transition-all duration-[120ms] ease-out ${PILL_HOVER}`}
       style={{
         backgroundColor: bg,
         color: text,
@@ -317,7 +319,7 @@ export default function Header({ navLinks }: HeaderProps) {
                 <button
                   type="button"
                   onClick={() => setDotsOpen(v => !v)}
-                  className="relative flex items-center justify-center overflow-hidden rounded-btn font-semibold whitespace-nowrap select-none"
+                  className={`relative flex items-center justify-center overflow-hidden rounded-btn font-semibold whitespace-nowrap select-none cursor-pointer transition-transform duration-[120ms] ease-out ${PILL_HOVER}`}
                   style={{
                     color:        'var(--color-cream)',
                     boxShadow:    PILL_INNER_SHADOW,
@@ -369,7 +371,7 @@ export default function Header({ navLinks }: HeaderProps) {
                       href={link.href}
                       role="menuitem"
                       onClick={() => setDotsOpen(false)}
-                      className="relative flex items-center justify-center overflow-hidden rounded-btn font-semibold whitespace-nowrap select-none"
+                      className={`relative flex items-center justify-center overflow-hidden rounded-btn font-semibold whitespace-nowrap select-none cursor-pointer ${PILL_HOVER}`}
                       style={{
                         backgroundColor: NAV_PILL_STYLES[navLinks.length - collapsedCount + i]?.bg ?? 'var(--color-green)',
                         color:           NAV_PILL_STYLES[navLinks.length - collapsedCount + i]?.text ?? 'var(--color-ink)',
@@ -423,7 +425,7 @@ export default function Header({ navLinks }: HeaderProps) {
             key={link.href}
             href={link.href}
             onClick={() => setMenuOpen(false)}
-            className="relative flex items-center justify-center overflow-hidden rounded-btn py-[18px] px-s400 font-semibold text-[22px] leading-[28px] transition-all duration-300 pointer-events-auto"
+            className={`relative flex items-center justify-center overflow-hidden rounded-btn py-[18px] px-s400 font-semibold text-[22px] leading-[28px] transition-all duration-300 pointer-events-auto cursor-pointer ${PILL_HOVER}`}
             style={{
               backgroundColor: NAV_PILL_STYLES[i]?.bg ?? 'var(--color-green)',
               color: NAV_PILL_STYLES[i]?.text ?? 'var(--color-ink)',

@@ -6,7 +6,7 @@ const CLOUD_SIDES: Record<string, 'left' | 'right'> = {
   'Cloud 06':   'left',
   'Cloud 07':   'left',
   'Cloud 05':   'left',
-  'Cloud 01_2': 'left',
+  'Cloud 08':   'left',
   'Cloud 03':   'right',
   'Cloud 02':   'right',
   'Cloud 01':   'right',
@@ -22,31 +22,47 @@ export function useCloudAnimation(
     if (!container) return
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
-    const tids: ReturnType<typeof setTimeout>[] = []
+    const tids: (ReturnType<typeof setTimeout> | null)[] = Object.keys(CLOUD_SIDES).map(() => null)
 
-    Object.entries(CLOUD_SIDES).forEach(([id], i) => {
-      // Initial class is already baked into the SVG string by injectRailPath — no flash on first paint.
-      const tid = setTimeout(() => {
-        // Re-query: StrictMode may have remounted DOM, old ref would be disconnected
-        const fresh = container.querySelector<SVGGElement>(`[id="${id}"]`)
-        if (!fresh) return
-        // Force reflow so browser commits the initial opacity/transform before the transition.
-        void fresh.getBoundingClientRect()
-        fresh.style.transition = `transform 1.8s cubic-bezier(0.16,1,0.3,1), opacity 1.8s ease-out`
-        fresh.classList.add('cloud-visible')
-      }, 200 + i * 150)
+    const playAll = () => {
+      Object.keys(CLOUD_SIDES).forEach((id, i) => {
+        tids[i] = setTimeout(() => {
+          const el = container.querySelector<SVGGElement>(`[id="${id}"]`)
+          if (!el) return
+          void el.getBoundingClientRect()
+          el.style.transition = `transform 1.8s cubic-bezier(0.16,1,0.3,1), opacity 1.8s ease-out`
+          el.classList.add('cloud-visible')
+        }, i * 150)
+      })
+    }
 
-      tids.push(tid)
-    })
-
-    return () => {
-      tids.forEach(clearTimeout)
+    const resetAll = () => {
+      tids.forEach((tid, i) => { if (tid !== null) { clearTimeout(tid); tids[i] = null } })
       Object.keys(CLOUD_SIDES).forEach(id => {
         const el = container.querySelector<SVGGElement>(`[id="${id}"]`)
         if (!el) return
-        el.classList.remove('cloud-visible')
         el.style.transition = ''
+        el.classList.remove('cloud-visible')
       })
+    }
+
+    // Observe an HTML sentinel covering the cloud zone (top ~32% of the SVG, clouds live there).
+    // IntersectionObserver on SVG <g> elements is unreliable — they lack CSS layout boxes.
+    const sentinel = document.createElement('div')
+    sentinel.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:32%;pointer-events:none;'
+    container.appendChild(sentinel)
+
+    let active = false
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !active) { active = true;  playAll()  }
+      else if (!entry.isIntersecting && active) { active = false; resetAll() }
+    }, { threshold: 0 })
+    observer.observe(sentinel)
+
+    return () => {
+      observer.disconnect()
+      sentinel.remove()
+      resetAll()
     }
   }, [enabled, containerRef])
 }

@@ -35,8 +35,7 @@ export function injectRailPath(svgString: string): string {
     .replace(/(<svg[^>]*)(\sfill="none")/, '$1 overflow="visible"$2')
 
   // 0b. Remove all solid full-bleed background rects — let page background show through
-  patched = patched.replace(/<rect width="800" height="\d+" fill="[^"]*"\/>/g, '')
-  patched = patched.replace(/<rect width="800" height="\d+" fill="[^"]*" fill-opacity="[^"]*"\/>/g, '')
+  patched = patched.replace(/<rect[^>]*width="800"[^>]*height="\d+"[^>]*fill="[^"]*"[^>]*\/>/g, '')
 
   // 0c. Remove clip-path that restricts content to 800px wide
   patched = patched.replace(' clip-path="url(#clip0_0_1)"', '')
@@ -45,20 +44,20 @@ export function injectRailPath(svgString: string): string {
   patched = patched.replace('id="cabine trace"', 'id="cabine trace" visibility="hidden"')
   patched = patched.replace('id="train trace"', 'id="train trace" visibility="hidden"')
 
-  // 1. Inject animation paths into <defs>
-  const defsContent =
+  // 1. Inject animation paths into SVG body (NOT <defs>).
+  // Elements inside <defs> are never rendered, so getScreenCTM() returns null on them.
+  // GSAP MotionPathPlugin uses getScreenCTM() for the `align` option — with null it falls
+  // back to an identity matrix, mapping path coordinates to screen pixels instead of SVG
+  // units, and the animated element flies to the wrong position.
+  // visibility="hidden" keeps them invisible while still participating in layout.
+  const animPaths =
     `<path id="rail-path" d="${TRAIN_PATH_D}" fill="none" visibility="hidden"/>` +
     `<path id="cabine-anim-path" d="${CABINE_PATH_FWD}" fill="none" visibility="hidden"/>` +
     `<path id="cabine-anim-path-rev" d="${CABINE_PATH_REV}" fill="none" visibility="hidden"/>`
 
-  if (patched.includes('<defs>')) {
-    patched = patched.replace('<defs>', `<defs>${defsContent}`)
-  } else {
-    patched = patched.replace(/(<svg[^>]*>)/, `$1<defs>${defsContent}</defs>`)
-  }
+  patched = patched.replace('</svg>', animPaths + '</svg>')
 
-  // 2. Rename Group 8 → bush 01
-  patched = patched.replace('id="Group 8"', 'id="bush 01"')
+  // 2. (bush 01 already exists natively in the SVG — no rename needed)
 
   // 3. Inject cloud animation CSS into SVG <defs> + move clouds to end
   const cloudCSS = `
@@ -73,7 +72,7 @@ export function injectRailPath(svgString: string): string {
     'Cloud 06':   'cloud-anim-left',
     'Cloud 07':   'cloud-anim-left',
     'Cloud 05':   'cloud-anim-left',
-    'Cloud 01_2': 'cloud-anim-left',
+    'Cloud 08':   'cloud-anim-left',
     'Cloud 03':   'cloud-anim-right',
     'Cloud 02':   'cloud-anim-right',
     'Cloud 01':   'cloud-anim-right',

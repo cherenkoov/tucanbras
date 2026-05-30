@@ -3,39 +3,36 @@
 import { useEffect, type RefObject } from 'react'
 import { gsap } from 'gsap'
 
-const BUSH_SIDES: Record<string, 'left' | 'right'> = {
-  'bush 01': 'left',
-  'bush 02': 'right',
-}
-
 const SLIDE_OFFSET = 50
 
 export function useBushAnimation(
-  containerRef: RefObject<HTMLDivElement | null>,
+  bush01Ref: RefObject<HTMLDivElement | null>,
+  bush02Ref: RefObject<HTMLDivElement | null>,
   { enabled }: { enabled: boolean }
 ): void {
   useEffect(() => {
     if (!enabled) return
-    const container = containerRef.current
-    if (!container) return
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
     const tweens: gsap.core.Tween[] = []
-
     const observers: IntersectionObserver[] = []
 
-    Object.entries(BUSH_SIDES).forEach(([id, side], i) => {
-      const el = container.querySelector<SVGGElement>(`[id="${id}"]`)
+    const entries: [RefObject<HTMLDivElement | null>, number][] = [
+      [bush01Ref, SLIDE_OFFSET],
+      [bush02Ref, -SLIDE_OFFSET],
+    ]
+
+    entries.forEach(([ref, offset], i) => {
+      const el = ref.current
       if (!el) return
 
-      const offset = side === 'left' ? SLIDE_OFFSET : -SLIDE_OFFSET
       let played = false
 
       const observer = new IntersectionObserver(
         ([entry]) => {
           if (entry.isIntersecting && !played) {
             played = true
-            gsap.set(el, { scale: 1, transformOrigin: 'center bottom' })
+            gsap.set(el, { scale: 1, transformOrigin: 'center 55%' })
             tweens.push(
               gsap.to(el, {
                 x: offset,
@@ -58,5 +55,5 @@ export function useBushAnimation(
       tweens.forEach(t => t.kill())
       observers.forEach(o => o.disconnect())
     }
-  }, [enabled, containerRef])
+  }, [enabled, bush01Ref, bush02Ref])
 }

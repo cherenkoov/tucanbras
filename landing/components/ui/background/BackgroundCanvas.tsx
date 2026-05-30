@@ -45,7 +45,7 @@ function wrapSvg(inner: string): string {
 // Mount forest 4, City, bushes, Big tree} and OVER {Mount forest 3, road group, Slope 3, …}.
 const FRONT_IDS = [
   'Slope 1', 'Mount Forest 1', 'Peak', 'Mount forest 2', 'Slope 2', 'Group 1',
-  'Mount forest 4', 'City', 'bush 02', 'bush 01', // bush 03 is inside City; Big tree is its own layer (sway)
+  'Mount forest 4', 'City', // bush 03 is inside City; bush 01/02 and Big tree are their own animated layers
 ]
 
 export default function BackgroundCanvas() {
@@ -53,10 +53,14 @@ export default function BackgroundCanvas() {
   const [citySvg, setCitySvg] = useState('')
   const [frontSvg, setFrontSvg] = useState('')
   const [bigTreeSvg, setBigTreeSvg] = useState('')
+  const [bush01Svg, setBush01Svg] = useState('')
+  const [bush02Svg, setBush02Svg] = useState('')
   const [peakPos, setPeakPos] = useState<{ x: number; y: number } | null>(null)
   const [entered, setEntered] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const bigTreeRef = useRef<HTMLDivElement>(null)
+  const bush01Ref = useRef<HTMLDivElement>(null)
+  const bush02Ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     fetch('/SVG/background/background [Vectorized] 2.svg')
@@ -74,6 +78,14 @@ export default function BackgroundCanvas() {
           s = without
         }
         if (frontInner) setFrontSvg(wrapSvg(frontInner))
+
+        // bush 01 / bush 02 get their own layers so the slide-in can transform the wrapper div
+        const { inner: bush02, without: sb2 } = extractGroup(s, 'bush 02')
+        if (bush02) setBush02Svg(wrapSvg(bush02))
+        s = sb2
+        const { inner: bush01, without: sb1 } = extractGroup(s, 'bush 01')
+        if (bush01) setBush01Svg(wrapSvg(bush01))
+        s = sb1
 
         // Big tree gets its own layer so the sway can rotate the wrapper div
         // (rotating a <g> inside dangerouslySetInnerHTML doesn't take visually)
@@ -125,7 +137,7 @@ export default function BackgroundCanvas() {
   useTrainAnimation(containerRef, { enabled: svgReady })
   useCarAnimation(containerRef, { enabled: svgReady })
   useCloudAnimation(containerRef, { enabled: svgReady })
-  useBushAnimation(containerRef, { enabled: svgReady })
+  useBushAnimation(bush01Ref, bush02Ref, { enabled: svgReady })
   useBigTreeAnimation(bigTreeRef, { enabled: !!bigTreeSvg })
 
   return (
@@ -156,6 +168,22 @@ export default function BackgroundCanvas() {
         <div
           style={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 7 }}
           dangerouslySetInnerHTML={{ __html: frontSvg }}
+        />
+      )}
+
+      {/* bush 02 then bush 01 — own layers (above City, below Big tree) for the slide-in */}
+      {bush02Svg && (
+        <div
+          ref={bush02Ref}
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 7 }}
+          dangerouslySetInnerHTML={{ __html: bush02Svg }}
+        />
+      )}
+      {bush01Svg && (
+        <div
+          ref={bush01Ref}
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 7 }}
+          dangerouslySetInnerHTML={{ __html: bush01Svg }}
         />
       )}
 

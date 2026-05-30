@@ -34,9 +34,23 @@ function extractGroup(svgString: string, groupId: string): { inner: string; with
   return { inner: svgString.substring(start, end), without: svgString.substring(0, start) + svgString.substring(end) }
 }
 
+function wrapSvg(inner: string): string {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 800 2047" overflow="visible">${inner}</svg>`
+}
+
+// Groups lifted into a front layer ABOVE the train (z:7), in back→front paint order.
+// Train overlay is z:6; everything left in mainSvg (z:2) stays below it. Net result:
+// train runs UNDER {Slope 1, Mount Forest 1, Peak, Mount forest 2, Slope 2, Group 1,
+// Mount forest 4, City, bushes, Big tree} and OVER {Mount forest 3, road group, Slope 3, …}.
+const FRONT_IDS = [
+  'Slope 1', 'Mount Forest 1', 'Peak', 'Mount forest 2', 'Slope 2', 'Group 1',
+  'Mount forest 4', 'City', 'bush 02', 'bush 01', 'Big tree', // bush 03 is nested inside City
+]
+
 export default function BackgroundCanvas() {
   const [mainSvg, setMainSvg] = useState('')
   const [citySvg, setCitySvg] = useState('')
+  const [frontSvg, setFrontSvg] = useState('')
   const [peakPos, setPeakPos] = useState<{ x: number; y: number } | null>(null)
   const [entered, setEntered] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -45,11 +59,20 @@ export default function BackgroundCanvas() {
     fetch('/SVG/background/background [Vectorized] 2.svg')
       .then(r => r.text())
       .then(raw => {
-        const { inner: cityInner, without: rawWithoutCity } = extractGroup(raw, 'Background city')
-        if (cityInner) {
-          setCitySvg(`<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 800 2047" overflow="visible">${cityInner}</svg>`)
+        const { inner: cityInner, without: s0 } = extractGroup(raw, 'Background city')
+        if (cityInner) setCitySvg(wrapSvg(cityInner))
+
+        // Lift the front-set groups out of the main SVG into their own layer (z:7, above the train)
+        let s = s0
+        let frontInner = ''
+        for (const id of FRONT_IDS) {
+          const { inner, without } = extractGroup(s, id)
+          frontInner += inner
+          s = without
         }
-        setMainSvg(injectRailPath(rawWithoutCity))
+        if (frontInner) setFrontSvg(wrapSvg(frontInner))
+
+        setMainSvg(injectRailPath(s))
       })
       .catch(err => console.warn('BackgroundCanvas: SVG fetch failed', err))
   }, [])
@@ -118,6 +141,14 @@ export default function BackgroundCanvas() {
         <div style={{ position: 'relative', zIndex: 2 }} dangerouslySetInnerHTML={{ __html: mainSvg }} />
       )}
 
+      {/* Front layer — above the train (z:6), below the statue (z:8) */}
+      {frontSvg && (
+        <div
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 7 }}
+          dangerouslySetInnerHTML={{ __html: frontSvg }}
+        />
+      )}
+
       {/* ChristScene: bottom-center anchored to top-center of #Peak, 15px overlap */}
       {peakPos && (
         <div
@@ -126,7 +157,7 @@ export default function BackgroundCanvas() {
             left: peakPos.x,
             top: peakPos.y,
             transform: 'translate(-50%, -100%)',
-            zIndex: 5,
+            zIndex: 8,
           }}
         >
           <ChristScene />

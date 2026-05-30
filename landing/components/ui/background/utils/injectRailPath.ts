@@ -40,9 +40,10 @@ export function injectRailPath(svgString: string): string {
   // 0c. Remove clip-path that restricts content to 800px wide
   patched = patched.replace(' clip-path="url(#clip0_0_1)"', '')
 
-  // 0d. Hide debug trace groups — visible only in Figma/design, not in production
+  // 0d. Hide debug trace groups + original train (overlay takes over)
   patched = patched.replace('id="cabine trace"', 'id="cabine trace" visibility="hidden"')
   patched = patched.replace('id="train trace"', 'id="train trace" visibility="hidden"')
+  patched = patched.replace('id="train"', 'id="train" visibility="hidden"')
 
   // 1. Inject animation paths into SVG body (NOT <defs>).
   // Elements inside <defs> are never rendered, so getScreenCTM() returns null on them.

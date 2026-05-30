@@ -1,13 +1,14 @@
 'use client'
 
 import { useEffect, type RefObject } from 'react'
+import { TRAIN_SVG_INNER } from './trainPaths'
 
 const SVG_W = 800
 
 // Train visual bounding box in SVG user units
-const TRAIN = { x: 327, y: 873, w: 110, h: 120 } as const
+const TRAIN = { x: 321, y: 868, w: 118, h: 128 } as const
 
-// Rail path in SVG user units (from injectRailPath)
+// Rail path in SVG user units (upper-right → lower-left)
 const RAIL_PATH =
   'M599 569.5 C508.409 575.972 466.872 580.723 373 605 ' +
   'C361.167 608.833 331.7 621.7 338.5 636.5 ' +
@@ -17,10 +18,20 @@ const RAIL_PATH =
   'C526.7 837.7 441.5 905.167 401 936 ' +
   'L256 1045.5 L63 1176.5'
 
+// Path offset in SVG user units — tune these to align train with visual rails
+const RAIL_DX = -15  // negative = left
+const RAIL_DY = -10  // negative = up
+
 const KEYFRAME_ID = 'train-overlay-kf'
 
 function scalePath(d: string, s: number): string {
   return d.replace(/-?\d+(?:\.\d+)?/g, n => (parseFloat(n) * s).toFixed(2))
+}
+
+// Shifts all coordinate pairs in an absolute-coordinates SVG path by (dx, dy)
+function offsetPath(d: string, dx: number, dy: number): string {
+  return d.replace(/(-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?)/g,
+    (_, x, y) => `${(parseFloat(x) + dx).toFixed(3)} ${(parseFloat(y) + dy).toFixed(3)}`)
 }
 
 function ensureKeyframes() {
@@ -43,36 +54,30 @@ export function useTrainAnimation(
 
     ensureKeyframes()
 
-    const el = container   // narrowed non-null reference for nested functions
+    const el = container
 
     // Hide original train in main SVG — overlay takes over
-    const origTrain = el.querySelector<Element>('#train')
-    if (origTrain) (origTrain as SVGElement).style.visibility = 'hidden'
+    const origTrain = el.querySelector<SVGElement>('#train')
+    if (origTrain) origTrain.style.visibility = 'hidden'
 
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
     svg.setAttribute('viewBox', `${TRAIN.x} ${TRAIN.y} ${TRAIN.w} ${TRAIN.h}`)
     svg.setAttribute('overflow', 'visible')
-
-    if (origTrain) {
-      const clone = origTrain.cloneNode(true) as Element
-      clone.removeAttribute('id')
-      clone.querySelectorAll('[id]').forEach(el2 => el2.removeAttribute('id'))
-      svg.appendChild(clone)
-    }
+    svg.innerHTML = TRAIN_SVG_INNER
 
     svg.style.cssText =
-      'position:absolute;top:0;left:0;pointer-events:none;' +
+      'position:absolute;top:0;left:0;pointer-events:none;z-index:6;' +
       'animation:train-along 8s linear infinite paused;' +
       'visibility:hidden;'
-    svg.style.setProperty('offset-anchor', '50% 50%')
-    svg.style.setProperty('offset-rotate', 'auto')
+    svg.style.setProperty('offset-anchor', '50% 48%')
+    svg.style.setProperty('offset-rotate', 'auto -143deg')
     el.appendChild(svg)
 
     function applyScale() {
       const s = el.offsetWidth / SVG_W
       svg.style.width  = `${(TRAIN.w * s).toFixed(1)}px`
       svg.style.height = `${(TRAIN.h * s).toFixed(1)}px`
-      svg.style.setProperty('offset-path', `path('${scalePath(RAIL_PATH, s)}')`)
+      svg.style.setProperty('offset-path', `path('${scalePath(offsetPath(RAIL_PATH, RAIL_DX, RAIL_DY), s)}')`)
     }
     applyScale()
 
@@ -105,7 +110,7 @@ export function useTrainAnimation(
       sentinel.remove()
       ro.disconnect()
       observer.disconnect()
-      if (origTrain) (origTrain as SVGElement).style.visibility = ''
+      if (origTrain) origTrain.style.visibility = ''
     }
   }, [enabled, containerRef])
 }

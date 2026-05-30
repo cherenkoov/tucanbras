@@ -32,7 +32,13 @@ export function useBushAnimation(
         ([entry]) => {
           if (entry.isIntersecting && !played) {
             played = true
-            gsap.set(el, { scale: 1, transformOrigin: 'center 55%' })
+            // Scale pivot = this bush's own center: getBBox (in the 800×2047 canvas) → % of the layer div
+            const g = el.querySelector<SVGGElement>('g')
+            const b = g?.getBBox()
+            const origin = b && b.width > 0
+              ? `${((b.x + b.width / 2) / 800 * 100).toFixed(2)}% ${((b.y + b.height / 2) / 2047 * 100).toFixed(2)}%`
+              : 'center 55%'
+            gsap.set(el, { scale: 1, transformOrigin: origin })
             tweens.push(
               gsap.to(el, {
                 x: offset,

@@ -7,6 +7,7 @@ import { useTrainAnimation } from './useTrainAnimation'
 import { useCarAnimation } from './useCarAnimation'
 import { useCloudAnimation } from './useCloudAnimation'
 import { useBushAnimation } from './useBushAnimation'
+import { useBigTreeAnimation } from './useBigTreeAnimation'
 
 function Placeholder() {
   return (
@@ -44,16 +45,18 @@ function wrapSvg(inner: string): string {
 // Mount forest 4, City, bushes, Big tree} and OVER {Mount forest 3, road group, Slope 3, …}.
 const FRONT_IDS = [
   'Slope 1', 'Mount Forest 1', 'Peak', 'Mount forest 2', 'Slope 2', 'Group 1',
-  'Mount forest 4', 'City', 'bush 02', 'bush 01', 'Big tree', // bush 03 is nested inside City
+  'Mount forest 4', 'City', 'bush 02', 'bush 01', // bush 03 is inside City; Big tree is its own layer (sway)
 ]
 
 export default function BackgroundCanvas() {
   const [mainSvg, setMainSvg] = useState('')
   const [citySvg, setCitySvg] = useState('')
   const [frontSvg, setFrontSvg] = useState('')
+  const [bigTreeSvg, setBigTreeSvg] = useState('')
   const [peakPos, setPeakPos] = useState<{ x: number; y: number } | null>(null)
   const [entered, setEntered] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  const bigTreeRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     fetch('/SVG/background/background [Vectorized] 2.svg')
@@ -71,6 +74,12 @@ export default function BackgroundCanvas() {
           s = without
         }
         if (frontInner) setFrontSvg(wrapSvg(frontInner))
+
+        // Big tree gets its own layer so the sway can rotate the wrapper div
+        // (rotating a <g> inside dangerouslySetInnerHTML doesn't take visually)
+        const { inner: bigTree, without: s1 } = extractGroup(s, 'Big tree')
+        if (bigTree) setBigTreeSvg(wrapSvg(bigTree))
+        s = s1
 
         setMainSvg(injectRailPath(s))
       })
@@ -117,6 +126,7 @@ export default function BackgroundCanvas() {
   useCarAnimation(containerRef, { enabled: svgReady })
   useCloudAnimation(containerRef, { enabled: svgReady })
   useBushAnimation(containerRef, { enabled: svgReady })
+  useBigTreeAnimation(bigTreeRef, { enabled: !!bigTreeSvg })
 
   return (
     <div
@@ -146,6 +156,15 @@ export default function BackgroundCanvas() {
         <div
           style={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 7 }}
           dangerouslySetInnerHTML={{ __html: frontSvg }}
+        />
+      )}
+
+      {/* Big tree — own layer (on top of the front-set) so the sway rotates this div */}
+      {bigTreeSvg && (
+        <div
+          ref={bigTreeRef}
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 7 }}
+          dangerouslySetInnerHTML={{ __html: bigTreeSvg }}
         />
       )}
 

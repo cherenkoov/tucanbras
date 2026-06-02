@@ -24,9 +24,11 @@ export function useHumanAnimation(
     // Hidden measuring SVG holding the 4 track paths (geometry only).
     const measure = document.createElementNS(NS, 'svg')
     measure.setAttribute('viewBox', `0 0 ${SVG_W} ${SVG_H}`)
+    // NOTE: must stay laid-out (not width:0 / display:none) — some browsers return 0
+    // from getTotalLength/getPointAtLength on an unrendered path. Full size + opacity:0.
     measure.style.cssText = debug
       ? 'position:absolute;top:0;left:0;width:100%;pointer-events:none;z-index:9;overflow:visible;'
-      : 'position:absolute;width:0;height:0;overflow:hidden;visibility:hidden;pointer-events:none;'
+      : 'position:absolute;top:0;left:0;width:100%;opacity:0;pointer-events:none;overflow:visible;'
 
     const paths: SVGPathElement[] = HUMANS.map((h) => {
       const p = document.createElementNS(NS, 'path')

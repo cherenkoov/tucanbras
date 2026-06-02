@@ -48,8 +48,10 @@ function wrapSvg(inner: string): string {
 const FRONT_IDS = [
   'Slope 1', 'Mount Forest 1', 'Peak', 'Mount forest 2', 'Slope 2', 'Group 1',
   'Mount forest 4', 'City', // bush 03 is inside City; bush 01/02 and Big tree are their own animated layers
-  // Houses painted early in the source SVG that must sit IN FRONT of the figures:
-  'house 1', 'house 2', 'house 3', 'house 5', 'house 10',
+  // NOTE: house 1..11 and human 1..4 are all NESTED inside the `City` group. The
+  // figures + house 4/6 are pulled OUT of City (below) before City is lifted here,
+  // so the remaining houses (1,2,3,5,7,8,9,10,11) ride along into the front layer —
+  // which is exactly where the figures must sit behind them.
 ]
 
 export default function BackgroundCanvas() {
@@ -85,8 +87,29 @@ export default function BackgroundCanvas() {
         const { inner: cityInner, without: s0 } = extractGroup(raw, 'Background city')
         if (cityInner) setCitySvg(wrapSvg(cityInner))
 
-        // Lift the front-set groups out of the main SVG into their own layer (z:7, above the train)
+        // Pull the figures + their two occlusion houses OUT of `City` FIRST (all of
+        // house 1..11 and human 1..4 are nested inside the `City` group). They must
+        // leave City before it is lifted to the front layer below.
         let s = s0
+
+        // house 6 (own layer z3) and house 4 (own layer z5) — dynamic occlusion targets
+        const { inner: house6, without: sh6 } = extractGroup(s, 'house 6')
+        if (house6) setHouse6Svg(wrapSvg(house6))
+        s = sh6
+        const { inner: house4, without: sh4 } = extractGroup(s, 'house 4')
+        if (house4) setHouse4Svg(wrapSvg(house4))
+        s = sh4
+
+        // human 1–4 — each its own animated wrapper-div layer
+        const humanInner: string[] = []
+        for (const cfg of HUMANS) {
+          const { inner, without } = extractGroup(s, cfg.id)
+          humanInner.push(inner ? wrapSvg(inner) : '')
+          s = without
+        }
+        setHumanSvgs(humanInner)
+
+        // Lift the front-set groups out of the main SVG into their own layer (z:7, above the train)
         let frontInner = ''
         for (const id of FRONT_IDS) {
           const { inner, without } = extractGroup(s, id)
@@ -108,23 +131,6 @@ export default function BackgroundCanvas() {
         const { inner: bigTree, without: s1 } = extractGroup(s, 'Big tree')
         if (bigTree) setBigTreeSvg(wrapSvg(bigTree))
         s = s1
-
-        // house 6 (own layer z3) and house 4 (own layer z5) — dynamic occlusion targets
-        const { inner: house6, without: sh6 } = extractGroup(s, 'house 6')
-        if (house6) setHouse6Svg(wrapSvg(house6))
-        s = sh6
-        const { inner: house4, without: sh4 } = extractGroup(s, 'house 4')
-        if (house4) setHouse4Svg(wrapSvg(house4))
-        s = sh4
-
-        // human 1–4 — each its own animated wrapper-div layer
-        const humanInner: string[] = []
-        for (const cfg of HUMANS) {
-          const { inner, without } = extractGroup(s, cfg.id)
-          humanInner.push(inner ? wrapSvg(inner) : '')
-          s = without
-        }
-        setHumanSvgs(humanInner)
 
         setMainSvg(injectRailPath(s))
       })

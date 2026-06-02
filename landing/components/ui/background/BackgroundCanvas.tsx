@@ -61,6 +61,7 @@ export default function BackgroundCanvas() {
   const [bigTreeSvg, setBigTreeSvg] = useState('')
   const [bush01Svg, setBush01Svg] = useState('')
   const [bush02Svg, setBush02Svg] = useState('')
+  const [roadsSvg, setRoadsSvg] = useState('')
   const [house4Svg, setHouse4Svg] = useState('')
   const [house6Svg, setHouse6Svg] = useState('')
   const [humanSvgs, setHumanSvgs] = useState<string[]>(['', '', '', ''])
@@ -99,6 +100,16 @@ export default function BackgroundCanvas() {
         const { inner: house4, without: sh4 } = extractGroup(s, 'house 4')
         if (house4) setHouse4Svg(wrapSvg(house4))
         s = sh4
+
+        // Roads are nested in City too, but the figures must walk ON TOP of them.
+        // Pull them out and render below the figures (z1, above the base terrain).
+        let roadsInner = ''
+        for (const id of ['road 1', 'road 2', 'road 3']) {
+          const { inner, without } = extractGroup(s, id)
+          roadsInner += inner
+          s = without
+        }
+        if (roadsInner) setRoadsSvg(wrapSvg(roadsInner))
 
         // human 1–4 — each its own animated wrapper-div layer
         const humanInner: string[] = []
@@ -201,6 +212,15 @@ export default function BackgroundCanvas() {
       )}
       {mainSvg && (
         <div style={{ position: 'relative', zIndex: 2 }} dangerouslySetInnerHTML={{ __html: mainSvg }} />
+      )}
+
+      {/* roads — pulled out of City so the figures walk ON them (z2, above base terrain,
+          below house 6 / figures). Painted after mainSvg so it sits over the ground. */}
+      {roadsSvg && (
+        <div
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 2 }}
+          dangerouslySetInnerHTML={{ __html: roadsSvg }}
+        />
       )}
 
       {/* house 6 — own layer (z3): figures pass in front of it by default */}

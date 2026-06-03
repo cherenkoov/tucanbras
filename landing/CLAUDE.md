@@ -90,8 +90,8 @@ tucanbras/
 2. Hero
 3. About
 4. Comparison
-5. WaveSection      ← декоративная, без CMS-контента
-6. Tutors
+5. Tutors
+6. WaveSection      ← декоративная, без CMS-контента
 7. CelpeBras
 8. Plans
 9. Footer (+ Form + FAQ)

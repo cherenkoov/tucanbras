@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ChristScene from './ChristScene'
-import { injectRailPath } from './utils/injectRailPath'
+import { injectRailPath, injectCloudAnimation } from './utils/injectRailPath'
 import { useTrainAnimation } from './useTrainAnimation'
 import { useCarAnimation } from './useCarAnimation'
 import { useCloudAnimation } from './useCloudAnimation'
@@ -54,9 +54,15 @@ const FRONT_IDS = [
   // which is exactly where the figures must sit behind them.
 ]
 
+// Clouds (Cloud 01–08 minus the absent Cloud 04), in SVG document order so their
+// mutual overlap is preserved. Lifted into their own layer so the mobile descent
+// can shift everything else WITHOUT moving the sky.
+const CLOUD_IDS = ['Cloud 06', 'Cloud 07', 'Cloud 05', 'Cloud 03', 'Cloud 02', 'Cloud 01', 'Cloud 08']
+
 export default function BackgroundCanvas() {
   const [mainSvg, setMainSvg] = useState('')
   const [citySvg, setCitySvg] = useState('')
+  const [cloudsSvg, setCloudsSvg] = useState('')
   const [frontSvg, setFrontSvg] = useState('')
   const [bigTreeSvg, setBigTreeSvg] = useState('')
   const [bush01Svg, setBush01Svg] = useState('')
@@ -148,6 +154,16 @@ export default function BackgroundCanvas() {
         if (bigTree) setBigTreeSvg(wrapSvg(bigTree))
         s = s1
 
+        // Clouds — own layer so the mobile descent leaves the sky pinned while
+        // everything else shifts down. Extract in document order (overlap preserved).
+        let cloudsInner = ''
+        for (const id of CLOUD_IDS) {
+          const { inner, without } = extractGroup(s, id)
+          cloudsInner += inner
+          s = without
+        }
+        if (cloudsInner) setCloudsSvg(injectCloudAnimation(wrapSvg(cloudsInner)))
+
         setMainSvg(injectRailPath(s))
       })
       .catch(err => console.warn('BackgroundCanvas: SVG fetch failed', err))
@@ -217,6 +233,15 @@ export default function BackgroundCanvas() {
       )}
       {mainSvg && (
         <div style={{ position: 'relative', zIndex: 10 }} dangerouslySetInnerHTML={{ __html: mainSvg }} />
+      )}
+      {/* clouds — own layer (z 11: above mainSvg z10, below the train overlay z12 /
+          roads z15), reproducing the original "clouds on top of mainSvg" paint order.
+          A counter-shift to keep it pinned is added in Task 2. */}
+      {cloudsSvg && (
+        <div
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 11 }}
+          dangerouslySetInnerHTML={{ __html: cloudsSvg }}
+        />
       )}
 
       {/* roads — pulled out of City so the figures walk ON them (z15, above base terrain

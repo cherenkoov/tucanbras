@@ -216,22 +216,22 @@ export default function BackgroundCanvas() {
         />
       )}
       {mainSvg && (
-        <div style={{ position: 'relative', zIndex: 2 }} dangerouslySetInnerHTML={{ __html: mainSvg }} />
+        <div style={{ position: 'relative', zIndex: 10 }} dangerouslySetInnerHTML={{ __html: mainSvg }} />
       )}
 
-      {/* roads — pulled out of City so the figures walk ON them (z2, above base terrain,
-          below house 6 / figures). Painted after mainSvg so it sits over the ground. */}
+      {/* roads — pulled out of City so the figures walk ON them (z15, above base terrain
+          z10, below every figure). Painted after mainSvg so it sits over the ground. */}
       {roadsSvg && (
         <div
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 2 }}
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 15 }}
           dangerouslySetInnerHTML={{ __html: roadsSvg }}
         />
       )}
 
-      {/* house 6 — own layer (z3): figures pass in front of it by default */}
+      {/* house 6 — own layer (z25, grouped with house 4): figures RED above / BLUE behind */}
       {house6Svg && (
         <div
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 3 }}
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 25 }}
           dangerouslySetInnerHTML={{ __html: house6Svg }}
         />
       )}
@@ -248,26 +248,27 @@ export default function BackgroundCanvas() {
         ) : null
       )}
 
-      {/* house 4 — own layer (z5): figures pass behind it by default, in front on toggle */}
+      {/* house 4 — own layer (z25, grouped with house 6): RED above / BLUE behind;
+          YELLOW (z30) passes in front of it but behind house 5 */}
       {house4Svg && (
         <div
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 5 }}
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 25 }}
           dangerouslySetInnerHTML={{ __html: house4Svg }}
         />
       )}
 
-      {/* house 5 — own layer (z5): human 1 (z6) in front, the others (z4) behind */}
+      {/* house 5 — own layer (z35): only RED figures (z40) pass in front; YELLOW/BLUE behind */}
       {house5Svg && (
         <div
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 5 }}
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 35 }}
           dangerouslySetInnerHTML={{ __html: house5Svg }}
         />
       )}
 
-      {/* Front layer — above the train (z:6), below the statue (z:8) */}
+      {/* Front layer (z50) — all other houses + mountains, ABOVE every figure */}
       {frontSvg && (
         <div
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 7 }}
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 50 }}
           dangerouslySetInnerHTML={{ __html: frontSvg }}
         />
       )}
@@ -276,14 +277,14 @@ export default function BackgroundCanvas() {
       {bush02Svg && (
         <div
           ref={bush02Ref}
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 7 }}
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 50 }}
           dangerouslySetInnerHTML={{ __html: bush02Svg }}
         />
       )}
       {bush01Svg && (
         <div
           ref={bush01Ref}
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 7 }}
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 50 }}
           dangerouslySetInnerHTML={{ __html: bush01Svg }}
         />
       )}
@@ -292,7 +293,7 @@ export default function BackgroundCanvas() {
       {bigTreeSvg && (
         <div
           ref={bigTreeRef}
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 7 }}
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 50 }}
           dangerouslySetInnerHTML={{ __html: bigTreeSvg }}
         />
       )}
@@ -305,7 +306,7 @@ export default function BackgroundCanvas() {
             left: peakPos.x,
             top: peakPos.y,
             transform: 'translate(-50%, -100%)',
-            zIndex: 8,
+            zIndex: 55,
           }}
         >
           <ChristScene />

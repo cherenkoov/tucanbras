@@ -66,7 +66,7 @@ export function useTrainAnimation(
     svg.innerHTML = TRAIN_SVG_INNER
 
     svg.style.cssText =
-      'position:absolute;top:0;left:0;pointer-events:none;z-index:6;' +
+      'position:absolute;top:0;left:0;pointer-events:none;z-index:12;' +
       'animation:train-along 8s linear infinite paused;' +
       'visibility:hidden;'
     svg.style.setProperty('offset-anchor', '50% 48%')

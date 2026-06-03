@@ -5,7 +5,7 @@ import {
   gait,
   zForProgress,
 } from '../components/ui/background/humanMotion'
-import { HUMANS } from '../components/ui/background/humanPaths'
+import { HUMANS, Z_RED, Z_YELLOW, Z_BLUE } from '../components/ui/background/humanPaths'
 
 // progressFor wraps into [0,1)
 assert.equal(progressFor(0, 10, 0), 0)
@@ -25,30 +25,43 @@ assert.ok(Math.abs(g0.sx - 1) < 1e-9 && Math.abs(g0.sy - 1) < 1e-9, 'neutral fra
 const gQ = gait(Math.PI / 2 / 9, 0.1, 0.05, 9, 0) // sin(omega*t)=1
 assert.ok(gQ.sy > 1 && gQ.sx < 1, 'stretch => taller & narrower')
 
-// zForProgress: human 3 behind house 6 inside window, base outside
-const h3 = HUMANS.find((h) => h.id === 'human 3')!
-assert.equal(zForProgress(0.9, h3.baseZ, h3.layerToggles), 2)
-assert.equal(zForProgress(0.5, h3.baseZ, h3.layerToggles), 4)
-const h4 = HUMANS.find((h) => h.id === 'human 4')!
-assert.equal(zForProgress(0.7, h4.baseZ, h4.layerToggles), 6)
-assert.equal(zForProgress(0.2, h4.baseZ, h4.layerToggles), 4)
-const h1 = HUMANS.find((h) => h.id === 'human 1')!
-assert.equal(zForProgress(0.5, h1.baseZ, h1.layerToggles), 6, 'human 1 always front')
+// z-state ordering sanity
+assert.ok(Z_BLUE < Z_YELLOW && Z_YELLOW < Z_RED, 'blue < yellow < red')
+
+const h = (id: string) => HUMANS.find((x) => x.id === id)!
+
+// human 1: big arc RED, small arc [0.362,0.465] YELLOW
+assert.equal(zForProgress(0.40, h('human 1').baseZ, h('human 1').layerToggles), Z_YELLOW)
+assert.equal(zForProgress(0.20, h('human 1').baseZ, h('human 1').layerToggles), Z_RED)
+
+// human 2: whole loop RED
+assert.equal(zForProgress(0.10, h('human 2').baseZ, h('human 2').layerToggles), Z_RED)
+assert.equal(zForProgress(0.90, h('human 2').baseZ, h('human 2').layerToggles), Z_RED)
+
+// human 3: big arc RED, small arc [0.662,0.863] BLUE
+assert.equal(zForProgress(0.75, h('human 3').baseZ, h('human 3').layerToggles), Z_BLUE)
+assert.equal(zForProgress(0.50, h('human 3').baseZ, h('human 3').layerToggles), Z_RED)
+
+// human 4: big arc RED, small arc [0.572,0.870] BLUE
+assert.equal(zForProgress(0.70, h('human 4').baseZ, h('human 4').layerToggles), Z_BLUE)
+assert.equal(zForProgress(0.20, h('human 4').baseZ, h('human 4').layerToggles), Z_RED)
 
 // data integrity
 assert.equal(HUMANS.length, 4)
-for (const h of HUMANS) {
-  assert.ok(h.d.startsWith('M') && /Z\s*$/.test(h.d), `${h.id}: path must be closed`)
-  for (const t of h.layerToggles) {
+for (const cfg of HUMANS) {
+  assert.equal(cfg.baseZ, Z_RED, `${cfg.id}: big arc must be RED`)
+  assert.ok(cfg.d.startsWith('M') && /Z\s*$/.test(cfg.d), `${cfg.id}: path must be closed`)
+  for (const t of cfg.layerToggles) {
     assert.ok(
       t.range[0] >= 0 && t.range[1] <= 1 && t.range[0] < t.range[1],
-      `${h.id}: toggle range must be within [0,1]`
+      `${cfg.id}: toggle range must be within [0,1]`
     )
   }
 }
 
 // regression guard vs scripts/computeMarkerProgress.mjs
-assert.deepEqual(h3.layerToggles[0].range, [0.858, 1.0])
-assert.deepEqual(h4.layerToggles[0].range, [0.572, 0.87])
+assert.deepEqual(h('human 1').layerToggles[0].range, [0.362, 0.465])
+assert.deepEqual(h('human 3').layerToggles[0].range, [0.662, 0.863])
+assert.deepEqual(h('human 4').layerToggles[0].range, [0.572, 0.87])
 
 console.log('verifyHumanMotion: all assertions passed')

@@ -27,7 +27,7 @@ export function useHumanAnimation(
     // NOTE: must stay laid-out (not width:0 / display:none) — some browsers return 0
     // from getTotalLength/getPointAtLength on an unrendered path. Full size + opacity:0.
     measure.style.cssText = debug
-      ? 'position:absolute;top:0;left:0;width:100%;pointer-events:none;z-index:9;overflow:visible;'
+      ? 'position:absolute;top:0;left:0;width:100%;pointer-events:none;z-index:60;overflow:visible;'
       : 'position:absolute;top:0;left:0;width:100%;opacity:0;pointer-events:none;overflow:visible;'
 
     const paths: SVGPathElement[] = HUMANS.map((h) => {

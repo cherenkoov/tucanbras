@@ -63,6 +63,7 @@ export default function BackgroundCanvas() {
   const [bush02Svg, setBush02Svg] = useState('')
   const [roadsSvg, setRoadsSvg] = useState('')
   const [house4Svg, setHouse4Svg] = useState('')
+  const [house5Svg, setHouse5Svg] = useState('')
   const [house6Svg, setHouse6Svg] = useState('')
   const [humanSvgs, setHumanSvgs] = useState<string[]>(['', '', '', ''])
   const [peakPos, setPeakPos] = useState<{ x: number; y: number } | null>(null)
@@ -93,13 +94,17 @@ export default function BackgroundCanvas() {
         // leave City before it is lifted to the front layer below.
         let s = s0
 
-        // house 6 (own layer z3) and house 4 (own layer z5) — dynamic occlusion targets
+        // house 6 (own layer z3), house 4 & house 5 (own layers z5) — figures interleave
+        // by their per-figure z: human 1 (z6) in front, the others (z4) behind.
         const { inner: house6, without: sh6 } = extractGroup(s, 'house 6')
         if (house6) setHouse6Svg(wrapSvg(house6))
         s = sh6
         const { inner: house4, without: sh4 } = extractGroup(s, 'house 4')
         if (house4) setHouse4Svg(wrapSvg(house4))
         s = sh4
+        const { inner: house5, without: sh5 } = extractGroup(s, 'house 5')
+        if (house5) setHouse5Svg(wrapSvg(house5))
+        s = sh5
 
         // Roads are nested in City too, but the figures must walk ON TOP of them.
         // Pull them out and render below the figures (z1, above the base terrain).
@@ -248,6 +253,14 @@ export default function BackgroundCanvas() {
         <div
           style={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 5 }}
           dangerouslySetInnerHTML={{ __html: house4Svg }}
+        />
+      )}
+
+      {/* house 5 — own layer (z5): human 1 (z6) in front, the others (z4) behind */}
+      {house5Svg && (
+        <div
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 5 }}
+          dangerouslySetInnerHTML={{ __html: house5Svg }}
         />
       )}
 

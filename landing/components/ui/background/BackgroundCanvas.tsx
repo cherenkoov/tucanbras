@@ -63,6 +63,8 @@ const CLOUD_IDS = ['Cloud 06', 'Cloud 07', 'Cloud 05', 'Cloud 03', 'Cloud 02', '
 // 0px at ≥1024px → 400px at ≤375px, linear between (≈158px at 768px). 649 = 1024−375.
 const BG_SHIFT = 'clamp(0px, calc((1024px - 100vw) * 400 / 649), 400px)'
 // Equal-and-opposite value: cancels BG_SHIFT at every width so the clouds hold position.
+// KEEP IN SYNC with BG_SHIFT: if you change a number above, mirror it here (negate the
+// factor, flip the clamp bounds) or the clouds will drift instead of staying pinned.
 const BG_SHIFT_NEG = 'clamp(-400px, calc((1024px - 100vw) * -400 / 649), 0px)'
 
 export default function BackgroundCanvas() {

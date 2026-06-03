@@ -59,6 +59,12 @@ const FRONT_IDS = [
 // can shift everything else WITHOUT moving the sky.
 const CLOUD_IDS = ['Cloud 06', 'Cloud 07', 'Cloud 05', 'Cloud 03', 'Cloud 02', 'Cloud 01', 'Cloud 08']
 
+// Mobile descent: everything EXCEPT the clouds slides down as the viewport narrows.
+// 0px at ≥1024px → 400px at ≤375px, linear between (≈158px at 768px). 649 = 1024−375.
+const BG_SHIFT = 'clamp(0px, calc((1024px - 100vw) * 400 / 649), 400px)'
+// Equal-and-opposite value: cancels BG_SHIFT at every width so the clouds hold position.
+const BG_SHIFT_NEG = 'clamp(-400px, calc((1024px - 100vw) * -400 / 649), 0px)'
+
 export default function BackgroundCanvas() {
   const [mainSvg, setMainSvg] = useState('')
   const [citySvg, setCitySvg] = useState('')
@@ -214,7 +220,6 @@ export default function BackgroundCanvas() {
 
   return (
     <div
-      ref={containerRef}
       className="absolute top-0 left-0 w-full pointer-events-none"
       style={{
         overflow: 'visible',
@@ -224,6 +229,15 @@ export default function BackgroundCanvas() {
         transition: 'opacity 1.4s ease, transform 1.4s cubic-bezier(0.16,1,0.3,1)',
       }}
     >
+      <div
+        ref={containerRef}
+        style={{
+          position: 'relative',
+          width: '100%',
+          overflow: 'visible',
+          transform: `translateY(${BG_SHIFT})`,
+        }}
+      >
       {!svgReady && <Placeholder />}
       {citySvg && (
         <div
@@ -239,7 +253,7 @@ export default function BackgroundCanvas() {
           A counter-shift to keep it pinned is added in Task 2. */}
       {cloudsSvg && (
         <div
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 11 }}
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 11, transform: `translateY(${BG_SHIFT_NEG})` }}
           dangerouslySetInnerHTML={{ __html: cloudsSvg }}
         />
       )}
@@ -337,6 +351,7 @@ export default function BackgroundCanvas() {
           <ChristScene />
         </div>
       )}
+      </div>
     </div>
   )
 }

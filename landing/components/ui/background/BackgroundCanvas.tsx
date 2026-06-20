@@ -10,6 +10,7 @@ import { useBushAnimation } from './useBushAnimation'
 import { useBigTreeAnimation } from './useBigTreeAnimation'
 import { useHumanAnimation } from './useHumanAnimation'
 import { HUMANS } from './humanPaths'
+import { WavesAnimated } from '@/components/ui/WavesAnimated'
 
 function Placeholder() {
   return (
@@ -41,6 +42,37 @@ function wrapSvg(inner: string): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 800 2047" overflow="visible">${inner}</svg>`
 }
 
+// `main 2.svg` (the beach/boulevard scene) is a STANDALONE Figma export. Two problems
+// to fix before inlining it next to the collage:
+//
+//  1) ID COLLISIONS. Figma numbers its auto-ids from the same base in every export
+//     (clip0_0_1, paint0_linear_0_1, filter0_…), so the beach and the collage define
+//     identical ids. In one DOM `url(#…)` resolves to the FIRST match — the collage,
+//     painted above — so the beach's `clip-path="url(#clip0_0_1)"` grabbed the COLLAGE's
+//     clip and the whole scene got clipped away, leaving only its backdrop rect (the
+//     grey slab). We namespace every id + every reference (url(#…), [xlink:]href="#…")
+//     with a unique prefix so the beach points only at its own defs.
+//  2) FIXED SIZE. It keeps its OWN viewBox (1027×3614); we drop the fixed width/height
+//     so it fills 100% width, derive height from the viewBox, and `display:block` to
+//     kill the inline-SVG baseline gap so it sits flush under the collage.
+//  3) OPAQUE BACKDROP. Figma exports a full-frame <rect …fill="#1E1E1E"/> behind the
+//     scene. We strip ONLY that one (matched by its #1E1E1E fill) so the beach's empty
+//     space is TRANSPARENT — letting the wave layer behind it (z9) show through. NB: the
+//     <clipPath> ALSO holds a 1027×3614 rect, but with fill="white"; removing that one
+//     clips the whole scene away (main2 vanishes), so the fill MUST be part of the match.
+const BEACH_PREFIX = 'b2-'
+function prepareBeachSvg(svgString: string): string {
+  return svgString
+    .replace(/\bid="([^"]+)"/g, `id="${BEACH_PREFIX}$1"`)
+    .replace(/url\(#([^)]+)\)/g, `url(#${BEACH_PREFIX}$1)`)
+    .replace(/((?:xlink:)?href)="#([^"]+)"/g, `$1="#${BEACH_PREFIX}$2"`)
+    .replace(/<rect width="1027" height="3614" fill="#1E1E1E"\/>/g, '')
+    .replace(
+      /(<svg\b[^>]*?)\swidth="[^"]*"\s+height="[^"]*"/,
+      '$1 width="100%" style="display:block"'
+    )
+}
+
 // Groups lifted into a front layer ABOVE the train (z:7), in back→front paint order.
 // Train overlay is z:6; everything left in mainSvg (z:2) stays below it. Net result:
 // train runs UNDER {Slope 1, Mount Forest 1, Peak, Mount forest 2, Slope 2, Group 1,
@@ -67,8 +99,15 @@ const BG_SHIFT = 'clamp(0px, calc((1024px - 100vw) * 400 / 649), 400px)'
 // factor, flip the clamp bounds) or the clouds will drift instead of staying pinned.
 const BG_SHIFT_NEG = 'clamp(-400px, calc((1024px - 100vw) * -400 / 649), 0px)'
 
+// Decorative wave bands (moved OUT of the page flow into this background). They sit
+// BEHIND the beach (z9 < main2's z10), centred in the gap between main2's `curb` and
+// `curb 3` groups — the empty band the waves show through. Recomputed on resize.
+// Fine-tune the vertical position with this nudge (px, positive = down).
+const WAVES_NUDGE_PX = 0
+
 export default function BackgroundCanvas() {
   const [mainSvg, setMainSvg] = useState('')
+  const [beachSvg, setBeachSvg] = useState('')
   const [citySvg, setCitySvg] = useState('')
   const [cloudsSvg, setCloudsSvg] = useState('')
   const [frontSvg, setFrontSvg] = useState('')
@@ -83,6 +122,8 @@ export default function BackgroundCanvas() {
   const [peakPos, setPeakPos] = useState<{ x: number; y: number } | null>(null)
   const [entered, setEntered] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  const beachRef = useRef<HTMLDivElement>(null)
+  const wavesRef = useRef<HTMLDivElement>(null)
   const bigTreeRef = useRef<HTMLDivElement>(null)
   const bush01Ref = useRef<HTMLDivElement>(null)
   const bush02Ref = useRef<HTMLDivElement>(null)
@@ -97,7 +138,7 @@ export default function BackgroundCanvas() {
   )
 
   useEffect(() => {
-    fetch('/SVG/background/background [Vectorized] 2.svg')
+    fetch('/SVG/background/background-collage.svg')
       .then(r => r.text())
       .then(raw => {
         const { inner: cityInner, without: s0 } = extractGroup(raw, 'Background city')
@@ -177,6 +218,15 @@ export default function BackgroundCanvas() {
       .catch(err => console.warn('BackgroundCanvas: SVG fetch failed', err))
   }, [])
 
+  // Beach scene (Scene 3, `main 2.svg`) — fetched separately and appended BELOW the
+  // collage as a full-width in-flow block. Space in the filename → %20 in the URL.
+  useEffect(() => {
+    fetch('/SVG/background/main%202.svg')
+      .then(r => r.text())
+      .then(raw => setBeachSvg(prepareBeachSvg(raw)))
+      .catch(err => console.warn('BackgroundCanvas: beach SVG fetch failed', err))
+  }, [])
+
   const svgReady = !!mainSvg
 
   // Trigger entrance animation after SVG is rendered to DOM
@@ -212,6 +262,50 @@ export default function BackgroundCanvas() {
     ro.observe(document.documentElement)
     return () => ro.disconnect()
   }, [svgReady, updatePeakPos])
+
+  // Raise the beach so its TOP lands on the vertical middle of bush 01. The collage
+  // (mainSvg) is the only in-flow block, so a negative margin-top pulls the beach UP
+  // into the collage. We measure live — bush 01's rendered centre + the collage's
+  // rendered height (viewBox 800×2047) — and recompute on resize, like updatePeakPos.
+  const updateBeachOffset = useCallback(() => {
+    const beach = beachRef.current
+    const container = containerRef.current
+    if (!beach || !container) return
+    const bush = container.querySelector<SVGGraphicsElement>('[id="bush 01"]')
+    if (!bush) return
+    const cRect = container.getBoundingClientRect()
+    const bushRect = bush.getBoundingClientRect()
+    const bushMidY = bushRect.top + bushRect.height / 2 // viewport px
+    const beachTop = beach.getBoundingClientRect().top  // viewport px, reflects current margin
+    const current = parseFloat(beach.style.marginTop) || 0
+    // Move the beach so its TOP meets bush 01's centre; correct relative to the current
+    // margin so it converges in one step and self-corrects on resize (negative = up).
+    beach.style.marginTop = `${current + (bushMidY - beachTop)}px`
+
+    // Position the wave layer BEHIND the beach, a fraction down its "empty space".
+    // beach top (container coords) == bush centre since we just aligned it there;
+    // offsetHeight is margin-independent, so this holds before the reflow lands.
+    // Centre the wave stack in the gap between main2's `curb` and `curb 3` groups (the
+    // transparent band the waves show through). Querying AFTER the beach margin is set
+    // means the rects already reflect the raised position; offsetHeight ≈ the stack box.
+    const waves = wavesRef.current
+    const curb = beach.querySelector<SVGGraphicsElement>('[id="b2-curb"]')
+    const curb3 = beach.querySelector<SVGGraphicsElement>('[id="b2-curb 3"]')
+    if (waves && curb && curb3) {
+      const r1 = curb.getBoundingClientRect()
+      const r3 = curb3.getBoundingClientRect()
+      const gapMid = ((r1.top + r1.bottom) / 2 + (r3.top + r3.bottom) / 2) / 2 - cRect.top
+      waves.style.top = `${gapMid - waves.offsetHeight / 2 + WAVES_NUDGE_PX}px`
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!svgReady || !beachSvg) return
+    updateBeachOffset()
+    const ro = new ResizeObserver(updateBeachOffset)
+    ro.observe(document.documentElement)
+    return () => ro.disconnect()
+  }, [svgReady, beachSvg, updateBeachOffset])
 
   useTrainAnimation(containerRef, { enabled: svgReady })
   useCarAnimation(containerRef, { enabled: svgReady })
@@ -249,6 +343,27 @@ export default function BackgroundCanvas() {
       )}
       {mainSvg && (
         <div style={{ position: 'relative', zIndex: 10 }} dangerouslySetInnerHTML={{ __html: mainSvg }} />
+      )}
+      {/* Wave bands — pulled OUT of the page flow (was section #6) into the background.
+          They sit BEHIND the beach (z9 < main2 z10) in its empty space; main2's opaque
+          backdrop is stripped in prepareBeachSvg so they show through. Top set in JS. */}
+      {beachSvg && (
+        <div
+          ref={wavesRef}
+          aria-hidden="true"
+          style={{ position: 'absolute', left: 0, width: '100%', zIndex: 9 }}
+        >
+          <WavesAnimated />
+        </div>
+      )}
+      {/* Beach scene (main 2.svg) — in-flow block right below the collage so it extends
+          the container height and sits flush under bush 01/02; full width, own viewBox. */}
+      {beachSvg && (
+        <div
+          ref={beachRef}
+          style={{ position: 'relative', zIndex: 10, width: '100%' }}
+          dangerouslySetInnerHTML={{ __html: beachSvg }}
+        />
       )}
       {/* clouds — own layer (z 11: above mainSvg z10, below the train overlay z12 /
           roads z15), reproducing the original "clouds on top of mainSvg" paint order.

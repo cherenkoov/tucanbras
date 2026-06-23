@@ -104,7 +104,7 @@ export function useAdaptiveHeadingColor({ baseRef, flipRef, figureId, featherPx,
       const onScroll = () => start()
       window.addEventListener('scroll', onScroll, { passive: true })
 
-      const ro = new ResizeObserver(() => { rebuild(); start() })
+      const ro = new ResizeObserver(() => { rebuild(); place(); start() })
       ro.observe(document.documentElement)
 
       return () => {

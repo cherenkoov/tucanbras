@@ -55,18 +55,25 @@ function wrapSvg(inner: string): string {
 //  2) FIXED SIZE. It keeps its OWN viewBox (1027×3614); we drop the fixed width/height
 //     so it fills 100% width, derive height from the viewBox, and `display:block` to
 //     kill the inline-SVG baseline gap so it sits flush under the collage.
-//  3) OPAQUE BACKDROP. Figma exports a full-frame <rect …fill="#1E1E1E"/> behind the
-//     scene. We strip ONLY that one (matched by its #1E1E1E fill) so the beach's empty
-//     space is TRANSPARENT — letting the wave layer behind it (z9) show through. NB: the
+//  3) OPAQUE BACKDROPS. Figma exports TWO full-frame backdrop rects behind the scene:
+//     an outer <rect …fill="#1E1E1E"/> (the Figma frame) and an inner
+//     <rect …fill="#77533E"/> (the brown ground added in the latest export). Both make
+//     the beach opaque and would hide the wave layer behind it (z9), so we strip BOTH.
+//     The brown is re-rendered as its OWN layer at z8 (BELOW the waves) — see the
+//     `brownRef` backdrop in the JSX — so the beach keeps a solid brown base everywhere
+//     while the animated waves still show through the transparent sea-gap. NB: the
 //     <clipPath> ALSO holds a 1027×3614 rect, but with fill="white"; removing that one
-//     clips the whole scene away (main2 vanishes), so the fill MUST be part of the match.
+//     clips the whole scene away (main2 vanishes), so the fill MUST be part of each match.
 const BEACH_PREFIX = 'b2-'
+// Brown ground stripped from the beach SVG and painted on its own z8 layer (below waves).
+const BEACH_GROUND_COLOR = '#77533E'
 function prepareBeachSvg(svgString: string): string {
   return svgString
     .replace(/\bid="([^"]+)"/g, `id="${BEACH_PREFIX}$1"`)
     .replace(/url\(#([^)]+)\)/g, `url(#${BEACH_PREFIX}$1)`)
     .replace(/((?:xlink:)?href)="#([^"]+)"/g, `$1="#${BEACH_PREFIX}$2"`)
     .replace(/<rect width="1027" height="3614" fill="#1E1E1E"\/>/g, '')
+    .replace(/<rect width="1027" height="3614" fill="#77533E"\/>/g, '')
     .replace(
       /(<svg\b[^>]*?)\swidth="[^"]*"\s+height="[^"]*"/,
       '$1 width="100%" style="display:block"'
@@ -100,10 +107,11 @@ const BG_SHIFT = 'clamp(0px, calc((1024px - 100vw) * 400 / 649), 400px)'
 const BG_SHIFT_NEG = 'clamp(-400px, calc((1024px - 100vw) * -400 / 649), 0px)'
 
 // Decorative wave bands (moved OUT of the page flow into this background). They sit
-// BEHIND the beach (z9 < main2's z10), centred in the gap between main2's `curb` and
-// `curb 3` groups — the empty band the waves show through. Recomputed on resize.
-// Fine-tune the vertical position with this nudge (px, positive = down).
-const WAVES_NUDGE_PX = 0
+// BEHIND the beach (z9 < main2's z10), STRETCHED to fill the gap between main2's
+// `curb 3` (upper edge) and `curb` (lower edge) groups — the empty band the waves
+// show through. Top + height recomputed on resize; WavesAnimated scales the band
+// stack to that height. Both edges are nudged down by this offset (px, positive = down).
+const WAVES_OFFSET_PX = 6
 
 export default function BackgroundCanvas() {
   const [mainSvg, setMainSvg] = useState('')
@@ -123,6 +131,7 @@ export default function BackgroundCanvas() {
   const [entered, setEntered] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const beachRef = useRef<HTMLDivElement>(null)
+  const brownRef = useRef<HTMLDivElement>(null)
   const wavesRef = useRef<HTMLDivElement>(null)
   const bigTreeRef = useRef<HTMLDivElement>(null)
   const bush01Ref = useRef<HTMLDivElement>(null)
@@ -282,20 +291,35 @@ export default function BackgroundCanvas() {
     // margin so it converges in one step and self-corrects on resize (negative = up).
     beach.style.marginTop = `${current + (bushMidY - beachTop)}px`
 
-    // Position the wave layer BEHIND the beach, a fraction down its "empty space".
-    // beach top (container coords) == bush centre since we just aligned it there;
-    // offsetHeight is margin-independent, so this holds before the reflow lands.
-    // Centre the wave stack in the gap between main2's `curb` and `curb 3` groups (the
-    // transparent band the waves show through). Querying AFTER the beach margin is set
-    // means the rects already reflect the raised position; offsetHeight ≈ the stack box.
+    // STRETCH the wave layer BEHIND the beach to span the gap between main2's `curb 3`
+    // (upper edge) and `curb` (lower edge) groups — the transparent band the waves show
+    // through. Each curb's vertical centre anchors one edge of the band; both edges are
+    // nudged down by WAVES_OFFSET_PX. WavesAnimated (fillParent) scales its stack to the
+    // height we set here. Querying AFTER the beach margin is set means the rects already
+    // reflect the raised position.
     const waves = wavesRef.current
     const curb = beach.querySelector<SVGGraphicsElement>('[id="b2-curb"]')
     const curb3 = beach.querySelector<SVGGraphicsElement>('[id="b2-curb 3"]')
     if (waves && curb && curb3) {
-      const r1 = curb.getBoundingClientRect()
-      const r3 = curb3.getBoundingClientRect()
-      const gapMid = ((r1.top + r1.bottom) / 2 + (r3.top + r3.bottom) / 2) / 2 - cRect.top
-      waves.style.top = `${gapMid - waves.offsetHeight / 2 + WAVES_NUDGE_PX}px`
+      const rCurb = curb.getBoundingClientRect()
+      const rCurb3 = curb3.getBoundingClientRect()
+      const curbMid = (rCurb.top + rCurb.bottom) / 2 - cRect.top   // lower edge of the gap
+      const curb3Mid = (rCurb3.top + rCurb3.bottom) / 2 - cRect.top // upper edge of the gap
+      const top = curb3Mid + WAVES_OFFSET_PX
+      const bottom = curbMid + WAVES_OFFSET_PX
+      waves.style.top = `${top}px`
+      waves.style.height = `${bottom - top}px`
+    }
+
+    // Brown ground (stripped from the beach SVG) as its OWN layer at z8 — BELOW the
+    // waves (z9) — sized to overlay the beach box exactly, so the beach keeps a solid
+    // base everywhere while the sea-gap waves still show through. The beach rect already
+    // reflects the margin set above (getBoundingClientRect forces the pending reflow).
+    const brown = brownRef.current
+    if (brown) {
+      const bRect = beach.getBoundingClientRect()
+      brown.style.top = `${bRect.top - cRect.top}px`
+      brown.style.height = `${bRect.height}px`
     }
   }, [])
 
@@ -344,16 +368,29 @@ export default function BackgroundCanvas() {
       {mainSvg && (
         <div style={{ position: 'relative', zIndex: 10 }} dangerouslySetInnerHTML={{ __html: mainSvg }} />
       )}
+      {/* Brown ground (z8) — the #77533E backdrop stripped from the beach SVG, re-painted
+          on its own layer BELOW the waves (z9) and beach (z10). Sized in JS to overlay the
+          beach box, so the beach has a solid base everywhere while the waves still show. */}
+      {beachSvg && (
+        <div
+          ref={brownRef}
+          aria-hidden="true"
+          style={{ position: 'absolute', left: 0, width: '100%', backgroundColor: BEACH_GROUND_COLOR, zIndex: 8 }}
+        />
+      )}
       {/* Wave bands — pulled OUT of the page flow (was section #6) into the background.
           They sit BEHIND the beach (z9 < main2 z10) in its empty space; main2's opaque
-          backdrop is stripped in prepareBeachSvg so they show through. Top set in JS. */}
+          backdrops are stripped in prepareBeachSvg so they show through. Top + height set
+          in JS to the gap [curb3+6, curb+6]. `overflow:hidden` CLIPS the band stack to
+          that box — the BANDS extend ~110px above / ~90px below their 440px reference box,
+          so without clipping they'd overshoot up toward curb2 (and symmetrically below). */}
       {beachSvg && (
         <div
           ref={wavesRef}
           aria-hidden="true"
-          style={{ position: 'absolute', left: 0, width: '100%', zIndex: 9 }}
+          style={{ position: 'absolute', left: 0, width: '100%', zIndex: 9, overflow: 'hidden' }}
         >
-          <WavesAnimated />
+          <WavesAnimated fillParent />
         </div>
       )}
       {/* Beach scene (main 2.svg) — in-flow block right below the collage so it extends

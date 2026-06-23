@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useScrollAnimation } from '@/hooks/useScrollAnimation'
 
 // ─── Wave SVG path ────────────────────────────────────────────────────────────
@@ -12,6 +12,13 @@ const MAX_VELOCITY    = 150   // scroll velocity cap (hook's maxDegrees param)
 const FRICTION        = 0.90  // velocity decay per frame (hook's decay param)
 const SCROLL_SCALE    = 0.15  // scroll delta → velocity (hook's velocitySensitivity)
 const POSITION_SCALE  = 0.01  // velocity → px translation per frame
+
+// Natural height of the band-stack reference box. The 6 bands are laid out at
+// fixed offsets inside this 440px frame. In `fillParent` mode the stack is
+// UNIFORMLY scaled by (parentHeight / BASE_HEIGHT) so the whole pattern — band
+// positions, heights, widths and overlaps — grows proportionally: the width tracks
+// the height, keeping the wave shape undistorted as it fills the gap.
+const BASE_HEIGHT     = 440
 
 // ─── Band layout ──────────────────────────────────────────────────────────────
 // viewBox 0 0 3825 200, rendered at 2× natural scale → 4974×260px
@@ -28,8 +35,16 @@ const BANDS = [
   { color: 'var(--color-cream)', top:  270, speed:  90, dir: -1 },
 ] as const
 
-export function WavesAnimated() {
+interface WavesAnimatedProps {
+  // When true the component fills its parent's height (instead of a fixed 440px)
+  // and scales the band stack vertically to match — used by BackgroundCanvas to
+  // span the full curb→curb3 gap. Pure DOM via ref, never React state.
+  fillParent?: boolean
+}
+
+export function WavesAnimated({ fillParent = false }: WavesAnimatedProps) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const scaleRef     = useRef<HTMLDivElement>(null)
   const bandRefs     = useRef<(HTMLDivElement | null)[]>([])
   const positions    = useRef<number[]>(BANDS.map(() => 0))
 
@@ -47,31 +62,63 @@ export function WavesAnimated() {
     },
   })
 
+  // Scale the band stack UNIFORMLY to fill the parent's height (about its top-left
+  // corner). Same factor on X and Y, so width grows with height and the wave keeps
+  // its proportions. DOM-only via ref + ResizeObserver — never React state.
+  useEffect(() => {
+    if (!fillParent) return
+    const container = containerRef.current
+    const scale     = scaleRef.current
+    if (!container || !scale) return
+    const apply = () => {
+      const h = container.clientHeight
+      if (h > 0) scale.style.transform = `scale(${h / BASE_HEIGHT})`
+    }
+    apply()
+    const ro = new ResizeObserver(apply)
+    ro.observe(container)
+    return () => ro.disconnect()
+  }, [fillParent])
+
   return (
-    <div ref={containerRef} className="relative w-full" style={{ height: 440 }}>
-      {BANDS.map((band, i) => (
-        <div
-          key={i}
-          ref={el => { bandRefs.current[i] = el }}
-          style={{
-            position:   'absolute',
-            top:        band.top,
-            left:       -800,
-            width:      4974,
-            height:     260,
-            willChange: 'transform',
-          }}
-        >
-          <svg
-            viewBox="0 0 3825 200"
-            preserveAspectRatio="none"
-            style={{ display: 'block', width: '100%', height: '100%' }}
-            aria-hidden="true"
+    <div
+      ref={containerRef}
+      className="relative w-full"
+      style={{ height: fillParent ? '100%' : BASE_HEIGHT }}
+    >
+      <div
+        ref={scaleRef}
+        style={{
+          position:        'relative',
+          width:           '100%',
+          height:          BASE_HEIGHT,
+          transformOrigin: '0 0',
+        }}
+      >
+        {BANDS.map((band, i) => (
+          <div
+            key={i}
+            ref={el => { bandRefs.current[i] = el }}
+            style={{
+              position:   'absolute',
+              top:        band.top,
+              left:       -800,
+              width:      4974,
+              height:     260,
+              willChange: 'transform',
+            }}
           >
-            <path d={WAVE_PATH} fill={band.color} />
-          </svg>
-        </div>
-      ))}
+            <svg
+              viewBox="0 0 3825 200"
+              preserveAspectRatio="none"
+              style={{ display: 'block', width: '100%', height: '100%' }}
+              aria-hidden="true"
+            >
+              <path d={WAVE_PATH} fill={band.color} />
+            </svg>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

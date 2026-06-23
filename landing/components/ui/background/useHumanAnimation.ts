@@ -81,8 +81,24 @@ export function useHumanAnimation(
 
     // Cached scale (canvas unit -> screen px), refreshed on resize.
     let scale = container.offsetWidth / SVG_W
+
+    // Ticker gate (the sentinel div is created below, in the animated path). It must be
+    // sized in PIXELS off the canvas scale, NOT as a % of the container: the in-flow beach
+    // block (main 2.svg) appended under the collage makes the container ~2x the 800×2047
+    // canvas, so a %-of-container band drifts far below the figures and keeps the ticker
+    // paused while they're on screen. The collage is the container's first in-flow block at
+    // top:0, so canvas-y maps to container px as `y * scale`. Band = tracks' y-range.
+    const BAND_TOP_FRAC = 0.54 // ~ tracks begin (y≈1105/2047)
+    const BAND_H_FRAC = 0.23 //   ~ tracks span (~471/2047)
+    let sentinel: HTMLDivElement | null = null
+    const sizeSentinel = () => {
+      if (!sentinel) return
+      sentinel.style.top = `${(SVG_H * BAND_TOP_FRAC * scale).toFixed(1)}px`
+      sentinel.style.height = `${(SVG_H * BAND_H_FRAC * scale).toFixed(1)}px`
+    }
     const ro = new ResizeObserver(() => {
       scale = container.offsetWidth / SVG_W
+      sizeSentinel()
     })
     ro.observe(container)
 
@@ -126,11 +142,12 @@ export function useHumanAnimation(
       renderFrame((performance.now() - startTime) / 1000)
     }
 
-    // Pause/resume the ticker when the human band scrolls out of view.
-    // Tracks span y≈1124–1564 of 2047 → ~55–76% of the canvas height.
-    const sentinel = document.createElement('div')
-    sentinel.style.cssText =
-      'position:absolute;top:54%;left:0;width:100%;height:23%;pointer-events:none;'
+    // Pause/resume the ticker when the human band scrolls out of view. Tracks span canvas
+    // y≈1124–1564 of 2047; the gate is sized in px off the canvas scale (see sizeSentinel)
+    // so the beach block below the collage can't push it off the figures.
+    sentinel = document.createElement('div')
+    sentinel.style.cssText = 'position:absolute;left:0;width:100%;pointer-events:none;'
+    sizeSentinel()
     container.appendChild(sentinel)
 
     const io = new IntersectionObserver(
@@ -151,7 +168,7 @@ export function useHumanAnimation(
       if (running) gsap.ticker.remove(tick)
       io.disconnect()
       ro.disconnect()
-      sentinel.remove()
+      sentinel?.remove()
       measure.remove()
       els.forEach((el) => {
         if (el) el.style.transform = ''

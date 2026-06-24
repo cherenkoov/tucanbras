@@ -131,7 +131,7 @@ export default function LanguageSwitcher({ variant = 'text', dropDirection = 'do
         <div
           role="listbox"
           aria-label="Select language"
-          className="absolute right-0 top-full mt-2 flex flex-col gap-2 z-[60]"
+          className="absolute right-0 top-full mt-4 flex flex-col gap-2 z-[60]"
           style={{ pointerEvents: open ? 'auto' : 'none' }}
         >
           {others.map((l, i) => (

@@ -64,7 +64,7 @@ function TutorSelector({
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
-        className="flex items-center gap-[12px] w-full border-2 rounded-[66px] px-[32px] py-[24px] transition-colors hover:opacity-80"
+        className="btn-press flex items-center gap-[12px] w-full border-2 rounded-[66px] px-[32px] py-[24px]"
         style={{ borderColor: hasError ? '#f26434' : '#323031' }}
       >
         {selected ? (
@@ -155,7 +155,7 @@ function PlanSelector({
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
-        className="flex items-center gap-[12px] w-full border-2 rounded-[66px] px-[32px] py-[24px] transition-colors hover:opacity-80"
+        className="btn-press flex items-center gap-[12px] w-full border-2 rounded-[66px] px-[32px] py-[24px]"
         style={{ borderColor: hasError ? '#f26434' : '#323031' }}
       >
         <span
@@ -307,7 +307,7 @@ export default function FooterForm({
 
   if (status === 'success') {
     return (
-      <div className="bg-cream rounded-[26px] p-[36px] flex items-center justify-center" style={{ minHeight: 200 }}>
+      <div className="glass rounded-[26px] p-[36px] flex items-center justify-center" style={{ minHeight: 200 }}>
         <p
           className="font-heading font-medium text-ink text-center"
           style={{ fontSize: 'clamp(24px, 3vw, 40px)', lineHeight: '1.2' }}
@@ -322,7 +322,7 @@ export default function FooterForm({
     <form
       onSubmit={handleSubmit}
       noValidate
-      className="bg-cream rounded-[26px] p-[36px] flex flex-col gap-[24px]"
+      className="glass rounded-[26px] p-[36px] flex flex-col gap-[24px]"
     >
       {/* Title */}
       <div className="px-[8px]">
@@ -339,7 +339,7 @@ export default function FooterForm({
 
         {/* Name */}
         <label
-          className="border-2 rounded-[66px] px-[32px] py-[24px] block transition-colors"
+          className="btn-press border-2 rounded-[66px] px-[32px] py-[24px] block"
           style={{ borderColor: nameErr ? '#f26434' : '#323031' }}
         >
           <input
@@ -373,7 +373,7 @@ export default function FooterForm({
 
         {/* Telegram */}
         <label
-          className="border-2 rounded-[66px] px-[32px] py-[24px] block transition-colors"
+          className="btn-press border-2 rounded-[66px] px-[32px] py-[24px] block"
           style={{ borderColor: contactErr ? '#f26434' : '#323031' }}
         >
           <input
@@ -390,7 +390,7 @@ export default function FooterForm({
 
         {/* Email */}
         <label
-          className="border-2 rounded-[66px] px-[32px] py-[24px] block transition-colors"
+          className="btn-press border-2 rounded-[66px] px-[32px] py-[24px] block"
           style={{ borderColor: (contactErr || emailErr) ? '#f26434' : '#323031' }}
         >
           <input
@@ -418,7 +418,7 @@ export default function FooterForm({
       <button
         type="submit"
         disabled={status === 'loading'}
-        className="flex items-center justify-center w-full rounded-[66px] px-[36px] py-[36px] disabled:opacity-60 transition-opacity"
+        className="btn-press flex items-center justify-center w-full rounded-[66px] px-[36px] py-[36px] disabled:opacity-60"
         style={{
           backgroundColor: '#323031',
           boxShadow: '0px 1px 4px 0px rgba(0,0,0,0.18), inset 0px 1px 2px 0px rgba(255,255,255,0.18)',

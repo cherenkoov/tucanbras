@@ -59,14 +59,17 @@ function TutorCard({
         </div>
       </div>
 
-      {/* Card body */}
-      <div
-        className="relative rounded-[36px] pt-[88px] pb-[24px] px-[12px] z-10"
-        style={{
-          backgroundImage: 'url(/SVG/tutors/cover.svg)',
-          backgroundSize: '100% 100%',
-        }}
-      >
+      {/* Card body — glass panel: frosted cover, solidifies on hover */}
+      <div className="group relative overflow-hidden rounded-[36px] pt-[88px] pb-[24px] px-[12px] z-10 backdrop-blur-[4px] hover:backdrop-blur-none transition-all duration-300">
+        {/* Cover artwork — translucent, becomes opaque on hover */}
+        <div
+          aria-hidden
+          className="absolute inset-0 opacity-80 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+          style={{
+            backgroundImage: 'url(/SVG/tutors/cover.svg)',
+            backgroundSize: '100% 100%',
+          }}
+        />
         <div className="relative flex flex-col gap-[16px]">
 
           {/* Name */}

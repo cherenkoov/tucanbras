@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { ComparisonProps } from '@/types'
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
@@ -40,11 +41,12 @@ export default function Comparison({ data }: ComparisonProps) {
 
           {/* ── Tucan block ── */}
           <div
-            className="flex flex-col gap-[36px] flex-1 min-w-[300px] lg:max-w-[727px] rounded-[48px] p-[36px] overflow-hidden"
+            className="glass flex flex-col gap-[36px] flex-1 min-w-[300px] lg:max-w-[727px] rounded-[48px] p-[36px] overflow-hidden"
             style={{
-              backgroundColor: '#7cb082',
+              '--glass-tint': 'rgba(124,176,130,0.72)',
+              '--glass-solid': '#7cb082',
               boxShadow: 'inset 0px 4px 4px 0px rgba(255,255,255,0.25), 0px 2px 4px 0px rgba(0,0,0,0.18)',
-            }}
+            } as CSSProperties}
           >
             {/* Block heading */}
             <div className="flex items-center justify-between w-full">
@@ -90,11 +92,12 @@ export default function Comparison({ data }: ComparisonProps) {
 
           {/* ── Others block ── */}
           <div
-            className="flex flex-col gap-[36px] flex-1 min-w-[300px] lg:max-w-[727px] rounded-[48px] p-[36px] overflow-hidden"
+            className="glass flex flex-col gap-[36px] flex-1 min-w-[300px] lg:max-w-[727px] rounded-[48px] p-[36px] overflow-hidden"
             style={{
-              backgroundColor: '#cccab7',
+              '--glass-tint': 'rgba(204,202,183,0.72)',
+              '--glass-solid': '#cccab7',
               boxShadow: 'inset 0px 4px 4px 0px rgba(255,255,255,0.25), 0px 2px 4px 0px rgba(0,0,0,0.18)',
-            }}
+            } as CSSProperties}
           >
             {/* Block heading */}
             <div className="flex items-center justify-between w-full">

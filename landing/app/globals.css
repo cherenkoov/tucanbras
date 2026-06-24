@@ -236,6 +236,54 @@ input:-webkit-autofill:active {
 
 
 
+/* ── Reusable interaction effects ────────────────────────────────────────── */
+
+/*
+  Effect 1 — Glass → solid on hover.
+  Frosted translucent surface that becomes fully opaque & crisp on hover.
+  Colour is parameterised per-use via --glass-tint (frosted) / --glass-solid
+  (hover); defaults to the cream surface, matching the About blocks.
+*/
+.glass {
+  background-color: var(--glass-tint, rgba(255, 252, 229, 0.72));
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  transition: all 300ms ease;
+}
+
+.glass:hover {
+  background-color: var(--glass-solid, #fffce5);
+  -webkit-backdrop-filter: blur(0);
+  backdrop-filter: blur(0);
+}
+
+/* Effect 2 — Button press: lift on hover, press in on click. */
+.btn-press {
+  transition: transform 120ms ease-out;
+}
+
+.btn-press:hover  { transform: scale(1.04); }
+.btn-press:active { transform: scale(0.95); }
+
+/* Header desktop plate fill — frosted (translucent) → solid when the bar is hovered. */
+.header-plate {
+  fill-opacity: 0.72;
+  transition: fill-opacity 300ms ease;
+}
+
+.group:hover .header-plate {
+  fill-opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glass,
+  .btn-press,
+  .header-plate { transition: none; }
+  .btn-press:hover,
+  .btn-press:active { transform: none; }
+}
+
+
 /* ── Header logotype responsive text ─────────────────────────────────────── */
 
 .logo-xs   { display: inline; }

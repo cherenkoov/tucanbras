@@ -65,10 +65,9 @@ function FaqAccordion({ group }: { group: FaqGroupType }) {
 export default function Footer({ data, tutors, planNames, locale }: FooterProps) {
   return (
     <footer id="footer" className="w-full scroll-mt-[136px] lg:scroll-mt-[147px]">
-      {/* ══ Outer green container ══ */}
+      {/* ══ Outer container — transparent (green plate removed), keeps the 12px gutter ══ */}
       <div
         className="relative isolate flex flex-col max-w-[1720px] mx-auto w-full rounded-[38px] p-[12px]"
-        style={{ backgroundColor: '#8fd096' }}
       >
 
         {/* ══ Form row ══ */}
@@ -108,9 +107,9 @@ export default function Footer({ data, tutors, planNames, locale }: FooterProps)
 
         </div>
 
-        {/* ══ Footer content card ══ */}
+        {/* ══ Footer content card — glass → solid on hover ══ */}
         <div
-          className="relative z-[2] bg-cream rounded-[26px] overflow-hidden px-[36px] py-[36px] flex flex-col gap-[64px]"
+          className="glass relative z-[2] rounded-[26px] overflow-hidden px-[36px] py-[36px] flex flex-col gap-[64px]"
           style={{ boxShadow: '0px 2px 4px 0px rgba(0,0,0,0.18), inset 0px 4px 4px 0px rgba(255,255,255,0.25)' }}
         >
 
@@ -176,7 +175,7 @@ export default function Footer({ data, tutors, planNames, locale }: FooterProps)
                   <a
                     key={link.label}
                     href={link.href} // TODO: TBD — final URLs
-                    className="flex-1 aspect-square relative"
+                    className="btn-press flex-1 aspect-square relative"
                     style={{ maxWidth: '210px' }}
                     aria-label={link.label}
                   >

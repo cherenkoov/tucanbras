@@ -82,20 +82,20 @@ export function PlanSection({ plan, index }: { plan: PlanCard; index: number }) 
 
   return (
     <div
-      className={`relative px-[32px] py-[64px] w-full overflow-hidden rounded-[28px] lg:overflow-visible lg:rounded-none ${isLast ? '' : 'mb-[-48px]'}`}
+      className={`group relative px-[32px] py-[64px] w-full overflow-hidden rounded-[28px] lg:overflow-visible lg:rounded-none backdrop-blur-[4px] hover:backdrop-blur-none transition-all duration-300 ${isLast ? '' : 'mb-[-48px]'}`}
     >
-      {/* Mobile SVG background (custom notch shape); transparent notch reveals card below */}
+      {/* Mobile SVG background (custom notch shape); transparent notch reveals card below — frosted, solid on hover */}
       <div
-        className="lg:hidden absolute inset-0"
+        className="lg:hidden absolute inset-0 opacity-80 group-hover:opacity-100 transition-opacity duration-300"
         style={{
           backgroundImage: `url(${MOBILE_BG[index]})`,
           backgroundSize: '100% 100%',
           backgroundRepeat: 'no-repeat',
         }}
       />
-      {/* Desktop SVG background (custom notch shape + preserveAspectRatio="none"); transparent notch reveals card below */}
+      {/* Desktop SVG background (custom notch shape + preserveAspectRatio="none"); transparent notch reveals card below — frosted, solid on hover */}
       <div
-        className="hidden lg:block absolute inset-0"
+        className="hidden lg:block absolute inset-0 opacity-80 group-hover:opacity-100 transition-opacity duration-300"
         style={{
           backgroundImage: `url(${BG[index]})`,
           backgroundSize: '100% 100%',
@@ -146,7 +146,7 @@ export function PlanSection({ plan, index }: { plan: PlanCard; index: number }) 
           <button
             type="button"
             onClick={handleCtaClick}
-            className="flex items-center justify-center w-full overflow-hidden rounded-[28px] cursor-pointer"
+            className="btn-press flex items-center justify-center w-full overflow-hidden rounded-[28px] cursor-pointer"
             style={{
               backgroundColor: cfg.accent,
               paddingTop: '32px',

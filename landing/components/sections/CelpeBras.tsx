@@ -1,25 +1,28 @@
+import type { CSSProperties } from 'react'
 import { CelpeBrasProps } from '@/types'
 import CelpeBrasStack from '@/components/sections/CelpeBrasStack'
 
-// ─── Static card config (icon + bg color — not from CMS) ─────────────────────
+// ─── Static card config (icon + bg/tint color — not from CMS) ────────────────
+// tint = frosted (glass) colour, bg = solid colour shown on hover
 const CARD_CONFIG = [
-  { icon: '/SVG/celpe-bras/structure.svg', bg: '#fffce5', text: '#323031' },
-  { icon: '/SVG/celpe-bras/practice.svg',  bg: '#7cb082', text: '#fffce5' },
-  { icon: '/SVG/celpe-bras/train.svg',     bg: '#2e67b2', text: '#fffce5' },
-  { icon: '/SVG/celpe-bras/plan.svg',      bg: '#f26434', text: '#fffce5' },
-  { icon: '/SVG/celpe-bras/help.svg',      bg: '#ffd376', text: '#323031' },
+  { icon: '/SVG/celpe-bras/structure.svg', bg: '#fffce5', tint: 'rgba(255,252,229,0.72)', text: '#323031' },
+  { icon: '/SVG/celpe-bras/practice.svg',  bg: '#7cb082', tint: 'rgba(124,176,130,0.72)', text: '#fffce5' },
+  { icon: '/SVG/celpe-bras/train.svg',     bg: '#2e67b2', tint: 'rgba(46,103,178,0.72)',  text: '#fffce5' },
+  { icon: '/SVG/celpe-bras/plan.svg',      bg: '#f26434', tint: 'rgba(242,100,52,0.72)',  text: '#fffce5' },
+  { icon: '/SVG/celpe-bras/help.svg',      bg: '#ffd376', tint: 'rgba(255,211,118,0.72)', text: '#323031' },
 ]
 
 // ─── Feature card ─────────────────────────────────────────────────────────────
-function FeatureCard({ title, icon, bg, text }: { title: string; icon: string; bg: string; text: string }) {
+function FeatureCard({ title, icon, bg, tint, text }: { title: string; icon: string; bg: string; tint: string; text: string }) {
   return (
     <div
-      className="relative flex flex-1 items-center gap-[48px] min-w-[300px] overflow-hidden rounded-[44px] px-[32px] py-[32px]"
+      className="glass relative flex flex-1 items-center gap-[48px] min-w-[300px] overflow-hidden rounded-[44px] px-[32px] py-[32px] hover:scale-[1.04] active:scale-[0.95]"
       style={{
         minHeight: '164px',
-        backgroundColor: bg,
+        '--glass-tint': tint,
+        '--glass-solid': bg,
         boxShadow: 'inset 0px 4px 4px 0px rgba(255,255,255,0.25), 0px 2px 4px 0px rgba(0,0,0,0.18)',
-      }}
+      } as CSSProperties}
     >
       {/* Icon */}
       <div className="shrink-0" style={{ width: 'clamp(48px, 6vw, 100px)', height: 'clamp(48px, 6vw, 100px)' }}>
@@ -69,19 +72,19 @@ export default function CelpeBras({ data }: CelpeBrasProps) {
 
           {/* Row 1 */}
           <div className="flex flex-row gap-[20px]">
-            <FeatureCard title={c0} icon={CARD_CONFIG[0].icon} text={CARD_CONFIG[0].text} bg={CARD_CONFIG[0].bg} />
-            <FeatureCard title={c1} icon={CARD_CONFIG[1].icon} text={CARD_CONFIG[1].text} bg={CARD_CONFIG[1].bg} />
+            <FeatureCard title={c0} icon={CARD_CONFIG[0].icon} text={CARD_CONFIG[0].text} bg={CARD_CONFIG[0].bg} tint={CARD_CONFIG[0].tint} />
+            <FeatureCard title={c1} icon={CARD_CONFIG[1].icon} text={CARD_CONFIG[1].text} bg={CARD_CONFIG[1].bg} tint={CARD_CONFIG[1].tint} />
           </div>
 
           {/* Row 2 */}
           <div className="flex flex-row gap-[20px]">
-            <FeatureCard title={c2} icon={CARD_CONFIG[2].icon} text={CARD_CONFIG[2].text} bg={CARD_CONFIG[2].bg} />
-            <FeatureCard title={c3} icon={CARD_CONFIG[3].icon} text={CARD_CONFIG[3].text} bg={CARD_CONFIG[3].bg} />
+            <FeatureCard title={c2} icon={CARD_CONFIG[2].icon} text={CARD_CONFIG[2].text} bg={CARD_CONFIG[2].bg} tint={CARD_CONFIG[2].tint} />
+            <FeatureCard title={c3} icon={CARD_CONFIG[3].icon} text={CARD_CONFIG[3].text} bg={CARD_CONFIG[3].bg} tint={CARD_CONFIG[3].tint} />
           </div>
 
           {/* Row 3: last card + quote */}
           <div className="flex flex-row gap-[20px]">
-            <FeatureCard title={c4} icon={CARD_CONFIG[4].icon} text={CARD_CONFIG[4].text} bg={CARD_CONFIG[4].bg} />
+            <FeatureCard title={c4} icon={CARD_CONFIG[4].icon} text={CARD_CONFIG[4].text} bg={CARD_CONFIG[4].bg} tint={CARD_CONFIG[4].tint} />
 
             {/* Quote */}
             <div className="flex flex-1 items-center min-w-[300px] px-[32px] py-[32px]">
@@ -109,7 +112,7 @@ export default function CelpeBras({ data }: CelpeBrasProps) {
           {/* CTA button */}
           <a
             href="#footer"
-            className="flex items-center justify-center rounded-[66px] px-[44px] w-full lg:w-auto lg:min-w-[400px]"
+            className="btn-press flex items-center justify-center rounded-[66px] px-[44px] w-full lg:w-auto lg:min-w-[400px]"
             style={{
               backgroundColor: '#8fd096',
               paddingTop: '44px',

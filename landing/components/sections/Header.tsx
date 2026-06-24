@@ -234,13 +234,19 @@ export default function Header({ navLinks }: HeaderProps) {
     <header id="header" className="relative z-50 w-full overflow-visible">
 
       {/* ── Main bar ── */}
-      <div ref={containerRef} className="relative h-[85px] lg:h-[96px] max-w-[1720px] mx-auto overflow-visible">
+      <div ref={containerRef} className="group relative h-[85px] lg:h-[96px] max-w-[1720px] mx-auto overflow-visible">
 
-        {/* Background plate — mobile: простой прямоугольник с radius-card */}
+        {/* Background plate — mobile: простой прямоугольник с radius-card (glass → solid по ховеру бара) */}
         <div
           aria-hidden
-          className="lg:hidden absolute inset-0 pointer-events-none bg-cream rounded-card"
+          className="lg:hidden absolute inset-0 pointer-events-none rounded-card bg-[rgba(255,252,229,0.72)] group-hover:bg-cream backdrop-blur-[4px] group-hover:backdrop-blur-none transition-all duration-300"
           style={{ boxShadow: 'var(--shadow-card)' }}
+        />
+
+        {/* Frosted backdrop — desktop: matte blur behind the shaped plate, clears on hover */}
+        <div
+          aria-hidden
+          className="hidden lg:block absolute inset-0 pointer-events-none rounded-card backdrop-blur-[4px] group-hover:backdrop-blur-none transition-all duration-300"
         />
 
         {/* Background plate — desktop: inline SVG с кастомной формой */}
@@ -272,7 +278,7 @@ export default function Header({ navLinks }: HeaderProps) {
             </filter>
           </defs>
           <g opacity="0.99" filter="url(#header-bg-filter)">
-            <path d="M4 30C4 14.536 16.536 2 32 2L756.869 2.00001L804.893 2.00002L1696 2.00001C1711.46 2.00001 1724 14.536 1724 30V59.4483C1724 74.9123 1711.46 87.4483 1696 87.4483H984.43C947.439 89.1205 967.761 105.772 941.058 118.084C938.054 119.469 934.712 120 931.405 120L32 120C16.536 120 4 107.464 4 92L4 30Z" fill="#FFFCE5"/>
+            <path className="header-plate" d="M4 30C4 14.536 16.536 2 32 2L756.869 2.00001L804.893 2.00002L1696 2.00001C1711.46 2.00001 1724 14.536 1724 30V59.4483C1724 74.9123 1711.46 87.4483 1696 87.4483H984.43C947.439 89.1205 967.761 105.772 941.058 118.084C938.054 119.469 934.712 120 931.405 120L32 120C16.536 120 4 107.464 4 92L4 30Z" fill="#FFFCE5"/>
           </g>
         </svg>
 

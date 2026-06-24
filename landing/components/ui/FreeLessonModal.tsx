@@ -79,7 +79,7 @@ function TutorSelector({
       <button
         type="button"
         onClick={handleOpen}
-        className="flex items-center gap-[12px] w-full border-2 border-[#323031] rounded-[66px] px-[18px] py-[18px] transition-colors hover:border-[#5b595a]"
+        className="btn-press flex items-center gap-[12px] w-full border-2 border-[#323031] rounded-[66px] px-[18px] py-[18px]"
       >
         {selected ? (
           <>
@@ -302,7 +302,7 @@ export default function FreeLessonModal({
 
             {/* Name */}
             <label
-              className="border-2 rounded-[66px] p-[18px] block transition-colors"
+              className="btn-press border-2 rounded-[66px] p-[18px] block"
               style={{ borderColor: nameErr ? '#f26434' : '#323031' }}
             >
               <input
@@ -326,7 +326,7 @@ export default function FreeLessonModal({
 
             {/* Telegram */}
             <label
-              className="border-2 rounded-[66px] p-[18px] block transition-colors"
+              className="btn-press border-2 rounded-[66px] p-[18px] block"
               style={{ borderColor: contactErr ? '#f26434' : '#323031' }}
             >
               <input
@@ -343,7 +343,7 @@ export default function FreeLessonModal({
 
             {/* Email */}
             <label
-              className="border-2 rounded-[66px] p-[18px] block transition-colors"
+              className="btn-press border-2 rounded-[66px] p-[18px] block"
               style={{ borderColor: (contactErr || emailErr) ? '#f26434' : '#323031' }}
             >
               <input
@@ -380,7 +380,7 @@ export default function FreeLessonModal({
               ref={submitRef}
               type="submit"
               disabled={status === 'loading'}
-              className="flex items-center justify-center w-full rounded-[66px] px-[36px] disabled:opacity-60 transition-opacity"
+              className="btn-press flex items-center justify-center w-full rounded-[66px] px-[36px] disabled:opacity-60"
               style={{
                 backgroundColor: '#323031',
                 paddingTop: '28px',

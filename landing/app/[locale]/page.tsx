@@ -32,6 +32,9 @@ import snapshot from '@/lib/notionSnapshot.json'
 // Anchor hrefs are structural — labels come from Notion
 const NAV_HREFS = ['#about', '#tutors', '#celpe-bras', '#plans']
 
+// Trial-lesson price word — no Notion field, localized inline
+const FREE_LABEL: Record<Locale, string> = { ru: 'бесплатно', en: 'free', pt: 'grátis' }
+
 export function generateStaticParams() {
   return [{ locale: 'ru' }, { locale: 'en' }, { locale: 'pt' }]
 }
@@ -119,6 +122,10 @@ export default async function Home({
               data={footerData}
               tutors={displayTutors}
               planNames={[footerData.formFreeLessonOption, ...plansData.plans.map(p => p.name)]}
+              planPrices={{
+                [footerData.formFreeLessonOption]: FREE_LABEL[locale],
+                ...Object.fromEntries(plansData.plans.map(p => [p.name, p.priceAmount + p.pricePeriod])),
+              }}
               locale={locale}
             />
         </div>

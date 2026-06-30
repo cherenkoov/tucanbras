@@ -128,12 +128,14 @@ function TutorSelector({
 function PlanSelector({
   selected,
   planNames,
+  planPrices,
   placeholder,
   hasError,
   onChange,
 }: {
   selected:    string | null
   planNames:   string[]
+  planPrices:  Record<string, string>
   placeholder: string
   hasError:    boolean
   onChange:    (plan: string) => void
@@ -182,17 +184,25 @@ function PlanSelector({
               key={name}
               type="button"
               onClick={() => { onChange(name); setOpen(false) }}
-              className="flex items-center w-full px-[32px] py-[20px] hover:bg-[#f5f3d8] transition-colors text-left"
+              className="flex items-center justify-between gap-[16px] w-full px-[32px] py-[20px] hover:bg-[#f5f3d8] transition-colors text-left"
               style={{
                 borderRadius: i === 0 ? '22px 22px 0 0' : i === planNames.length - 1 ? '0 0 22px 22px' : '0',
               }}
             >
               <span
-                className="font-heading font-normal text-ink truncate"
+                className="font-heading font-normal text-ink flex-1 min-w-0 truncate"
                 style={{ fontSize: 'clamp(18px, 2vw, 28px)', lineHeight: '1.3' }}
               >
                 {name}
               </span>
+              {planPrices[name] && (
+                <span
+                  className="font-heading font-normal text-ink opacity-70 shrink-0"
+                  style={{ fontSize: 'clamp(16px, 1.6vw, 24px)', lineHeight: '1.3' }}
+                >
+                  {planPrices[name]}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -216,6 +226,7 @@ interface Props {
   formSubmitText:          string
   tutors:                  TutorRef[]
   planNames:               string[]
+  planPrices:              Record<string, string>
   locale:                  string
 }
 
@@ -234,6 +245,7 @@ export default function FooterForm({
   formSubmitText,
   tutors,
   planNames,
+  planPrices,
   locale,
 }: Props) {
   const [name,          setName]          = useState('')
@@ -367,6 +379,7 @@ export default function FooterForm({
         <PlanSelector
           selected={selectedPlan}
           planNames={planNames}
+          planPrices={planPrices}
           placeholder={formPlanPlaceholder}
           hasError={planErr}
           onChange={p => { setSelectedPlan(p); setPlanErr(false) }}

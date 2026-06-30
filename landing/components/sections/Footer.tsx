@@ -62,7 +62,7 @@ function FaqAccordion({ group }: { group: FaqGroupType }) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function Footer({ data, tutors, planNames, locale }: FooterProps) {
+export default function Footer({ data, tutors, planNames, planPrices, locale }: FooterProps) {
   return (
     <footer id="footer" className="w-full scroll-mt-[136px] lg:scroll-mt-[147px]">
       {/* ══ Outer container — transparent (green plate removed), keeps the 12px gutter ══ */}
@@ -88,6 +88,7 @@ export default function Footer({ data, tutors, planNames, locale }: FooterProps)
               formSubmitText={data.formSubmitText}
               tutors={tutors}
               planNames={planNames}
+              planPrices={planPrices}
               locale={locale}
             />
           </div>

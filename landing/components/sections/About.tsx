@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import Image from 'next/image'
 import { AboutProps } from '@/types'
 import ScrollRotate         from '@/components/ui/ScrollRotate'
@@ -16,8 +17,13 @@ export default function About({ data }: AboutProps) {
   return (
     <section id="about" className="w-full scroll-mt-[136px] lg:scroll-mt-[147px]">
       <div
-        className="flex flex-col gap-[12px] overflow-hidden rounded-[38px] p-[12px] max-w-[1720px] mx-auto w-full backdrop-blur-[4px]"
-        style={{ backgroundColor: '#7cb08299', boxShadow: 'var(--shadow-hero)' }}
+        data-glass-center
+        className="glass flex flex-col gap-[12px] overflow-hidden rounded-[38px] p-[12px] max-w-[1720px] mx-auto w-full"
+        style={{
+          boxShadow: 'var(--shadow-hero)',
+          '--glass-tint': '#7cb08299',
+          '--glass-solid': '#7cb082',
+        } as CSSProperties}
       >
 
         {/* ══ Row 1: flat grid — mobile stacks, tablet 2×2, desktop 363+1fr(+600) ══ */}
@@ -25,8 +31,14 @@ export default function About({ data }: AboutProps) {
 
           {/* Inspiration heading */}
           <div
-            className="about-inspiration relative flex flex-col gap-0 items-center w-full rounded-[26px] p-[36px] overflow-visible backdrop-blur-[4px] hover:backdrop-blur-none bg-[rgba(255,252,229,0.72)] hover:bg-[#fffce5] transition-all duration-300"
-            style={{ boxShadow: 'var(--shadow-hero)' }}
+            data-glass-center
+            className="about-inspiration glass relative flex flex-col gap-0 items-center w-full rounded-[26px] p-[36px] overflow-visible"
+            style={{
+              boxShadow: 'var(--shadow-hero)',
+              // cream card on the green frame — reset the inherited green glass vars to the .glass cream default
+              '--glass-tint': 'initial',
+              '--glass-solid': 'initial',
+            } as CSSProperties}
           >
             <p
               className="w-full font-accent font-bold text-green"
@@ -58,8 +70,14 @@ export default function About({ data }: AboutProps) {
 
           {/* CTA block — spans both grid rows at desktop */}
           <div
-            className="about-cta relative flex flex-col overflow-hidden rounded-[26px] p-[36px] backdrop-blur-[4px] hover:backdrop-blur-none bg-[rgba(255,252,229,0.72)] hover:bg-[#fffce5] transition-all duration-300"
-            style={{ boxShadow: 'var(--shadow-hero)' }}
+            data-glass-center
+            className="about-cta glass relative flex flex-col overflow-hidden rounded-[26px] p-[36px]"
+            style={{
+              boxShadow: 'var(--shadow-hero)',
+              // cream card on the green frame — reset the inherited green glass vars to the .glass cream default
+              '--glass-tint': 'initial',
+              '--glass-solid': 'initial',
+            } as CSSProperties}
           >
             {/* Description */}
             <p
@@ -98,10 +116,10 @@ export default function About({ data }: AboutProps) {
                 style={{ height: '511px', width: '620px', left: '-260px', top: '-348px' }}
               />
 
-              {/* CTA button */}
+              {/* CTA button — pill at rest; corners tighten (radius shrinks) on hover. */}
               <a
                 href="#comparison"
-                className="relative flex items-center justify-center w-full overflow-hidden rounded-[66px]"
+                className="btn-press-tighten relative flex items-center justify-center w-full overflow-hidden rounded-[66px] cursor-pointer"
                 style={{
                   backgroundColor: '#f26434',
                   paddingTop: '36px',
@@ -147,8 +165,14 @@ export default function About({ data }: AboutProps) {
 
         {/* Motivation quote — full-width, outside grid */}
         <div
-          className="flex flex-col items-center justify-center rounded-[26px] p-[36px] w-full z-10 backdrop-blur-[4px] hover:backdrop-blur-none bg-[rgba(255,252,229,0.72)] hover:bg-[#fffce5] transition-all duration-300"
-          style={{ boxShadow: 'var(--shadow-hero)' }}
+          data-glass-center
+          className="glass flex flex-col items-center justify-center rounded-[26px] p-[36px] w-full z-10"
+          style={{
+            boxShadow: 'var(--shadow-hero)',
+            // cream card on the green frame — reset the inherited green glass vars to the .glass cream default
+            '--glass-tint': 'initial',
+            '--glass-solid': 'initial',
+          } as CSSProperties}
         >
           <p
             className="font-accent font-bold text-center w-full"

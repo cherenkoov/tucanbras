@@ -82,11 +82,12 @@ export function PlanSection({ plan, index }: { plan: PlanCard; index: number }) 
 
   return (
     <div
-      className={`group relative px-[32px] py-[64px] w-full overflow-hidden rounded-[28px] lg:overflow-visible lg:rounded-none backdrop-blur-[4px] hover:backdrop-blur-none transition-all duration-300 ${isLast ? '' : 'mb-[-48px]'}`}
+      data-glass-center
+      className={`group relative px-[32px] py-[64px] w-full overflow-hidden rounded-[28px] lg:overflow-visible lg:rounded-none backdrop-blur-[4px] hover:backdrop-blur-none [&.is-center]:backdrop-blur-none transition-all duration-[600ms] ${isLast ? '' : 'mb-[-48px]'}`}
     >
       {/* Mobile SVG background (custom notch shape); transparent notch reveals card below — frosted, solid on hover */}
       <div
-        className="lg:hidden absolute inset-0 opacity-80 group-hover:opacity-100 transition-opacity duration-300"
+        className="lg:hidden absolute inset-0 opacity-80 group-hover:opacity-100 group-[.is-center]:opacity-100 transition-opacity duration-[600ms]"
         style={{
           backgroundImage: `url(${MOBILE_BG[index]})`,
           backgroundSize: '100% 100%',
@@ -95,7 +96,7 @@ export function PlanSection({ plan, index }: { plan: PlanCard; index: number }) 
       />
       {/* Desktop SVG background (custom notch shape + preserveAspectRatio="none"); transparent notch reveals card below — frosted, solid on hover */}
       <div
-        className="hidden lg:block absolute inset-0 opacity-80 group-hover:opacity-100 transition-opacity duration-300"
+        className="hidden lg:block absolute inset-0 opacity-80 group-hover:opacity-100 group-[.is-center]:opacity-100 transition-opacity duration-[600ms]"
         style={{
           backgroundImage: `url(${BG[index]})`,
           backgroundSize: '100% 100%',

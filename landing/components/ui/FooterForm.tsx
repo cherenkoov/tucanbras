@@ -307,7 +307,7 @@ export default function FooterForm({
 
   if (status === 'success') {
     return (
-      <div className="glass rounded-[26px] p-[36px] flex items-center justify-center" style={{ minHeight: 200 }}>
+      <div data-glass-center className="glass rounded-[26px] p-[36px] flex items-center justify-center" style={{ minHeight: 200 }}>
         <p
           className="font-heading font-medium text-ink text-center"
           style={{ fontSize: 'clamp(24px, 3vw, 40px)', lineHeight: '1.2' }}
@@ -322,6 +322,7 @@ export default function FooterForm({
     <form
       onSubmit={handleSubmit}
       noValidate
+      data-glass-center
       className="glass rounded-[26px] p-[36px] flex flex-col gap-[24px]"
     >
       {/* Title */}

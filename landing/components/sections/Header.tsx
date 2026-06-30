@@ -239,14 +239,15 @@ export default function Header({ navLinks }: HeaderProps) {
         {/* Background plate — mobile: простой прямоугольник с radius-card (glass → solid по ховеру бара) */}
         <div
           aria-hidden
-          className="lg:hidden absolute inset-0 pointer-events-none rounded-card bg-[rgba(255,252,229,0.72)] group-hover:bg-cream backdrop-blur-[4px] group-hover:backdrop-blur-none transition-all duration-300"
+          className="lg:hidden absolute inset-0 pointer-events-none rounded-card bg-[rgba(255,252,229,0.72)] group-hover:bg-cream backdrop-blur-[4px] group-hover:backdrop-blur-none transition-all duration-[600ms]"
           style={{ boxShadow: 'var(--shadow-card)' }}
         />
 
-        {/* Frosted backdrop — desktop: matte blur behind the shaped plate, clears on hover */}
+        {/* Frosted backdrop — desktop: matte blur clipped to the plate silhouette, clears on hover */}
         <div
           aria-hidden
-          className="hidden lg:block absolute inset-0 pointer-events-none rounded-card backdrop-blur-[4px] group-hover:backdrop-blur-none transition-all duration-300"
+          className="hidden lg:block absolute inset-0 pointer-events-none backdrop-blur-[4px] group-hover:backdrop-blur-none transition-all duration-[600ms]"
+          style={{ clipPath: 'url(#header-plate-clip)', WebkitClipPath: 'url(#header-plate-clip)' }}
         />
 
         {/* Background plate — desktop: inline SVG с кастомной формой */}
@@ -276,6 +277,13 @@ export default function Header({ navLinks }: HeaderProps) {
               <feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.25 0"/>
               <feBlend mode="normal" in2="shape" result="effect2_innerShadow"/>
             </filter>
+
+            {/* Same silhouette as the plate, normalised to 0..1 so it scales with
+                the box (matches preserveAspectRatio="none"). Used to clip the
+                frosted backdrop below to the custom shape. */}
+            <clipPath id="header-plate-clip" clipPathUnits="objectBoundingBox">
+              <path transform="scale(0.000578703704, 0.008333333333)" d="M4 30C4 14.536 16.536 2 32 2L756.869 2.00001L804.893 2.00002L1696 2.00001C1711.46 2.00001 1724 14.536 1724 30V59.4483C1724 74.9123 1711.46 87.4483 1696 87.4483H984.43C947.439 89.1205 967.761 105.772 941.058 118.084C938.054 119.469 934.712 120 931.405 120L32 120C16.536 120 4 107.464 4 92L4 30Z"/>
+            </clipPath>
           </defs>
           <g opacity="0.99" filter="url(#header-bg-filter)">
             <path className="header-plate" d="M4 30C4 14.536 16.536 2 32 2L756.869 2.00001L804.893 2.00002L1696 2.00001C1711.46 2.00001 1724 14.536 1724 30V59.4483C1724 74.9123 1711.46 87.4483 1696 87.4483H984.43C947.439 89.1205 967.761 105.772 941.058 118.084C938.054 119.469 934.712 120 931.405 120L32 120C16.536 120 4 107.464 4 92L4 30Z" fill="#FFFCE5"/>

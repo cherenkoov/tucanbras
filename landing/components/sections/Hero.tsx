@@ -10,6 +10,7 @@ export default function Hero({ data }: HeroProps) {
 
       {/* Container — width fits content, glass → solid blue on hover */}
       <div
+        data-glass-center
         className="glass flex w-fit max-[500px]:w-full flex-col gap-0 rounded-feat p-s300"
         style={{
           boxShadow: 'var(--shadow-hero)',
@@ -30,11 +31,12 @@ export default function Hero({ data }: HeroProps) {
           <span className="block whitespace-nowrap max-[335px]:whitespace-normal">{data.heading2}</span>
         </h1>
 
-        {/* CTA button */}
-        <div className="mt-[24px]">
+        {/* CTA button — wrapper is an @container so the button's hover translate
+            can reference its own width (0.5cqw) for an even gap to the cover. */}
+        <div className="mt-[24px] @container">
           <FreeLessonButton
             ctaText={data.ctaText}
-            className="btn-press inline-flex w-full items-center justify-center rounded-[26px] font-bold text-ink bg-yellow whitespace-nowrap cursor-pointer"
+            className="btn-press-hero inline-flex w-full items-center justify-center rounded-[26px] font-bold text-ink bg-yellow whitespace-nowrap cursor-pointer"
             style={{
               fontSize: 'clamp(20px, 2.5vw, 48px)',
               lineHeight: '1',

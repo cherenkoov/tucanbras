@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useRef, useState, type CSSProperties } from 'react'
 import type { TutorsProps, Locale, FreeLessonModalStrings } from '@/types'
 import type { Tutor } from '@/lib/tutors'
 import { getStubTutors } from '@/lib/tutorStubs'
@@ -28,7 +28,7 @@ function TutorCard({
       type="button"
       onClick={onSelect}
       className="relative flex flex-col w-full max-w-[410px] mx-auto cursor-pointer select-none active:opacity-80 lg:active:opacity-100 transition-opacity bg-transparent border-0 p-0 text-left"
-      style={{ touchAction: 'pan-x' }}
+      style={{ touchAction: 'pan-x', '--edge-h': 'calc(min(78vw, 370px) * 0.192)' } as React.CSSProperties}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onMouseMove={e => {
@@ -37,41 +37,76 @@ function TutorCard({
       }}
     >
 
-      {/* Photo — overlaps into card body */}
-      <div className="relative w-full flex justify-center z-0 mb-[-80px]">
-        <div
-          className="relative overflow-hidden rounded-[21px]"
-          style={{ width: 'calc(100% - 80px)', maxWidth: '326px', aspectRatio: '1/1' }}
-        >
-          {tutor.imageUrl ? (
-            <img
-              src={tutor.imageUrl}
-              alt={tutor.fullName}
-              className="absolute inset-0 w-full h-full object-cover object-top pointer-events-none"
-            />
-          ) : (
-            <div className="absolute inset-0" style={{ backgroundColor: '#a8d5ac' }} />
-          )}
-          {/* Inner shadow overlay */}
+      {/*
+        Photo — full-card-width layer so its mask shares the cover's coordinate
+        space. Two mask layers: a solid gradient keeps the whole square above the
+        overlap visible; cover-notch-cut.svg trims the bottom `--edge-h` strip
+        along the cover's decorative top edge, so the avatar tucks into the notch
+        and nothing bleeds under the cover.
+      */}
+      <div
+        className="relative w-full z-20 pointer-events-none"
+        style={{
+          marginBottom: 'calc(-1 * var(--edge-h))',
+          WebkitMaskImage: 'linear-gradient(#000,#000), url(/SVG/tutors/cover-notch-cut.svg)',
+          maskImage: 'linear-gradient(#000,#000), url(/SVG/tutors/cover-notch-cut.svg)',
+          WebkitMaskSize: '100% calc(100% - var(--edge-h)), 100% var(--edge-h)',
+          maskSize: '100% calc(100% - var(--edge-h)), 100% var(--edge-h)',
+          WebkitMaskPosition: 'top, bottom',
+          maskPosition: 'top, bottom',
+          WebkitMaskRepeat: 'no-repeat, no-repeat',
+          maskRepeat: 'no-repeat, no-repeat',
+        }}
+      >
+        <div className="flex justify-center">
           <div
-            className="absolute inset-0 rounded-[21px] pointer-events-none"
-            style={{ boxShadow: 'inset 0px 4px 4px rgba(255,255,255,0.25), inset 0px -24px 36px rgba(0,0,0,0.32)' }}
-          />
+            className="relative overflow-hidden rounded-[21px]"
+            style={{ width: 'calc(100% - 80px)', maxWidth: '326px', aspectRatio: '1/1' }}
+          >
+            {tutor.imageUrl ? (
+              <img
+                src={tutor.imageUrl}
+                alt={tutor.fullName}
+                className="absolute inset-0 w-full h-full object-cover object-top pointer-events-none"
+              />
+            ) : (
+              <div className="absolute inset-0" style={{ backgroundColor: '#a8d5ac' }} />
+            )}
+            {/* Inner shadow overlay */}
+            <div
+              className="absolute inset-0 rounded-[21px] pointer-events-none"
+              style={{ boxShadow: 'inset 0px 4px 4px rgba(255,255,255,0.25), inset 0px -24px 36px rgba(0,0,0,0.32)' }}
+            />
+          </div>
         </div>
       </div>
 
-      {/* Card body — glass panel: frosted cover, solidifies on hover */}
-      <div className="group relative overflow-hidden rounded-[36px] pt-[88px] pb-[24px] px-[12px] z-10 backdrop-blur-[4px] hover:backdrop-blur-none transition-all duration-300">
-        {/* Cover artwork — translucent, becomes opaque on hover */}
+      {/* Card body — content defines height; glass cover sits behind it */}
+      <div
+        data-glass-center
+        className="group relative z-10 px-[12px] pb-[24px]"
+        style={{ paddingTop: 'calc(var(--edge-h) + 16px)' }}
+      >
+        {/*
+          Glass cover — frosted green panel masked to the cover silhouette so the
+          blur follows the notch shape (not the rectangle). Fixed-height notched
+          band on top + stretchy rounded body below; solidifies on hover / centre.
+        */}
         <div
           aria-hidden
-          className="absolute inset-0 opacity-80 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+          className="absolute inset-0 z-0 rounded-b-[36px] backdrop-blur-[4px] bg-[#8fd096]/80 transition-all duration-[600ms] group-hover:backdrop-blur-none group-hover:bg-[#8fd096] group-[.is-center]:backdrop-blur-none group-[.is-center]:bg-[#8fd096] pointer-events-none"
           style={{
-            backgroundImage: 'url(/SVG/tutors/cover.svg)',
-            backgroundSize: '100% 100%',
+            WebkitMaskImage: 'url(/SVG/tutors/cover-edge.svg), linear-gradient(#000,#000)',
+            maskImage: 'url(/SVG/tutors/cover-edge.svg), linear-gradient(#000,#000)',
+            WebkitMaskSize: '100% var(--edge-h), 100% calc(100% - var(--edge-h) + 1px)',
+            maskSize: '100% var(--edge-h), 100% calc(100% - var(--edge-h) + 1px)',
+            WebkitMaskPosition: 'top, bottom',
+            maskPosition: 'top, bottom',
+            WebkitMaskRepeat: 'no-repeat, no-repeat',
+            maskRepeat: 'no-repeat, no-repeat',
           }}
         />
-        <div className="relative flex flex-col gap-[16px]">
+        <div className="relative z-10 flex flex-col gap-[16px]">
 
           {/* Name */}
           {(() => {

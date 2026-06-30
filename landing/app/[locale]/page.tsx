@@ -12,6 +12,7 @@ import Footer from '@/components/sections/Footer'
 
 import AnchorScrollHandler from '@/components/ui/AnchorScrollHandler'
 import BackgroundCanvas from '@/components/ui/background/BackgroundCanvas'
+import GlassCenterActivation from '@/components/ui/GlassCenterActivation'
 import NotionRetry from '@/components/ui/NotionRetry'
 import { getTutors } from '@/lib/tutors'
 import { getStubTutors } from '@/lib/tutorStubs'
@@ -89,6 +90,8 @@ export default async function Home({
     <div className="relative">
       {notionFailed && <NotionRetry />}
       <AnchorScrollHandler />
+      {/* Mobile: fire glass hover when a surface scrolls into the viewport centre */}
+      <GlassCenterActivation />
       {/* Background — absolute, anchored to page top */}
       <BackgroundCanvas />
       {/* 1 — fixed, вне main (не блюрится), z-50 */}

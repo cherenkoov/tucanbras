@@ -90,7 +90,7 @@ export default async function Home({
   }))
 
   return (
-    <div className="relative">
+    <div className="relative" style={{ overflowX: 'clip' }}>
       {notionFailed && <NotionRetry />}
       <AnchorScrollHandler />
       {/* Mobile: fire glass hover when a surface scrolls into the viewport centre */}

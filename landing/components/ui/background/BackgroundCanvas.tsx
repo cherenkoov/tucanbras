@@ -11,6 +11,7 @@ import { useBigTreeAnimation } from './useBigTreeAnimation'
 import { useHumanAnimation } from './useHumanAnimation'
 import { HUMANS } from './humanPaths'
 import { WavesAnimated } from '@/components/ui/WavesAnimated'
+import { useBackgroundCoverage } from './useBackgroundCoverage'
 
 function Placeholder() {
   return (
@@ -114,6 +115,15 @@ const BG_SHIFT_NEG = 'clamp(-400px, calc((1024px - 100vw) * -400 / 649), 0px)'
 // rises by WAVES_TOP_OFFSET_PX and the bottom edge drops by WAVES_BOTTOM_OFFSET_PX (px).
 const WAVES_TOP_OFFSET_PX = 120
 const WAVES_BOTTOM_OFFSET_PX = 120
+
+// ── Cover-zoom + coverage-parallax (spec 2026-06-28) ────────────────────────
+// All four are visually tunable on a real device (spec §5).
+const COVERAGE_CONFIG = { maxZoom: 1.6, focalX: 0.45, minP: 0.3 }
+// Terminal fill band colour — sampled from the beach SVG's bottom edge (sand).
+// Default is a sand tone from `main 2.svg`; RE-SAMPLE the actual bottom row on a
+// real render and tune (spec §3.6 / §5). Local hex is allowed for SVG-sampled art
+// colours, matching the BEACH_GROUND_COLOR precedent above.
+const TERMINAL_FILL_COLOR = '#ECDBB5'
 
 export default function BackgroundCanvas() {
   const [mainSvg, setMainSvg] = useState('')
@@ -341,6 +351,55 @@ export default function BackgroundCanvas() {
   useBigTreeAnimation(bigTreeRef, { enabled: !!bigTreeSvg })
   useHumanAnimation(containerRef, humanRefs, { enabled: svgReady, debug: false })
 
+  const coverage = useBackgroundCoverage(containerRef, COVERAGE_CONFIG, { ready: svgReady && !!beachSvg })
+
+  // Apply cover-zoom (width) + the static part of the transform (focal + BG_SHIFT),
+  // then re-measure the px-based anchors at the new width. The scroll-driven parallax
+  // term is composed on top of this in the scroll listener below.
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+    container.style.width = `${coverage.zoom * 100}%`
+    // translateY uses calc() so the BG_SHIFT clamp() composes with the focal/parallax px.
+    container.style.transform =
+      `translateX(${coverage.focalTranslateX}px) translateY(${BG_SHIFT})`
+    // Width changed → the getBoundingClientRect-based anchors must re-measure.
+    // getBoundingClientRect inside these forces the pending reflow first.
+    updatePeakPos()
+    updateBeachOffset()
+  }, [coverage.zoom, coverage.focalTranslateX, updatePeakPos, updateBeachOffset])
+
+  // Coverage-parallax: bg lags scroll by (1 − p)·scrollY (positive → slower/lag),
+  // composed with the focal + BG_SHIFT transform. One passive listener, rAF, deduped.
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+    const p = coverage.parallaxFactor
+    const fx = coverage.focalTranslateX
+    // p === 1 → no scroll-driven motion (wide screens, reduced motion). Keep the
+    // static transform from the effect above and don't attach a listener.
+    if (p >= 1) return
+
+    let raf = 0
+    let last = -1
+    const apply = () => {
+      raf = 0
+      const y = window.scrollY
+      if (y === last) return
+      last = y
+      const par = (1 - p) * y
+      container.style.transform =
+        `translateX(${fx}px) translateY(calc(${BG_SHIFT} + ${par}px))`
+    }
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(apply) }
+    apply() // set initial position for current scrollY
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      if (raf) cancelAnimationFrame(raf)
+    }
+  }, [coverage.parallaxFactor, coverage.focalTranslateX])
+
   return (
     <div
       className="absolute top-0 left-0 w-full pointer-events-none"
@@ -356,9 +415,7 @@ export default function BackgroundCanvas() {
         ref={containerRef}
         style={{
           position: 'relative',
-          width: '100%',
           overflow: 'visible',
-          transform: `translateY(${BG_SHIFT})`,
         }}
       >
       {!svgReady && <Placeholder />}
@@ -508,6 +565,24 @@ export default function BackgroundCanvas() {
         </div>
       )}
       </div>
+      {/* Terminal fill band — outside the zoomed container so it is never side-cropped.
+          Safety net for reduced-motion / extreme-height pages; with coverage-parallax
+          engaged on a typical mobile page, fillHeight === 0 and nothing renders. The
+          colour matches the beach's bottom edge (sand). Spec §3.6. */}
+      {coverage.fillHeight > 0 && (
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            left: 0,
+            width: '100%',
+            top: `calc(${coverage.bgHeight}px + ${BG_SHIFT})`,
+            height: coverage.fillHeight,
+            backgroundColor: TERMINAL_FILL_COLOR,
+            zIndex: 1,
+          }}
+        />
+      )}
     </div>
   )
 }

@@ -29,11 +29,24 @@ export function useBackgroundCoverage(
     const widthStyle = container.style.width // "" | "100%" | "160%" | ...
     const currentZoom = widthStyle.endsWith('%') ? parseFloat(widthStyle) / 100 || 1 : 1
 
-    const renderedHeight = container.getBoundingClientRect().height
+    const containerRect = container.getBoundingClientRect()
+    const renderedHeight = containerRect.height
     const naturalHeight = renderedHeight / currentZoom
 
     // H_content — the <main> element's full extent on the page.
     const contentHeight = main.offsetTop + main.offsetHeight
+
+    // Centre the crop on the Christ statue: measure #Peak's anchor column (the same
+    // 2/5-of-Peak point ChristScene is pinned to) as a fraction of the container width.
+    // The fraction is invariant to the current zoom/translateX (both rects carry them),
+    // so it converges in one pass. Fall back to the config value if Peak isn't in yet.
+    let focalX = config.focalX
+    const peak = container.querySelector<SVGGraphicsElement>('#Peak')
+    if (peak && containerRect.width > 0) {
+      const peakRect = peak.getBoundingClientRect()
+      const peakColumnX = (peakRect.left - containerRect.left) + peakRect.width * (2 / 5)
+      focalX = peakColumnX / containerRect.width
+    }
 
     const next = computeCoverage({
       naturalHeight,
@@ -41,7 +54,7 @@ export function useBackgroundCoverage(
       viewportHeight: window.innerHeight,
       viewportWidth: window.innerWidth,
       motionEnabled: !prefersReducedMotion(),
-      config,
+      config: { ...config, focalX },
     })
 
     setResult(prev =>

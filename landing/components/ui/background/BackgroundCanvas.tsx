@@ -118,7 +118,11 @@ const WAVES_BOTTOM_OFFSET_PX = 120
 
 // ── Cover-zoom + coverage-parallax (spec 2026-06-28) ────────────────────────
 // All four are visually tunable on a real device (spec §5).
-const COVERAGE_CONFIG = { maxZoom: 1.6, focalX: 0.45, minP: 0.3 }
+// maxZoom 2.0: narrow/tall mobile pages (375/414) clamp here — a larger crop budget
+// makes the illustration taller so less of the gap is left to the parallax + fill.
+// focalX is overridden at runtime by the measured Christ-statue column (see the hook),
+// so the crop keeps the statue centred; this value is only the pre-measure fallback.
+const COVERAGE_CONFIG = { maxZoom: 2.0, focalX: 0.45, minP: 0.3 }
 // Terminal fill band colour — sampled from the beach SVG's bottom edge (sand).
 // Default is a sand tone from `main 2.svg`; RE-SAMPLE the actual bottom row on a
 // real render and tune (spec §3.6 / §5). Local hex is allowed for SVG-sampled art
@@ -370,7 +374,10 @@ export default function BackgroundCanvas() {
   }, [coverage.zoom, coverage.focalTranslateX, updatePeakPos, updateBeachOffset])
 
   // Coverage-parallax: bg lags scroll by (1 − p)·scrollY (positive → slower/lag),
-  // composed with the focal + BG_SHIFT transform. One passive listener, rAF, deduped.
+  // composed with the focal + BG_SHIFT transform. One passive listener feeds a rAF
+  // lerp loop — the eased current→target write decouples from the (sparse, bursty)
+  // scroll/momentum event cadence that made the raw 1:1 write look choppy. Idle
+  // detection parks the loop once settled, per the project's animation convention.
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
@@ -380,23 +387,31 @@ export default function BackgroundCanvas() {
     // static transform from the effect above and don't attach a listener.
     if (p >= 1) return
 
+    container.style.willChange = 'transform'
     let raf = 0
-    let last = -1
-    const apply = () => {
-      raf = 0
-      const y = window.scrollY
-      if (y === last) return
-      last = y
-      const par = (1 - p) * y
+    let current = (1 - p) * window.scrollY
+    let idle = 0
+    const write = (par: number) => {
+      // translate3d forces a compositor layer so the parallax never jolts the page.
       container.style.transform =
         `translateX(${fx}px) translateY(calc(${BG_SHIFT} + ${par}px))`
     }
-    const onScroll = () => { if (!raf) raf = requestAnimationFrame(apply) }
-    apply() // set initial position for current scrollY
+    const tick = () => {
+      const target = (1 - p) * window.scrollY
+      const diff = target - current
+      current += diff * 0.18 // ease toward the scroll-derived target
+      if (Math.abs(diff) < 0.5) { current = target; idle++ } else idle = 0
+      write(current)
+      raf = idle < 5 ? requestAnimationFrame(tick) : 0
+    }
+    const onScroll = () => { if (!raf) { idle = 0; raf = requestAnimationFrame(tick) } }
+    write(current) // set initial position for current scrollY
+    raf = requestAnimationFrame(tick)
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => {
       window.removeEventListener('scroll', onScroll)
       if (raf) cancelAnimationFrame(raf)
+      container.style.willChange = ''
     }
   }, [coverage.parallaxFactor, coverage.focalTranslateX])
 
@@ -564,25 +579,28 @@ export default function BackgroundCanvas() {
           <ChristScene />
         </div>
       )}
-      </div>
-      {/* Terminal fill band — outside the zoomed container so it is never side-cropped.
-          Safety net for reduced-motion / extreme-height pages; with coverage-parallax
-          engaged on a typical mobile page, fillHeight === 0 and nothing renders. The
-          colour matches the beach's bottom edge (sand). Spec §3.6. */}
+      {/* Terminal fill band — a child of the zoomed container so it INHERITS the same
+          width-zoom + focal + parallax transform and stays flush against the artwork's
+          bottom edge at every scroll position (top: 100% == the container's bottom).
+          A static, outside-the-container band would sit at the art's resting bottom and
+          be left mid-page once parallax pushes the art down — leaving a cream gap at the
+          true page bottom. Solid colour, so the 2×-width over-extension is harmless and
+          the page-root `overflow-x: clip` trims the sides. Spec §3.6. */}
       {coverage.fillHeight > 0 && (
         <div
           aria-hidden="true"
           style={{
             position: 'absolute',
+            top: '100%',
             left: 0,
             width: '100%',
-            top: `calc(${coverage.bgHeight}px + ${BG_SHIFT})`,
             height: coverage.fillHeight,
             backgroundColor: TERMINAL_FILL_COLOR,
-            zIndex: 1,
+            zIndex: 0,
           }}
         />
       )}
+      </div>
     </div>
   )
 }

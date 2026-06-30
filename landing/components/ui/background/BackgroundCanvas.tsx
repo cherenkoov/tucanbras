@@ -110,8 +110,10 @@ const BG_SHIFT_NEG = 'clamp(-400px, calc((1024px - 100vw) * -400 / 649), 0px)'
 // BEHIND the beach (z9 < main2's z10), STRETCHED to fill the gap between main2's
 // `curb 3` (upper edge) and `curb` (lower edge) groups — the empty band the waves
 // show through. Top + height recomputed on resize; WavesAnimated scales the band
-// stack to that height. Both edges are nudged down by this offset (px, positive = down).
-const WAVES_OFFSET_PX = 6
+// stack to that height. These two offsets EXPAND the band independently: the top edge
+// rises by WAVES_TOP_OFFSET_PX and the bottom edge drops by WAVES_BOTTOM_OFFSET_PX (px).
+const WAVES_TOP_OFFSET_PX = 120
+const WAVES_BOTTOM_OFFSET_PX = 120
 
 export default function BackgroundCanvas() {
   const [mainSvg, setMainSvg] = useState('')
@@ -293,10 +295,10 @@ export default function BackgroundCanvas() {
 
     // STRETCH the wave layer BEHIND the beach to span the gap between main2's `curb 3`
     // (upper edge) and `curb` (lower edge) groups — the transparent band the waves show
-    // through. Each curb's vertical centre anchors one edge of the band; both edges are
-    // nudged down by WAVES_OFFSET_PX. WavesAnimated (fillParent) scales its stack to the
-    // height we set here. Querying AFTER the beach margin is set means the rects already
-    // reflect the raised position.
+    // through. Each curb's vertical centre anchors one edge of the band, then the band is
+    // EXPANDED by WAVES_TOP_OFFSET_PX (top up) and WAVES_BOTTOM_OFFSET_PX (bottom down).
+    // WavesAnimated (fillParent) scales its stack to the height we set here. Querying
+    // AFTER the beach margin is set means the rects already reflect the raised position.
     const waves = wavesRef.current
     const curb = beach.querySelector<SVGGraphicsElement>('[id="b2-curb"]')
     const curb3 = beach.querySelector<SVGGraphicsElement>('[id="b2-curb 3"]')
@@ -305,8 +307,9 @@ export default function BackgroundCanvas() {
       const rCurb3 = curb3.getBoundingClientRect()
       const curbMid = (rCurb.top + rCurb.bottom) / 2 - cRect.top   // lower edge of the gap
       const curb3Mid = (rCurb3.top + rCurb3.bottom) / 2 - cRect.top // upper edge of the gap
-      const top = curb3Mid + WAVES_OFFSET_PX
-      const bottom = curbMid + WAVES_OFFSET_PX
+      // Offsets EXPAND the band independently: raise the top edge, lower the bottom.
+      const top = curb3Mid - WAVES_TOP_OFFSET_PX
+      const bottom = curbMid + WAVES_BOTTOM_OFFSET_PX
       waves.style.top = `${top}px`
       waves.style.height = `${bottom - top}px`
     }
@@ -381,14 +384,13 @@ export default function BackgroundCanvas() {
       {/* Wave bands — pulled OUT of the page flow (was section #6) into the background.
           They sit BEHIND the beach (z9 < main2 z10) in its empty space; main2's opaque
           backdrops are stripped in prepareBeachSvg so they show through. Top + height set
-          in JS to the gap [curb3+6, curb+6]. `overflow:hidden` CLIPS the band stack to
-          that box — the BANDS extend ~110px above / ~90px below their 440px reference box,
-          so without clipping they'd overshoot up toward curb2 (and symmetrically below). */}
+          in JS to the gap [curb3+6, curb+6]; WavesAnimated (fillParent) fits the whole
+          band stack INTO that height, so the waves fill it exactly without overflowing. */}
       {beachSvg && (
         <div
           ref={wavesRef}
           aria-hidden="true"
-          style={{ position: 'absolute', left: 0, width: '100%', zIndex: 9, overflow: 'hidden' }}
+          style={{ position: 'absolute', left: 0, width: '100%', zIndex: 9 }}
         >
           <WavesAnimated fillParent />
         </div>

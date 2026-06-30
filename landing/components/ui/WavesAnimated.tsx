@@ -13,11 +13,9 @@ const FRICTION        = 0.90  // velocity decay per frame (hook's decay param)
 const SCROLL_SCALE    = 0.15  // scroll delta → velocity (hook's velocitySensitivity)
 const POSITION_SCALE  = 0.01  // velocity → px translation per frame
 
-// Natural height of the band-stack reference box. The 6 bands are laid out at
-// fixed offsets inside this 440px frame. In `fillParent` mode the stack is
-// UNIFORMLY scaled by (parentHeight / BASE_HEIGHT) so the whole pattern — band
-// positions, heights, widths and overlaps — grows proportionally: the width tracks
-// the height, keeping the wave shape undistorted as it fills the gap.
+// Fixed height of the band stack in STANDALONE (non-fillParent) mode. In fillParent
+// mode the height is instead DERIVED from the container — the whole band bounding box
+// (BAND_SPAN, below) is fit to the container's height, so the waves never overflow it.
 const BASE_HEIGHT     = 440
 
 // ─── Band layout ──────────────────────────────────────────────────────────────
@@ -26,6 +24,7 @@ const BASE_HEIGHT     = 440
 // scroll delta: target = -delta * scale, so negative when scrolling down.
 // dir=1 for ink → position += 1 * (negative) → translateX negative → moves LEFT ✓
 // dir=-1 for cream → position += -1 * (negative) → translateX positive → moves RIGHT ✓
+const BAND_HEIGHT     = 260
 const BANDS = [
   { color: 'var(--color-ink)',   top: -110, speed: 120, dir:  1 },
   { color: 'var(--color-cream)', top:  -34, speed:  90, dir: -1 },
@@ -34,6 +33,15 @@ const BANDS = [
   { color: 'var(--color-ink)',   top:  194, speed: 120, dir:  1 },
   { color: 'var(--color-cream)', top:  270, speed:  90, dir: -1 },
 ] as const
+
+// Bounding box of the painted band stack (unscaled px). Bands sit at fixed `top`
+// offsets and are BAND_HEIGHT tall, so the waves actually span BAND_MIN..BAND_MAX —
+// WIDER than BASE_HEIGHT (the topmost band starts above 0, the bottommost ends below
+// it). In fillParent mode this full span is fit to the container, so the wave height
+// is determined by the container with no overflow.
+const BAND_MIN        = Math.min(...BANDS.map(b => b.top))               // -110
+const BAND_MAX        = Math.max(...BANDS.map(b => b.top)) + BAND_HEIGHT //  530
+const BAND_SPAN       = BAND_MAX - BAND_MIN                              //  640
 
 interface WavesAnimatedProps {
   // When true the component fills its parent's height (instead of a fixed 440px)
@@ -62,9 +70,10 @@ export function WavesAnimated({ fillParent = false }: WavesAnimatedProps) {
     },
   })
 
-  // Scale the band stack UNIFORMLY to fill the parent's height (about its top-left
-  // corner). Same factor on X and Y, so width grows with height and the wave keeps
-  // its proportions. DOM-only via ref + ResizeObserver — never React state.
+  // Fit the band stack's FULL bounding box (BAND_SPAN) into the container's height, so
+  // the painted waves exactly fill it — no overflow, no clipping. Scale uniformly (X
+  // tracks Y, wave stays undistorted), then shift down so the topmost band (BAND_MIN)
+  // lands at the container's top edge. DOM-only via ref + ResizeObserver — no state.
   useEffect(() => {
     if (!fillParent) return
     const container = containerRef.current
@@ -72,7 +81,9 @@ export function WavesAnimated({ fillParent = false }: WavesAnimatedProps) {
     if (!container || !scale) return
     const apply = () => {
       const h = container.clientHeight
-      if (h > 0) scale.style.transform = `scale(${h / BASE_HEIGHT})`
+      if (h <= 0) return
+      const k = h / BAND_SPAN
+      scale.style.transform = `translateY(${-BAND_MIN * k}px) scale(${k})`
     }
     apply()
     const ro = new ResizeObserver(apply)
@@ -104,7 +115,7 @@ export function WavesAnimated({ fillParent = false }: WavesAnimatedProps) {
               top:        band.top,
               left:       -800,
               width:      4974,
-              height:     260,
+              height:     BAND_HEIGHT,
               willChange: 'transform',
             }}
           >

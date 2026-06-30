@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react'
 import { CelpeBrasProps } from '@/types'
 import CelpeBrasStack from '@/components/sections/CelpeBrasStack'
+import AdaptiveText from '@/components/ui/AdaptiveText'
 
 // ─── Static card config (icon + bg/tint color — not from CMS) ────────────────
 // tint = frosted (glass) colour, bg = solid colour shown on hover
@@ -50,12 +51,13 @@ export default function CelpeBras({ data }: CelpeBrasProps) {
       <div className="flex flex-col gap-[64px] max-w-[1720px] mx-auto w-full">
 
         {/* ══ Heading ══ */}
-        <h2
-          className="font-heading font-bold text-ink text-center w-full"
+        <AdaptiveText
+          as="h2"
+          className="font-heading font-bold text-center w-full"
           style={{ fontSize: 'clamp(36px, 5vw, 80px)', lineHeight: '1.1' }}
         >
           {data.heading}
-        </h2>
+        </AdaptiveText>
 
         {/* ══ Feature grid — mobile: stacking scroll, desktop: grid ══ */}
 
@@ -88,12 +90,13 @@ export default function CelpeBras({ data }: CelpeBrasProps) {
 
             {/* Quote */}
             <div className="flex flex-1 items-center min-w-[300px] px-[32px] py-[32px]">
-              <p
-                className="font-accent font-bold text-ink"
+              <AdaptiveText
+                as="p"
+                className="font-accent font-bold"
                 style={{ fontSize: 'clamp(16px, 1.5vw, 21px)', lineHeight: '1.4', letterSpacing: '0.05em' }}
               >
                 &ldquo;{data.quote}&rdquo;
-              </p>
+              </AdaptiveText>
             </div>
           </div>
         </div>
@@ -102,12 +105,13 @@ export default function CelpeBras({ data }: CelpeBrasProps) {
         <div className="flex flex-col gap-[42px] w-full lg:w-[485px]">
 
           {/* Hint text */}
-          <p
-            className="font-sans font-semibold text-ink px-[16px]"
+          <AdaptiveText
+            as="p"
+            className="font-sans font-semibold px-[16px]"
             style={{ fontSize: 'clamp(20px, 2vw, 32px)', lineHeight: '1.25' }}
           >
             {data.hintText}
-          </p>
+          </AdaptiveText>
 
           {/* CTA button */}
           <a

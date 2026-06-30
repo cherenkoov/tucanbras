@@ -5,6 +5,7 @@ import type { TutorsProps, Locale, FreeLessonModalStrings } from '@/types'
 import type { Tutor } from '@/lib/tutors'
 import { getStubTutors } from '@/lib/tutorStubs'
 import FreeLessonModal from '@/components/ui/FreeLessonModal'
+import AdaptiveText from '@/components/ui/AdaptiveText'
 
 // ─── Tutor card ──────────────────────────────────────────────────────────────
 
@@ -290,18 +291,20 @@ export default function Tutors({ data, tutors, locale, modalStrings }: TutorsSec
 
         {/* ══ Headings row ══ */}
         <div className="flex flex-col lg:flex-row gap-[24px] lg:gap-[48px] items-start w-full">
-          <h2
-            className="font-heading font-bold text-ink flex-1"
+          <AdaptiveText
+            as="h2"
+            className="font-heading font-bold flex-1"
             style={{ fontSize: 'clamp(32px, 4vw, 64px)', lineHeight: '1.1' }}
           >
             {data.heading1}
-          </h2>
-          <h2
-            className="font-heading font-bold text-ink flex-1 text-right"
+          </AdaptiveText>
+          <AdaptiveText
+            as="h2"
+            className="font-heading font-bold flex-1 text-right"
             style={{ fontSize: 'clamp(32px, 4vw, 64px)', lineHeight: '1.1' }}
           >
             {data.heading2}
-          </h2>
+          </AdaptiveText>
         </div>
 
         {/* ══ Cards — carousel ══ */}
@@ -313,19 +316,20 @@ export default function Tutors({ data, tutors, locale, modalStrings }: TutorsSec
         />
 
         {/* ══ Description quote ══ */}
-        <p
-          className="font-accent font-bold text-ink text-center w-full uppercase"
+        <AdaptiveText
+          as="p"
+          className="font-accent font-bold text-center w-full uppercase"
           style={{ fontSize: 'clamp(24px, 1.2vw, 36px)', lineHeight: '1', letterSpacing: '0.02em' }}
         >
           &ldquo;{data.description}&rdquo;
-        </p>
+        </AdaptiveText>
 
         {/* ══ CTA button — opens modal without pre-selected tutor ══ */}
         <div className="flex justify-center w-full">
           <button
             type="button"
             onClick={() => openModal(null)}
-            className="flex items-center justify-center rounded-[66px] px-[36px] w-full lg:w-auto lg:min-w-[400px] cursor-pointer"
+            className="flex items-center justify-center rounded-[66px] px-[36px] w-full lg:w-auto lg:min-w-[400px] cursor-pointer transition-transform duration-[120ms] ease-out hover:scale-[1.04] active:scale-[0.95]"
             style={{
               backgroundColor: '#2b2a2b',
               paddingTop: '44px',

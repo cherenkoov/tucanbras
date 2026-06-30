@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react'
 import { ComparisonProps } from '@/types'
+import AdaptiveText from '@/components/ui/AdaptiveText'
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
 const IMG_TUCAN_PIXEL      = '/PNG/comparison/Tucan Pixel.png'
@@ -28,13 +29,14 @@ export default function Comparison({ data }: ComparisonProps) {
     <section id="comparison" className="w-full scroll-mt-[136px] lg:scroll-mt-[147px]">
       <div className="flex flex-col gap-[64px] lg:gap-[100px] items-center max-w-[1720px] mx-auto w-full">
 
-        {/* ══ Heading ══ */}
-        <h2
-          className="font-heading font-bold text-ink text-center w-full"
+        {/* ══ Heading (adaptive duotone over the moving background) ══ */}
+        <AdaptiveText
+          as="h2"
+          className="font-heading font-bold text-center w-full"
           style={{ fontSize: 'clamp(36px, 5vw, 80px)', lineHeight: '1.1' }}
         >
           {data.heading}
-        </h2>
+        </AdaptiveText>
 
         {/* ══ Blocks row ══ */}
         <div className="flex flex-col lg:flex-row gap-[32px] lg:gap-[48px] items-stretch justify-center w-full">
@@ -132,13 +134,14 @@ export default function Comparison({ data }: ComparisonProps) {
           </div>
         </div>
 
-        {/* ══ Footer quote ══ */}
-        <p
-          className="font-accent font-bold text-ink text-center max-w-[874px] w-full"
+        {/* ══ Footer quote (adaptive duotone over the moving background) ══ */}
+        <AdaptiveText
+          as="p"
+          className="font-accent font-bold text-center max-w-[874px] w-full"
           style={{ fontSize: 'clamp(22px, 2.5vw, 36px)', lineHeight: '1.15' }}
         >
           {data.summaryText}
-        </p>
+        </AdaptiveText>
 
       </div>
     </section>

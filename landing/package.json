@@ -9,7 +9,6 @@
     "lint": "eslint",
     "snapshot": "tsx --env-file=.env.local scripts/snapshot-notion.ts",
     "verify:humans": "tsx scripts/verifyHumanMotion.ts",
-    "verify:adaptive-mask": "tsx scripts/verifyAdaptiveMask.ts",
     "verify:bg-coverage": "tsx scripts/verifyBackgroundCoverage.ts"
   },
   "dependencies": {

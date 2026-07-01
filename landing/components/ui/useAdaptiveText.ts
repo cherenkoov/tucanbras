@@ -26,6 +26,7 @@ const SOURCES = [
 
 const BACKDROP = 'grayscale(1) url(#adaptive-duotone)'
 const FIND_TIMEOUT_FRAMES = 300
+const SVGNS = 'http://www.w3.org/2000/svg'
 
 function supportsBackdrop(): boolean {
   return (
@@ -33,6 +34,38 @@ function supportsBackdrop(): boolean {
     (CSS.supports('backdrop-filter', 'grayscale(1)') ||
       CSS.supports('-webkit-backdrop-filter', 'grayscale(1)'))
   )
+}
+
+// Measure the element's rendered lines so the glyph mask matches the browser's own
+// wrapping at any width / line count. Walks the first text-node child character by
+// character (Range rects), buckets chars by rounded top → one entry per visual line,
+// each with its text + left-x + vertical-centre-y in the element's local px box.
+function measureLines(el: HTMLElement): { text: string; x: number; y: number }[] {
+  const textNode = Array.from(el.childNodes).find(
+    (n): n is Text => n.nodeType === Node.TEXT_NODE && !!n.textContent?.trim(),
+  )
+  if (!textNode) return []
+  const full = textNode.textContent ?? ''
+  const elRect = el.getBoundingClientRect()
+  const range = document.createRange()
+  const buckets = new Map<number, { text: string; left: number; top: number; bottom: number }>()
+  for (let i = 0; i < full.length; i++) {
+    range.setStart(textNode, i)
+    range.setEnd(textNode, i + 1)
+    const r = range.getBoundingClientRect()
+    if (r.width === 0 && r.height === 0) continue // collapsed whitespace at a wrap
+    const key = Math.round(r.top)
+    let b = buckets.get(key)
+    if (!b) { b = { text: '', left: Infinity, top: r.top, bottom: r.bottom }; buckets.set(key, b) }
+    b.text += full[i]
+    if (r.top < b.top) b.top = r.top
+    if (r.bottom > b.bottom) b.bottom = r.bottom
+    if (!/\s/.test(full[i]) && r.left < b.left) b.left = r.left // ignore spaces for the left edge
+  }
+  return Array.from(buckets.values())
+    .filter(b => b.left !== Infinity) // drop whitespace-only lines
+    .sort((a, b) => a.top - b.top)
+    .map(b => ({ text: b.text.trim(), x: b.left - elRect.left, y: (b.top + b.bottom) / 2 - elRect.top }))
 }
 
 export function useAdaptiveText({
@@ -52,9 +85,10 @@ export function useAdaptiveText({
     const maskText = maskRef.current
     if (!text || !overlay || !maskText) return
 
+    // backdrop works for any line count (multi-line mask below) and on touch devices;
+    // only reduced-motion or missing backdrop-filter support fall back to static-fill.
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const coarse = window.matchMedia('(hover: none) and (pointer: coarse)').matches
-    const canBackdrop = supportsBackdrop() && !reduced && !coarse
+    const canBackdrop = supportsBackdrop() && !reduced
 
     let mode: 'none' | 'static' | 'backdrop' = 'none'
 
@@ -123,7 +157,8 @@ export function useAdaptiveText({
     }
 
     // BACKDROP: overlay shows the live duotone of the backdrop, masked to the glyphs.
-    // Single line only — the mask is one <text> matched to the element's font + align.
+    // The mask carries one <tspan> per RENDERED line (measureLines), so it matches the
+    // element's own wrapping at any width / line count and honours its text-align.
     const applyBackdrop = (): boolean => {
       const w = text.clientWidth
       const h = text.clientHeight
@@ -139,33 +174,38 @@ export function useAdaptiveText({
         mode = 'backdrop'
       }
       const cs = getComputedStyle(text)
-      const ta = cs.textAlign
-      let x = w / 2
-      let anchor = 'middle'
-      if (ta === 'right' || ta === 'end') { x = w; anchor = 'end' }
-      else if (ta === 'left' || ta === 'start') { x = 0; anchor = 'start' }
-      maskText.textContent = text.textContent
-      maskText.setAttribute('x', String(x))
-      maskText.setAttribute('y', String(h / 2))
-      maskText.setAttribute('text-anchor', anchor)
+      maskText.setAttribute('dominant-baseline', 'central')
       maskText.setAttribute('font-family', cs.fontFamily)
       maskText.setAttribute('font-size', cs.fontSize)
       maskText.setAttribute('font-weight', cs.fontWeight)
       maskText.setAttribute('font-style', cs.fontStyle)
       maskText.setAttribute('letter-spacing', cs.letterSpacing)
+
+      while (maskText.firstChild) maskText.removeChild(maskText.firstChild)
+      const lines = measureLines(text)
+      if (lines.length === 0) {
+        // No measurable text node (e.g. element children) → one centred line.
+        maskText.setAttribute('text-anchor', 'middle')
+        maskText.setAttribute('x', String(w / 2))
+        maskText.setAttribute('y', String(h / 2))
+        maskText.textContent = text.textContent
+        return true
+      }
+      maskText.setAttribute('text-anchor', 'start')
+      maskText.removeAttribute('x')
+      maskText.removeAttribute('y')
+      for (const ln of lines) {
+        const tspan = document.createElementNS(SVGNS, 'tspan')
+        tspan.setAttribute('x', String(ln.x))
+        tspan.setAttribute('y', String(ln.y))
+        tspan.textContent = ln.text
+        maskText.appendChild(tspan)
+      }
       return true
     }
 
-    const isSingleLine = (): boolean => {
-      const cs = getComputedStyle(text)
-      let lh = parseFloat(cs.lineHeight)
-      if (!Number.isFinite(lh)) lh = parseFloat(cs.fontSize) * 1.2
-      return text.clientHeight <= lh * 1.5
-    }
-
     // Returns true once a mode has actually been applied (so polling can stop).
-    const decide = (): boolean =>
-      canBackdrop && isSingleLine() ? applyBackdrop() : applyStatic()
+    const decide = (): boolean => (canBackdrop ? applyBackdrop() : applyStatic())
 
     let cancelled = false
     let rafId: number | null = null

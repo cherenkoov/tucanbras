@@ -144,8 +144,12 @@ export default function BackgroundCanvas() {
   const [house6Svg, setHouse6Svg] = useState('')
   const [humanSvgs, setHumanSvgs] = useState<string[]>(['', '', '', ''])
   const [peakPos, setPeakPos] = useState<{ x: number; y: number } | null>(null)
+  // Whole-scene upward lift (px) so the statue's head STARTS at the hero's top line.
+  // Parallax then carries it down on scroll — hence a starting lift, not a fixed pin.
+  const [sceneLift, setSceneLift] = useState(0)
   const [entered, setEntered] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  const christRef = useRef<HTMLDivElement>(null)
   const beachRef = useRef<HTMLDivElement>(null)
   const brownRef = useRef<HTMLDivElement>(null)
   const wavesRef = useRef<HTMLDivElement>(null)
@@ -288,6 +292,36 @@ export default function BackgroundCanvas() {
     return () => ro.disconnect()
   }, [svgReady, updatePeakPos])
 
+  // Lift the WHOLE scene up so the statue's head starts on the hero's top line.
+  // Closed-form + parallax-safe: the container's untransformed top is the page top (0),
+  // so at scroll 0 the head sits at (BG_SHIFT − lift) + headWithinContainer. The head
+  // offset within the container and the hero's document-top are both transform- and
+  // scroll-invariant (the shared translate cancels), so solving for `lift` lands the
+  // head on the hero line and is idempotent (re-measuring yields the same value).
+  const updateSceneLift = useCallback(() => {
+    const container = containerRef.current
+    const christ = christRef.current
+    const hero = document.getElementById('hero')
+    if (!container || !christ || !hero) return
+    const containerRect = container.getBoundingClientRect()
+    const christRect = christ.getBoundingClientRect()
+    const heroRect = hero.getBoundingClientRect()
+    const vw = window.innerWidth
+    const bgShiftPx = Math.min(400, Math.max(0, (1024 - vw) * 400 / 649)) // === BG_SHIFT
+    const headWithinContainer = christRect.top - containerRect.top
+    const heroTopDoc = heroRect.top + window.scrollY
+    const lift = bgShiftPx + headWithinContainer - heroTopDoc
+    setSceneLift(prev => (Math.abs(prev - lift) < 0.5 ? prev : lift))
+  }, [])
+
+  useEffect(() => {
+    if (!peakPos) return // statue is placed once peakPos is known
+    updateSceneLift()
+    const ro = new ResizeObserver(updateSceneLift)
+    ro.observe(document.documentElement)
+    return () => ro.disconnect()
+  }, [peakPos, updateSceneLift])
+
   // Raise the beach so its TOP lands on the vertical middle of bush 01. The collage
   // (mainSvg) is the only in-flow block, so a negative margin-top pulls the beach UP
   // into the collage. We measure live — bush 01's rendered centre + the collage's
@@ -364,14 +398,14 @@ export default function BackgroundCanvas() {
     const container = containerRef.current
     if (!container) return
     container.style.width = `${coverage.zoom * 100}%`
-    // translateY uses calc() so the BG_SHIFT clamp() composes with the focal/parallax px.
+    // translateY composes BG_SHIFT (mobile descent) − sceneLift (start head on hero line).
     container.style.transform =
-      `translateX(${coverage.focalTranslateX}px) translateY(${BG_SHIFT})`
+      `translateX(${coverage.focalTranslateX}px) translateY(calc(${BG_SHIFT} - ${sceneLift}px))`
     // Width changed → the getBoundingClientRect-based anchors must re-measure.
     // getBoundingClientRect inside these forces the pending reflow first.
     updatePeakPos()
     updateBeachOffset()
-  }, [coverage.zoom, coverage.focalTranslateX, updatePeakPos, updateBeachOffset])
+  }, [coverage.zoom, coverage.focalTranslateX, sceneLift, updatePeakPos, updateBeachOffset])
 
   // Coverage-parallax: bg lags scroll by (1 − p)·scrollY (positive → slower/lag),
   // composed with the focal + BG_SHIFT transform. One passive listener feeds a rAF
@@ -391,10 +425,10 @@ export default function BackgroundCanvas() {
     let raf = 0
     let current = (1 - p) * window.scrollY
     let idle = 0
+    const lift = sceneLift
     const write = (par: number) => {
-      // translate3d forces a compositor layer so the parallax never jolts the page.
       container.style.transform =
-        `translateX(${fx}px) translateY(calc(${BG_SHIFT} + ${par}px))`
+        `translateX(${fx}px) translateY(calc(${BG_SHIFT} - ${lift}px + ${par}px))`
     }
     const tick = () => {
       const target = (1 - p) * window.scrollY
@@ -413,7 +447,7 @@ export default function BackgroundCanvas() {
       if (raf) cancelAnimationFrame(raf)
       container.style.willChange = ''
     }
-  }, [coverage.parallaxFactor, coverage.focalTranslateX])
+  }, [coverage.parallaxFactor, coverage.focalTranslateX, sceneLift])
 
   return (
     <div
@@ -568,6 +602,7 @@ export default function BackgroundCanvas() {
       {/* ChristScene: bottom-center anchored to top-center of #Peak, 15px overlap */}
       {peakPos && (
         <div
+          ref={christRef}
           className="absolute"
           style={{
             left: peakPos.x,

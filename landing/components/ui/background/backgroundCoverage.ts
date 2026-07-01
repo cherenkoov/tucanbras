@@ -43,11 +43,19 @@ export function computeCoverage(input: CoverageInput): CoverageResult {
   const zoom = clamp(1, zoomFull, maxZoom)
   const bgHeight = naturalHeight * zoom
 
-  // Focal crop bias only when the container is wider than the viewport.
-  // translateX = vw/2 − FOCAL_X · (vw · zoom)  →  lands the focal column at centre.
-  const focalTranslateX = zoom > 1
-    ? viewportWidth / 2 - focalX * (viewportWidth * zoom)
-    : 0
+  // Bias the crop toward the focal column (vw/2 − FOCAL_X·(vw·zoom) centres it), but
+  // CLAMP so the widened container can never expose a page edge — otherwise the shift
+  // that centres the focal on one screen leaves a bare vertical strip on another.
+  // translateX ∈ [vw − containerWidth, 0]: at the low end the right edge is flush at vw,
+  // at the high end the left edge is flush at 0. Side effect (by design): near-zero shift
+  // on wide / low-zoom screens (focal stays at its natural, right-side spot), easing to a
+  // fully-centred focal on high-zoom mobile where the extra width gives room to shift.
+  const containerWidth = viewportWidth * zoom
+  const focalTranslateX = clamp(
+    viewportWidth - containerWidth,
+    viewportWidth / 2 - focalX * containerWidth,
+    0,
+  )
 
   let parallaxFactor = 1
   let fillHeight = 0

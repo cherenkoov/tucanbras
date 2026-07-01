@@ -88,4 +88,31 @@ const approx = (a: number, b: number, eps = 1e-6) => Math.abs(a - b) <= eps
   assert.equal(r.fillHeight, 0, 'reduced-covered: zoom below cap → no fill')
 }
 
+// ── Focal clamp: a far-right focal on a low-zoom wide screen would over-shift ──
+// zoom 1.2 → containerWidth = 1440·1.2 = 1728. Centring a focalX=0.9 column wants
+// translateX = 720 − 0.9·1728 = −835.2, which would pull the right edge to 892.8 < vw
+// (bare strip on the right). Clamp floors it at vw − containerWidth = 1440 − 1728 = −288,
+// keeping the right edge flush at vw. Vertical coverage is unaffected.
+{
+  const r = computeCoverage({
+    naturalHeight: 8000, contentHeight: 9600,
+    viewportHeight: 900, viewportWidth: 1440,
+    motionEnabled: true, config: { ...config, focalX: 0.9 },
+  })
+  assert.ok(approx(r.zoom, 1.2), 'clamp: zoom = 1.2')
+  assert.ok(approx(r.focalTranslateX, 1440 - 1440 * 1.2), 'clamp: focal floored at vw − containerWidth')
+}
+
+// ── Focal clamp upper bound: a far-LEFT focal never shifts right past 0 ──
+// focalX=0.05, zoom 1.2 → wants 720 − 0.05·1728 = 633.6 > 0; clamp caps at 0 so the
+// left edge stays flush at 0 (no bare strip on the left).
+{
+  const r = computeCoverage({
+    naturalHeight: 8000, contentHeight: 9600,
+    viewportHeight: 900, viewportWidth: 1440,
+    motionEnabled: true, config: { ...config, focalX: 0.05 },
+  })
+  assert.equal(r.focalTranslateX, 0, 'clamp: focal capped at 0')
+}
+
 console.log('verifyBackgroundCoverage: all assertions passed')

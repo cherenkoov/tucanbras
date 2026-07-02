@@ -64,6 +64,9 @@ export default function CelpeBrasStack({ titles, cardConfig }: Props) {
                 style={{
                   position:   'absolute',
                   inset:      0,
+                  display:        'flex',
+                  justifyContent: 'center',
+                  alignItems:     'flex-start',
                   zIndex:     isPast ? 0 : titles.length - offset,
                   opacity:    isPast ? 0 : isFuture ? Math.max(0, 1 - offset * 0.15) : 1,
                   transform:  isPast
@@ -74,9 +77,8 @@ export default function CelpeBrasStack({ titles, cardConfig }: Props) {
                 }}
               >
                 <div
-                  className={`glass flex items-center gap-[32px] w-full overflow-hidden rounded-[44px] px-[32px] py-[32px] hover:scale-[1.04] active:scale-[0.95] ${isActive ? 'is-center' : ''}`}
+                  className={`glass flex items-center gap-[32px] w-fit max-w-full overflow-hidden rounded-[44px] px-[32px] py-[32px] hover:scale-[1.04] active:scale-[0.95] ${isActive ? 'is-center' : ''}`}
                   style={{
-                    minHeight: '164px',
                     '--glass-tint': cardConfig[i].tint,
                     '--glass-solid': cardConfig[i].bg,
                     boxShadow: 'inset 0px 4px 4px 0px rgba(255,255,255,0.25), 0px 2px 4px 0px rgba(0,0,0,0.18)',

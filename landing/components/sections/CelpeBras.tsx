@@ -108,7 +108,7 @@ export default function CelpeBras({ data }: CelpeBrasProps) {
           {/* Hint text */}
           <AdaptiveText
             as="p"
-            className="font-sans font-semibold px-[16px]"
+            className="font-sans font-semibold px-[16px] text-center lg:text-left"
             style={{ fontSize: 'clamp(20px, 2vw, 32px)', lineHeight: '1.25' }}
           >
             {data.hintText}

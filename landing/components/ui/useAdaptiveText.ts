@@ -37,30 +37,34 @@ function supportsBackdrop(): boolean {
 }
 
 // Measure the element's rendered lines so the glyph mask matches the browser's own
-// wrapping at any width / line count. Walks the first text-node child character by
-// character (Range rects), buckets chars by rounded top → one entry per visual line,
-// each with its text + left-x + vertical-centre-y in the element's local px box.
+// wrapping at any width / line count. Walks every text-node child character by
+// character (Range rects) — JSX like `&ldquo;{text}&rdquo;` renders as SEVERAL sibling
+// text nodes, so stopping at the first would mask only the opening quote. Buckets chars
+// by rounded top → one entry per visual line, each with its text + left-x +
+// vertical-centre-y in the element's local px box.
 function measureLines(el: HTMLElement): { text: string; x: number; y: number }[] {
-  const textNode = Array.from(el.childNodes).find(
+  const textNodes = Array.from(el.childNodes).filter(
     (n): n is Text => n.nodeType === Node.TEXT_NODE && !!n.textContent?.trim(),
   )
-  if (!textNode) return []
-  const full = textNode.textContent ?? ''
+  if (textNodes.length === 0) return []
   const elRect = el.getBoundingClientRect()
   const range = document.createRange()
   const buckets = new Map<number, { text: string; left: number; top: number; bottom: number }>()
-  for (let i = 0; i < full.length; i++) {
-    range.setStart(textNode, i)
-    range.setEnd(textNode, i + 1)
-    const r = range.getBoundingClientRect()
-    if (r.width === 0 && r.height === 0) continue // collapsed whitespace at a wrap
-    const key = Math.round(r.top)
-    let b = buckets.get(key)
-    if (!b) { b = { text: '', left: Infinity, top: r.top, bottom: r.bottom }; buckets.set(key, b) }
-    b.text += full[i]
-    if (r.top < b.top) b.top = r.top
-    if (r.bottom > b.bottom) b.bottom = r.bottom
-    if (!/\s/.test(full[i]) && r.left < b.left) b.left = r.left // ignore spaces for the left edge
+  for (const textNode of textNodes) {
+    const full = textNode.textContent ?? ''
+    for (let i = 0; i < full.length; i++) {
+      range.setStart(textNode, i)
+      range.setEnd(textNode, i + 1)
+      const r = range.getBoundingClientRect()
+      if (r.width === 0 && r.height === 0) continue // collapsed whitespace at a wrap
+      const key = Math.round(r.top)
+      let b = buckets.get(key)
+      if (!b) { b = { text: '', left: Infinity, top: r.top, bottom: r.bottom }; buckets.set(key, b) }
+      b.text += full[i]
+      if (r.top < b.top) b.top = r.top
+      if (r.bottom > b.bottom) b.bottom = r.bottom
+      if (!/\s/.test(full[i]) && r.left < b.left) b.left = r.left // ignore spaces for the left edge
+    }
   }
   return Array.from(buckets.values())
     .filter(b => b.left !== Infinity) // drop whitespace-only lines

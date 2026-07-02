@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react'
 import { ComparisonProps } from '@/types'
 import AdaptiveText from '@/components/ui/AdaptiveText'
+import AdaptiveIcon from '@/components/ui/AdaptiveIcon'
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
 const IMG_TUCAN_PIXEL      = '/PNG/comparison/Tucan Pixel.png'
@@ -67,8 +68,8 @@ export default function Comparison({ data }: ComparisonProps) {
               />
             </div>
 
-            {/* Features */}
-            <ul className="flex flex-col gap-[32px]">
+            {/* Features — 2 balanced columns on tablet, single column on mobile & desktop-row */}
+            <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-x-[28px] gap-y-[32px]">
               {data.tucanPros.map((item, i) => (
                 <li key={i} className="flex items-center gap-[28px]">
                   <CheckMark />
@@ -83,13 +84,13 @@ export default function Comparison({ data }: ComparisonProps) {
             </ul>
           </div>
 
-          {/* ── VS symbol ── */}
+          {/* ── VS symbol (adaptive duotone over the moving background) ── */}
           <div className="flex items-center justify-center shrink-0 py-4 lg:py-0">
-            <img
+            <AdaptiveIcon
               src={IMG_COMPARISON_SYMBOL}
               alt="VS"
               className="pointer-events-none select-none"
-              style={{ width: 'clamp(40px, 5vw, 80px)', height: 'auto' }}
+              style={{ width: 'clamp(40px, 5vw, 80px)' }}
             />
           </div>
 
@@ -119,8 +120,8 @@ export default function Comparison({ data }: ComparisonProps) {
               />
             </div>
 
-            {/* Features */}
-            <ul className="flex flex-col gap-[32px]">
+            {/* Features — 2 balanced columns on tablet, single column on mobile & desktop-row */}
+            <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-x-[28px] gap-y-[32px]">
               {data.schoolCons.map((item, i) => (
                 <li key={i} className="flex items-center gap-[28px]">
                   <XMark />

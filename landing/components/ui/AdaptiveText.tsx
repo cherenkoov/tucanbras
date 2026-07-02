@@ -15,7 +15,7 @@ import { useAdaptiveText } from './useAdaptiveText'
 // ink↔cream axis, inverted so a DARK background yields CREAM text and a LIGHT one yields
 // INK. Tuned on /blend-demo: ramp ×12 (slope 12), midpoint 0.74 (intercept −8.38).
 //   ink #323031 = rgb(.196078 .188235 .192157) · cream #fffce5 = rgb(1 .988235 .898039)
-function AdaptiveDuotoneFilter() {
+export function AdaptiveDuotoneFilter() {
   return (
     <svg width="0" height="0" aria-hidden="true" style={{ position: 'absolute' }}>
       <filter id="adaptive-duotone" colorInterpolationFilters="sRGB">

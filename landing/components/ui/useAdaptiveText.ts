@@ -77,17 +77,25 @@ export function useAdaptiveText({
   overlayRef,
   maskRef,
   maskId,
+  imageSrc,
+  imageRef,
 }: {
   textRef: RefObject<HTMLElement | null>
   overlayRef: RefObject<HTMLSpanElement | null>
-  maskRef: RefObject<SVGTextElement | null>
-  maskId: string
+  maskRef?: RefObject<SVGTextElement | null>
+  maskId?: string
+  // Icon mode: the "glyphs" are the alpha of this image (CSS mask) instead of text; the
+  // real <img> (imageRef) stays as the solid-ink fallback and is hidden while a mode runs.
+  imageSrc?: string
+  imageRef?: RefObject<HTMLImageElement | null>
 }): void {
   useEffect(() => {
     const text = textRef.current
     const overlay = overlayRef.current
-    const maskText = maskRef.current
-    if (!text || !overlay || !maskText) return
+    const maskText = maskRef?.current ?? null
+    const img = imageRef?.current ?? null
+    if (!text || !overlay || (!imageSrc && !maskText)) return
+    const imageMask = imageSrc ? `url("${imageSrc}") 0 0 / 100% 100% no-repeat` : ''
 
     // backdrop works for any line count (multi-line mask below) and on touch devices;
     // only reduced-motion or missing backdrop-filter support fall back to static-fill.
@@ -104,7 +112,10 @@ export function useAdaptiveText({
       text.style.backgroundPosition = ''
       text.style.removeProperty('-webkit-background-clip')
       text.style.removeProperty('background-clip')
+      text.style.removeProperty('mask')
+      text.style.removeProperty('-webkit-mask')
       text.style.filter = ''
+      if (img) img.style.visibility = ''
       overlay.style.removeProperty('backdrop-filter')
       overlay.style.removeProperty('-webkit-backdrop-filter')
       overlay.style.removeProperty('mask')
@@ -136,10 +147,16 @@ export function useAdaptiveText({
       if (mode !== 'static') {
         clearAll()
         text.style.backgroundRepeat = 'no-repeat'
-        text.style.setProperty('-webkit-background-clip', 'text')
-        text.style.setProperty('background-clip', 'text')
+        if (imageSrc) {
+          text.style.setProperty('mask', imageMask)
+          text.style.setProperty('-webkit-mask', imageMask)
+          if (img) img.style.visibility = 'hidden'
+        } else {
+          text.style.setProperty('-webkit-background-clip', 'text')
+          text.style.setProperty('background-clip', 'text')
+          text.style.color = 'transparent'
+        }
         text.style.filter = 'url(#adaptive-duotone)'
-        text.style.color = 'transparent'
         mode = 'static'
         lastSrc = ''
         lastBg = ''
@@ -172,11 +189,19 @@ export function useAdaptiveText({
         overlay.style.display = ''
         overlay.style.setProperty('backdrop-filter', BACKDROP)
         overlay.style.setProperty('-webkit-backdrop-filter', BACKDROP)
-        overlay.style.setProperty('mask', `url(#${maskId})`)
-        overlay.style.setProperty('-webkit-mask', `url(#${maskId})`)
-        text.style.color = 'transparent'
+        if (imageSrc) {
+          overlay.style.setProperty('mask', imageMask)
+          overlay.style.setProperty('-webkit-mask', imageMask)
+          // Hide the fallback img so the backdrop samples the page background, not it.
+          if (img) img.style.visibility = 'hidden'
+        } else {
+          overlay.style.setProperty('mask', `url(#${maskId})`)
+          overlay.style.setProperty('-webkit-mask', `url(#${maskId})`)
+          text.style.color = 'transparent'
+        }
         mode = 'backdrop'
       }
+      if (imageSrc || !maskText) return true
       const cs = getComputedStyle(text)
       maskText.setAttribute('dominant-baseline', 'central')
       maskText.setAttribute('font-family', cs.fontFamily)

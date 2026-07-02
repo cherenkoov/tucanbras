@@ -6,6 +6,15 @@ export interface CoverageConfig {
   maxZoom: number   // crop ceiling, e.g. 1.6
   focalX: number    // art column kept centred when cropping, e.g. 0.45
   minP: number      // parallax floor, e.g. 0.3
+  // Horizontal framing curve: where in the viewport the focal column sits, as a
+  // fraction of vw, eased from `focalAnchorNarrow` (phones) to `focalAnchorWide`
+  // (tablets+) across [focalAnchorStart, focalAnchorEnd] px. 0.5 = centred; larger
+  // = further right. Lets phones keep the statue centred while tablets+ push it to
+  // the right edge (mirroring the hero card on the left).
+  focalAnchorNarrow: number
+  focalAnchorWide: number
+  focalAnchorStart: number
+  focalAnchorEnd: number
 }
 
 export interface CoverageInput {
@@ -32,7 +41,10 @@ export function computeCoverage(input: CoverageInput): CoverageResult {
     naturalHeight, contentHeight, viewportHeight, viewportWidth,
     motionEnabled, config,
   } = input
-  const { maxZoom, focalX, minP } = config
+  const {
+    maxZoom, focalX, minP,
+    focalAnchorNarrow, focalAnchorWide, focalAnchorStart, focalAnchorEnd,
+  } = config
 
   // Guard against degenerate measurements (pre-render / zero height).
   if (naturalHeight <= 0) {
@@ -43,17 +55,21 @@ export function computeCoverage(input: CoverageInput): CoverageResult {
   const zoom = clamp(1, zoomFull, maxZoom)
   const bgHeight = naturalHeight * zoom
 
-  // Bias the crop toward the focal column (vw/2 − FOCAL_X·(vw·zoom) centres it), but
-  // CLAMP so the widened container can never expose a page edge — otherwise the shift
-  // that centres the focal on one screen leaves a bare vertical strip on another.
-  // translateX ∈ [vw − containerWidth, 0]: at the low end the right edge is flush at vw,
-  // at the high end the left edge is flush at 0. Side effect (by design): near-zero shift
-  // on wide / low-zoom screens (focal stays at its natural, right-side spot), easing to a
-  // fully-centred focal on high-zoom mobile where the extra width gives room to shift.
+  // Horizontal framing: place the focal column at `focalAnchor · vw`, eased from
+  // `focalAnchorNarrow` (phones — 0.5, centred) to `focalAnchorWide` (tablets+ — right
+  // edge) across [focalAnchorStart, focalAnchorEnd] with an ease-in (t²) so phones stay
+  // fully centred and the shift only ramps up once past the phone range. Then CLAMP the
+  // resulting translate so the widened container can never expose a page edge:
+  // translateX ∈ [vw − containerWidth, 0] (right edge flush at vw / left edge flush at 0).
+  const anchorSpan = focalAnchorEnd - focalAnchorStart
+  const anchorT = anchorSpan > 0
+    ? clamp(0, (viewportWidth - focalAnchorStart) / anchorSpan, 1)
+    : (viewportWidth >= focalAnchorEnd ? 1 : 0)
+  const focalAnchor = focalAnchorNarrow + (focalAnchorWide - focalAnchorNarrow) * (anchorT * anchorT)
   const containerWidth = viewportWidth * zoom
   const focalTranslateX = clamp(
     viewportWidth - containerWidth,
-    viewportWidth / 2 - focalX * containerWidth,
+    focalAnchor * viewportWidth - focalX * containerWidth,
     0,
   )
 

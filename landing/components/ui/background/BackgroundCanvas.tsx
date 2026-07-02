@@ -122,7 +122,13 @@ const WAVES_BOTTOM_OFFSET_PX = 120
 // makes the illustration taller so less of the gap is left to the parallax + fill.
 // focalX is overridden at runtime by the measured Christ-statue column (see the hook),
 // so the crop keeps the statue centred; this value is only the pre-measure fallback.
-const COVERAGE_CONFIG = { maxZoom: 2.0, focalX: 0.45, minP: 0.3 }
+const COVERAGE_CONFIG = {
+  maxZoom: 2.0, focalX: 0.45, minP: 0.3,
+  // Horizontal framing: statue centred on phones, eased to near the right edge on
+  // tablets+ (mirroring the hero card). 0.5 = centre, 0.78 ≈ right edge. Ease-in over
+  // [520, 768]px so phones stay centred and tablets (≥768) land at the right.
+  focalAnchorNarrow: 0.5, focalAnchorWide: 0.78, focalAnchorStart: 520, focalAnchorEnd: 768,
+}
 // Terminal fill band colour — sampled from the beach SVG's bottom edge (sand).
 // Default is a sand tone from `main 2.svg`; RE-SAMPLE the actual bottom row on a
 // real render and tune (spec §3.6 / §5). Local hex is allowed for SVG-sampled art

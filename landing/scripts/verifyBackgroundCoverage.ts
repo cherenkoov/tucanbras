@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict'
 import { computeCoverage } from '../components/ui/background/backgroundCoverage'
 
-const config = { maxZoom: 1.6, focalX: 0.45, minP: 0.3 }
+const config = {
+  maxZoom: 1.6, focalX: 0.45, minP: 0.3,
+  focalAnchorNarrow: 0.5, focalAnchorWide: 0.78, focalAnchorStart: 520, focalAnchorEnd: 768,
+}
 const approx = (a: number, b: number, eps = 1e-6) => Math.abs(a - b) <= eps
 
 // ── Desktop / wide: zoom alone covers, no parallax, no fill, no focal shift ──
@@ -31,8 +34,9 @@ const approx = (a: number, b: number, eps = 1e-6) => Math.abs(a - b) <= eps
   assert.equal(r.parallaxFactor, 1, 'mid: zoom below cap → p = 1')
   assert.equal(r.fillHeight, 0, 'mid: no fill')
   assert.ok(approx(r.bgHeight, 9600), 'mid: H_bg = content')
-  // zoom > 1 → focal engages: vw/2 − focalX·vw·zoom = 720 − 0.45·1440·1.2 = -57.6
-  assert.ok(approx(r.focalTranslateX, 720 - 0.45 * 1440 * 1.2), 'mid: focal formula')
+  // vw 1440 ≥ focalAnchorEnd → anchor = focalAnchorWide (0.78). Wanted translate
+  // 0.78·1440 − 0.45·1728 = +345.6 > 0 → clamped to 0 (left edge flush, no strip).
+  assert.equal(r.focalTranslateX, 0, 'mid: rightward anchor clamps to 0')
 }
 
 // ── Mobile, motion ON: cap hit, parallax engages, no fill ──
@@ -114,5 +118,22 @@ const approx = (a: number, b: number, eps = 1e-6) => Math.abs(a - b) <= eps
   })
   assert.equal(r.focalTranslateX, 0, 'clamp: focal capped at 0')
 }
+
+// ── Horizontal framing curve: phone centred → tablet+ pushed right (ease-in) ──
+// All three hit the zoom cap (natural 2300, content 9200 → zoomFull 4 → 1.6), so
+// containerWidth = vw·1.6; focalX 0.5 keeps every result inside the clamp window.
+const framing = (viewportWidth: number) =>
+  computeCoverage({
+    naturalHeight: 2300, contentHeight: 9200,
+    viewportHeight: 800, viewportWidth,
+    motionEnabled: true, config: { ...config, focalX: 0.5 },
+  }).focalTranslateX
+
+// Phone (vw 400 < start 520): anchor = 0.5 (centred). translate = 0.5·400 − 0.5·640.
+assert.ok(approx(framing(400), 0.5 * 400 - 0.5 * 400 * 1.6), 'framing: phone centred (anchor 0.5)')
+// Ease midpoint (vw 644): anchorT = 0.5 → eased 0.25 → anchor = 0.5 + 0.28·0.25 = 0.57.
+assert.ok(approx(framing(644), 0.57 * 644 - 0.5 * 644 * 1.6), 'framing: midpoint eased anchor 0.57')
+// Tablet (vw 768 = end): anchor = focalAnchorWide 0.78 (statue near the right edge).
+assert.ok(approx(framing(768), 0.78 * 768 - 0.5 * 768 * 1.6), 'framing: tablet+ anchor 0.78')
 
 console.log('verifyBackgroundCoverage: all assertions passed')

@@ -22,8 +22,9 @@ Thumbs.db
 .idea/
 **/.claude/
 
-# Bot static uploads (large binary files)
-bot-main/static/
+# bot-main and mini-app moved out of this repo's version control
+bot-main/
+mini-app/
 
 # Superpowers generated files
 .superpowers/

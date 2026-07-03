@@ -11,17 +11,13 @@ const LOCALES: { code: Locale; label: string; flagUrl: string }[] = [
   { code: 'ru', label: 'RU', flagUrl: '/PNG/flags/russia.png' },
 ]
 
-// Shared pill geometry — matches desktop NavPill
+// Square flag pill — same height (48px) as desktop NavPill, but 1:1 aspect
 const PILL_STYLE = {
   backgroundColor: 'var(--color-ink)',
   color:           'var(--color-cream)',
   boxShadow:       'var(--shadow-round-inner)',
-  fontSize:        'clamp(14px, 1.35vw, 26px)',
-  lineHeight:      '32px',
-  paddingTop:      '8px',
-  paddingBottom:   '8px',
-  paddingLeft:     'clamp(8px, 0.83vw, 16px)',
-  paddingRight:    'clamp(8px, 0.83vw, 16px)',
+  width:           '48px',
+  height:          '48px',
 } as const
 
 interface Props {
@@ -90,7 +86,7 @@ export default function LanguageSwitcher({ variant = 'text', dropDirection = 'do
                 className="flex items-center justify-center overflow-hidden rounded-btn font-semibold whitespace-nowrap select-none cursor-pointer transition-transform duration-[120ms] ease-out hover:scale-[1.04] active:scale-[0.95]"
                 style={{ ...PILL_STYLE, boxShadow: 'var(--shadow-pill-float)', pointerEvents: open ? 'auto' : 'none' }}
               >
-                <img src={l.flagUrl} alt={l.label} style={{ height: '32px', width: 'auto', display: 'block' }} />
+                <img src={l.flagUrl} alt={l.label} style={{ height: '24px', width: '24px', objectFit: 'contain', display: 'block' }} />
               </Link>
             </div>
           ))}
@@ -104,7 +100,7 @@ export default function LanguageSwitcher({ variant = 'text', dropDirection = 'do
             aria-haspopup="listbox"
             aria-expanded={open}
           >
-            <img src={current.flagUrl} alt={current.label} style={{ height: '32px', width: 'auto', display: 'block' }} />
+            <img src={current.flagUrl} alt={current.label} style={{ height: '24px', width: '24px', objectFit: 'contain', display: 'block' }} />
           </button>
         </div>
       )
@@ -125,7 +121,7 @@ export default function LanguageSwitcher({ variant = 'text', dropDirection = 'do
           aria-haspopup="listbox"
           aria-expanded={open}
         >
-          <img src={current.flagUrl} alt={current.label} style={{ height: '32px', width: 'auto', display: 'block' }} />
+          <img src={current.flagUrl} alt={current.label} style={{ height: '24px', width: '24px', objectFit: 'contain', display: 'block' }} />
         </button>
 
         <div
@@ -150,7 +146,7 @@ export default function LanguageSwitcher({ variant = 'text', dropDirection = 'do
                 transitionDelay: open ? `${i * 50}ms` : '0ms',
               }}
             >
-              <img src={l.flagUrl} alt={l.label} style={{ height: '32px', width: 'auto', display: 'block' }} />
+              <img src={l.flagUrl} alt={l.label} style={{ height: '24px', width: '24px', objectFit: 'contain', display: 'block' }} />
             </Link>
           ))}
         </div>

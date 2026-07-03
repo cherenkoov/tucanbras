@@ -150,8 +150,8 @@ function NavPill({ label, href, bg, text }: {
         lineHeight: '32px',
         paddingTop: '8px',
         paddingBottom: '8px',
-        paddingLeft: 'clamp(8px, 0.83vw, 16px)',
-        paddingRight: 'clamp(8px, 0.83vw, 16px)',
+        paddingLeft: '16px',
+        paddingRight: '16px',
       }}
     >
       {label}
@@ -340,8 +340,8 @@ export default function Header({ navLinks }: HeaderProps) {
                     lineHeight:   '32px',
                     paddingTop:   '8px',
                     paddingBottom:'8px',
-                    paddingLeft:  'clamp(8px, 0.83vw, 16px)',
-                    paddingRight: 'clamp(8px, 0.83vw, 16px)',
+                    paddingLeft:  '12px',
+                    paddingRight: '12px',
                   }}
                   aria-haspopup="true"
                   aria-expanded={dotsOpen}
@@ -376,7 +376,7 @@ export default function Header({ navLinks }: HeaderProps) {
 
                 <div
                   role="menu"
-                  className="absolute right-0 top-full mt-4 flex flex-col gap-2 z-[60]"
+                  className="absolute right-0 top-full mt-4 flex flex-col items-end gap-2 z-[60]"
                   style={{ pointerEvents: dotsOpen ? 'auto' : 'none' }}
                 >
                   {navLinks.slice(navLinks.length - collapsedCount).map((link, i) => (
@@ -394,8 +394,8 @@ export default function Header({ navLinks }: HeaderProps) {
                         lineHeight:      '32px',
                         paddingTop:      '8px',
                         paddingBottom:   '8px',
-                        paddingLeft:     'clamp(8px, 0.83vw, 16px)',
-                        paddingRight:    'clamp(8px, 0.83vw, 16px)',
+                        paddingLeft:     '16px',
+                        paddingRight:    '16px',
                         opacity:         dotsOpen ? 1 : 0,
                         transform:       dotsOpen ? 'translateY(0)' : 'translateY(-10px)',
                         transition:      'opacity 200ms ease, transform 200ms ease',

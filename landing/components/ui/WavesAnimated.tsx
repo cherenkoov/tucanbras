@@ -22,16 +22,12 @@ const BASE_HEIGHT     = 440
 // viewBox 0 0 3825 200, rendered at 2× natural scale → 4974×260px
 // dir sign is flipped vs naive expectation because useScrollAnimation negates
 // scroll delta: target = -delta * scale, so negative when scrolling down.
-// dir=1 for ink → position += 1 * (negative) → translateX negative → moves LEFT ✓
 // dir=-1 for cream → position += -1 * (negative) → translateX positive → moves RIGHT ✓
 const BAND_HEIGHT     = 260
 const BANDS = [
-  { color: 'var(--color-ink)',   top: -110, speed: 120, dir:  1 },
-  { color: 'var(--color-cream)', top:  -34, speed:  90, dir: -1 },
-  { color: 'var(--color-ink)',   top:   42, speed: 120, dir:  1 },
-  { color: 'var(--color-cream)', top:  118, speed:  90, dir: -1 },
-  { color: 'var(--color-ink)',   top:  194, speed: 120, dir:  1 },
-  { color: 'var(--color-cream)', top:  270, speed:  90, dir: -1 },
+  { color: '#ECDBB5', top:  -34, speed:  90, dir: -1 },
+  { color: '#ECDBB5', top:  118, speed:  90, dir: -1 },
+  { color: '#ECDBB5', top:  270, speed:  90, dir: -1 },
 ] as const
 
 // Bounding box of the painted band stack (unscaled px). Bands sit at fixed `top`
@@ -39,9 +35,9 @@ const BANDS = [
 // WIDER than BASE_HEIGHT (the topmost band starts above 0, the bottommost ends below
 // it). In fillParent mode this full span is fit to the container, so the wave height
 // is determined by the container with no overflow.
-const BAND_MIN        = Math.min(...BANDS.map(b => b.top))               // -110
+const BAND_MIN        = Math.min(...BANDS.map(b => b.top))               // -34
 const BAND_MAX        = Math.max(...BANDS.map(b => b.top)) + BAND_HEIGHT //  530
-const BAND_SPAN       = BAND_MAX - BAND_MIN                              //  640
+const BAND_SPAN       = BAND_MAX - BAND_MIN                              //  564
 
 interface WavesAnimatedProps {
   // When true the component fills its parent's height (instead of a fixed 440px)

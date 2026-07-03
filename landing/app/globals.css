@@ -165,6 +165,18 @@ body {
   font-family: var(--font-sans);
 }
 
+/* ── Hide the browser page scrollbar (scrolling still works) ──────────────── */
+html,
+body {
+  scrollbar-width: none;       /* Firefox */
+  -ms-overflow-style: none;    /* IE / legacy Edge */
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;               /* Chrome / Safari / new Edge */
+}
+
 /* ── Blur landing content when mobile menu is open ───────────────────────── */
 main {
   transition: filter 0.3s ease;

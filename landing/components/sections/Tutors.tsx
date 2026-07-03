@@ -28,7 +28,7 @@ function TutorCard({
       type="button"
       onClick={onSelect}
       className="relative flex flex-col w-full max-w-[410px] mx-auto cursor-pointer select-none active:opacity-80 lg:active:opacity-100 transition-opacity bg-transparent border-0 p-0 text-left"
-      style={{ touchAction: 'pan-x', '--edge-h': 'calc(min(78vw, 370px) * 0.192)' } as React.CSSProperties}
+      style={{ touchAction: 'pan-x', '--edge-h': 'calc(min(78vw, 370px) * 0.192)' } as CSSProperties}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onMouseMove={e => {
@@ -48,8 +48,8 @@ function TutorCard({
         className="relative w-full z-20 pointer-events-none"
         style={{
           marginBottom: 'calc(-1 * var(--edge-h))',
-          WebkitMaskImage: 'linear-gradient(#000,#000), url(/SVG/tutors/cover-notch-cut.svg)',
-          maskImage: 'linear-gradient(#000,#000), url(/SVG/tutors/cover-notch-cut.svg)',
+          WebkitMaskImage: 'linear-gradient(#fff,#fff), url(/SVG/tutors/cover-notch-cut.svg)',
+          maskImage: 'linear-gradient(#fff,#fff), url(/SVG/tutors/cover-notch-cut.svg)',
           WebkitMaskSize: '100% calc(100% - var(--edge-h)), 100% var(--edge-h)',
           maskSize: '100% calc(100% - var(--edge-h)), 100% var(--edge-h)',
           WebkitMaskPosition: 'top, bottom',
@@ -96,8 +96,8 @@ function TutorCard({
           aria-hidden
           className="absolute inset-0 z-0 rounded-b-[36px] backdrop-blur-[4px] bg-[#8fd096]/80 transition-all duration-[600ms] group-hover:backdrop-blur-none group-hover:bg-[#8fd096] group-[.is-center]:backdrop-blur-none group-[.is-center]:bg-[#8fd096] pointer-events-none"
           style={{
-            WebkitMaskImage: 'url(/SVG/tutors/cover-edge.svg), linear-gradient(#000,#000)',
-            maskImage: 'url(/SVG/tutors/cover-edge.svg), linear-gradient(#000,#000)',
+            WebkitMaskImage: 'url(/SVG/tutors/cover-edge.svg), linear-gradient(#fff,#fff)',
+            maskImage: 'url(/SVG/tutors/cover-edge.svg), linear-gradient(#fff,#fff)',
             WebkitMaskSize: '100% var(--edge-h), 100% calc(100% - var(--edge-h) + 1px)',
             maskSize: '100% var(--edge-h), 100% calc(100% - var(--edge-h) + 1px)',
             WebkitMaskPosition: 'top, bottom',

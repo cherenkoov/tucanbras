@@ -111,8 +111,11 @@ export default function Footer({ data, tutors, planNames, planPrices, locale }: 
         {/* ══ Footer content card — glass → solid on hover ══ */}
         <div
           data-glass-center
-          className="glass relative z-[2] rounded-[26px] overflow-hidden px-[36px] py-[36px] flex flex-col gap-[64px]"
-          style={{ boxShadow: '0px 2px 4px 0px rgba(0,0,0,0.18), inset 0px 4px 4px 0px rgba(255,255,255,0.25)' }}
+          className="glass relative z-[2] rounded-[26px] overflow-hidden flex flex-col gap-[64px]"
+          style={{
+            boxShadow: '0px 2px 4px 0px rgba(0,0,0,0.18), inset 0px 4px 4px 0px rgba(255,255,255,0.25)',
+            padding: 'clamp(12px, 4vw, 36px)',
+          }}
         >
 
           {/* ── Logo + description ── */}

@@ -285,8 +285,10 @@ export default function BackgroundCanvas() {
     setPeakPos({
       // horizontal: 2/5 from left edge (ratio 2:3)
       x: peakRect.left - containerRect.left + peakRect.width * (2 / 5),
-      // vertical: top of Peak + 15px so Pedestal overlaps 15px into Peak
-      y: peakRect.top - containerRect.top + 25,
+      // vertical: seat the pedestal base right on the crest — a small bite into Peak
+      // so it reads as planted on the rim, not floating. (Was +25 = base sunk ~13px
+      // below the crest; +12 lands the base on the crest, +15 keeps ~3px overlap.)
+      y: peakRect.top - containerRect.top + 15,
     })
   }, [])
 

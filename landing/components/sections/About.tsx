@@ -18,7 +18,7 @@ export default function About({ data }: AboutProps) {
     <section id="about" className="w-full scroll-mt-[136px] lg:scroll-mt-[147px]">
       <div
         data-glass-center
-        className="glass flex flex-col gap-[12px] overflow-hidden rounded-[38px] p-[12px] max-w-[1720px] mx-auto w-full"
+        className="glass flex flex-col gap-[12px] overflow-visible min-[740px]:overflow-hidden rounded-[38px] p-[12px] max-w-[1720px] mx-auto w-full"
         style={{
           boxShadow: 'var(--shadow-hero)',
           '--glass-tint': '#7cb08299',
@@ -32,7 +32,7 @@ export default function About({ data }: AboutProps) {
           {/* Inspiration heading */}
           <div
             data-glass-center
-            className="about-inspiration glass relative flex flex-col gap-0 items-center w-full rounded-[26px] p-[36px] overflow-visible"
+            className="about-inspiration glass relative z-20 flex flex-col gap-0 items-center w-full rounded-[26px] p-[36px] overflow-visible"
             style={{
               boxShadow: 'var(--shadow-hero)',
               // cream card on the green frame — reset the inherited green glass vars to the .glass cream default

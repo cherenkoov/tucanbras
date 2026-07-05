@@ -13,9 +13,9 @@ function prefersReducedMotion(): boolean {
 export function useBackgroundCoverage(
   containerRef: React.RefObject<HTMLDivElement | null>,
   config: CoverageConfig,
-  deps: { ready: boolean },
+  deps: { ready: boolean; sceneLift: number },
 ): CoverageResult {
-  const { ready } = deps
+  const { ready, sceneLift } = deps
   const [result, setResult] = useState<CoverageResult>(INITIAL)
 
   const measure = useCallback(() => {
@@ -48,6 +48,13 @@ export function useBackgroundCoverage(
       focalX = peakColumnX / containerRect.width
     }
 
+    // Net UPWARD shift applied to the container: sceneLift (start the statue head on
+    // the hero line) minus BG_SHIFT (mobile descent). KEEP the BG_SHIFT formula in
+    // sync with BG_SHIFT in BackgroundCanvas.tsx. Without this term the fill band
+    // stops sceneLift px short of the page bottom, exposing a cream gap.
+    const bgShiftPx = Math.min(400, Math.max(0, (1024 - window.innerWidth) * 400 / 649))
+    const verticalOffset = sceneLift - bgShiftPx
+
     const next = computeCoverage({
       naturalHeight,
       contentHeight,
@@ -55,6 +62,7 @@ export function useBackgroundCoverage(
       viewportWidth: window.innerWidth,
       motionEnabled: !prefersReducedMotion(),
       config: { ...config, focalX },
+      verticalOffset,
     })
 
     setResult(prev =>
@@ -66,7 +74,7 @@ export function useBackgroundCoverage(
         ? prev
         : next,
     )
-  }, [containerRef, config])
+  }, [containerRef, config, sceneLift])
 
   useEffect(() => {
     if (!ready) return

@@ -92,6 +92,54 @@ const approx = (a: number, b: number, eps = 1e-6) => Math.abs(a - b) <= eps
   assert.equal(r.fillHeight, 0, 'reduced-covered: zoom below cap → no fill')
 }
 
+// ── verticalOffset below the zoom cap ENGAGES parallax (the reported bug, option A) ──
+// Sub-cap zoom (natural 8000, content 9600 → zoom 1.2, H_bg = 9600 == content). With no
+// lift the art covers exactly (p = 1, no fill). Lifting the container 500px up creates a
+// bottom deficit — previously left as a cream gap. Now parallax engages by the deficit
+// and lags exactly 500px over the scroll, closing it with real art (fill stays 0).
+{
+  const base = {
+    naturalHeight: 8000, contentHeight: 9600,
+    viewportHeight: 900, viewportWidth: 1440,
+    motionEnabled: true, config,
+  }
+  const flat = computeCoverage(base)
+  assert.equal(flat.parallaxFactor, 1, 'no lift: no parallax')
+  assert.equal(flat.fillHeight, 0, 'no lift: no fill')
+
+  const S = 9600 - 900
+  const lifted = computeCoverage({ ...base, verticalOffset: 500 })
+  assert.ok(approx(lifted.parallaxFactor, (9600 - 900 - 500) / S), 'lift: parallax engages by the deficit')
+  assert.ok(approx(lifted.fillHeight, 0), 'lift: parallax closes the gap → no fill')
+  // Lag at the page bottom = (1 − p)·S = exactly the 500px lift.
+  assert.ok(approx((1 - lifted.parallaxFactor) * S, 500), 'lift: bottom lag equals the lift')
+}
+
+// ── Reduced motion + lift: no scroll parallax, so the static band absorbs the lift ──
+{
+  const r = computeCoverage({
+    naturalHeight: 2300, contentHeight: 9200,
+    viewportHeight: 800, viewportWidth: 375,
+    motionEnabled: false, config, verticalOffset: 350,
+  })
+  assert.equal(r.parallaxFactor, 1, 'reduced+lift: p = 1 (no scroll motion)')
+  assert.ok(approx(r.fillHeight, 9200 - 3680 + 350), 'reduced+lift: static fill = content − H_bg + lift')
+}
+
+// ── verticalOffset with the parallax cap hit: fill = H_vp + p·S − H_bg + offset ──
+// Reuse the extreme-height case (p floored to 0.3) and add a 400px lift.
+{
+  const r = computeCoverage({
+    naturalHeight: 2300, contentHeight: 30000,
+    viewportHeight: 800, viewportWidth: 375,
+    motionEnabled: true, config, verticalOffset: 400,
+  })
+  assert.ok(
+    approx(r.fillHeight, (800 + r.parallaxFactor * 29200) - 3680 + 400),
+    'offset+parallax: fill adds the lift on top of the parallax remainder',
+  )
+}
+
 // ── Focal clamp: a far-right focal on a low-zoom wide screen would over-shift ──
 // zoom 1.2 → containerWidth = 1440·1.2 = 1728. Centring a focalX=0.9 column wants
 // translateX = 720 − 0.9·1728 = −835.2, which would pull the right edge to 892.8 < vw

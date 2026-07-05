@@ -24,6 +24,12 @@ export interface CoverageInput {
   viewportWidth: number   // vw (px)
   motionEnabled: boolean
   config: CoverageConfig
+  // Net UPWARD translate applied to the whole background container, in px
+  // (= sceneLift − BG_SHIFT: the statue-head lift minus the mobile descent).
+  // The art's bottom edge therefore lands this many px HIGHER than its height
+  // implies, so the coverage/fill math must add it back to reach the page bottom.
+  // Optional (defaults to 0) so pre-lift measurements and tests stay valid.
+  verticalOffset?: number
 }
 
 export interface CoverageResult {
@@ -39,7 +45,7 @@ const clamp = (lo: number, v: number, hi: number) => Math.min(hi, Math.max(lo, v
 export function computeCoverage(input: CoverageInput): CoverageResult {
   const {
     naturalHeight, contentHeight, viewportHeight, viewportWidth,
-    motionEnabled, config,
+    motionEnabled, config, verticalOffset = 0,
   } = input
   const {
     maxZoom, focalX, minP,
@@ -73,27 +79,35 @@ export function computeCoverage(input: CoverageInput): CoverageResult {
     0,
   )
 
-  let parallaxFactor = 1
-  let fillHeight = 0
+  // The container is translated UP by `verticalOffset`, so its bottom edge sits at
+  // (bgHeight − verticalOffset) at scroll 0 and — with parallax lag p — descends to
+  // (bgHeight − verticalOffset + (1 − p)·S) at the page bottom. Requiring that edge
+  // (plus the terminal fill) to reach the content bottom at every scroll position
+  // yields, at the worst case (scroll = S):
+  //     fillHeight ≥ H_vp + p·S − H_bg + verticalOffset.
+  // This is the ORIGINAL fill formula with `+ verticalOffset` added — the term that
+  // was missing, which left a gap at the page bottom on widths where the zoomed art
+  // only barely exceeded the content height.
+  const S = contentHeight - viewportHeight // total scroll distance
 
-  if (zoom < maxZoom) {
-    // Wide / mid screens: zoom alone covers. No parallax, no fill.
-    parallaxFactor = 1
-    fillHeight = 0
-  } else {
-    // Cap hit (narrow screens).
-    const S = contentHeight - viewportHeight // total scroll distance
-    if (motionEnabled && S > 0) {
-      const pNeeded = (bgHeight - viewportHeight) / S
-      parallaxFactor = clamp(minP, pNeeded, 1)
-      // 0 unless p clamped at minP (extreme-height pages).
-      fillHeight = Math.max(0, (viewportHeight + parallaxFactor * S) - bgHeight)
-    } else {
-      // Reduced motion / weak device: static terminal band covers the remainder.
-      parallaxFactor = 1
-      fillHeight = Math.max(0, contentHeight - bgHeight)
-    }
+  // Parallax engages on the COVERAGE DEFICIT alone — the moment the (up-shifted) art
+  // stops reaching the content bottom — not on hitting the zoom cap. `pNeeded < 1`
+  // exactly means "H_bg, lifted by verticalOffset, is shorter than the page", so:
+  //   • fully covered (pNeeded ≥ 1) → p = 1 → no scroll motion (wide screens);
+  //   • small deficit → p ≈ 1 → a faint lag that closes the gap with real art;
+  //   • large deficit (mobile) → small p → strong lag revealing the art's lower band;
+  //   • deficit beyond the minP floor → p = minP and the terminal fill covers the rest.
+  // The lag magnitude auto-scales with need, so this one rule subsumes the old
+  // cap-gated branch AND the static desktop fill, with no fixed space-filling guess.
+  let parallaxFactor = 1
+  if (motionEnabled && S > 0) {
+    const pNeeded = (bgHeight - viewportHeight - verticalOffset) / S
+    parallaxFactor = clamp(minP, pNeeded, 1)
   }
+  // Terminal band closes whatever parallax (floored at minP) or the reduced-motion /
+  // non-scrolling static case leaves below the content bottom. With p = 1 this reduces
+  // to max(0, H_content − H_bg + verticalOffset).
+  const fillHeight = Math.max(0, viewportHeight + parallaxFactor * S - bgHeight + verticalOffset)
 
   return { zoom, parallaxFactor, focalTranslateX, fillHeight, bgHeight }
 }

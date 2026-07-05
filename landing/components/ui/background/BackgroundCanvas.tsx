@@ -129,11 +129,16 @@ const COVERAGE_CONFIG = {
   // [520, 768]px so phones stay centred and tablets (≥768) land at the right.
   focalAnchorNarrow: 0.5, focalAnchorWide: 0.78, focalAnchorStart: 520, focalAnchorEnd: 768,
 }
-// Terminal fill band colour — sampled from the beach SVG's bottom edge (sand).
-// Default is a sand tone from `main 2.svg`; RE-SAMPLE the actual bottom row on a
-// real render and tune (spec §3.6 / §5). Local hex is allowed for SVG-sampled art
-// colours, matching the BEACH_GROUND_COLOR precedent above.
+// Terminal fill band colour — FALLBACK only. At runtime we rasterise the beach SVG and
+// sample its actual bottom-edge colour (see `fillColor` state) so the band blends
+// seamlessly with wherever the beach art ends; this value shows only until that resolves.
 const TERMINAL_FILL_COLOR = '#ECDBB5'
+// Lower the beach (main2) by this many px past its bush-01 anchor, spending part of its
+// overlap reserve with the collage so more real beach/sea art sits below the fold.
+// PURELY AESTHETIC now (how much beach to show) — NOT a space-filling device: coverage
+// at the page bottom is handled by the deficit-driven parallax + terminal fill (see
+// computeCoverage). Kept well inside the measured overlap so no collage↔beach gap opens.
+const BEACH_LOWER_PX = 300
 
 export default function BackgroundCanvas() {
   const [mainSvg, setMainSvg] = useState('')
@@ -153,6 +158,8 @@ export default function BackgroundCanvas() {
   // Whole-scene upward lift (px) so the statue's head STARTS at the hero's top line.
   // Parallax then carries it down on scroll — hence a starting lift, not a fixed pin.
   const [sceneLift, setSceneLift] = useState(0)
+  // Terminal-fill colour, sampled from the beach SVG's bottom edge (fallback until then).
+  const [fillColor, setFillColor] = useState(TERMINAL_FILL_COLOR)
   const [entered, setEntered] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const christRef = useRef<HTMLDivElement>(null)
@@ -262,6 +269,44 @@ export default function BackgroundCanvas() {
       .catch(err => console.warn('BackgroundCanvas: beach SVG fetch failed', err))
   }, [])
 
+  // Sample the beach SVG's bottom-edge colour so the terminal fill band blends
+  // seamlessly with wherever the beach art ends (no hard sea→sand seam). We rasterise
+  // the (same-origin, self-contained) beach SVG small, read its bottom opaque row, and
+  // average it. Falls back to TERMINAL_FILL_COLOR if the bottom row is transparent.
+  useEffect(() => {
+    if (!beachSvg) return
+    const sized = beachSvg.replace('width="100%"', 'width="320"')
+    const blob = new Blob([sized], { type: 'image/svg+xml;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const img = new Image()
+    let cancelled = false
+    img.onload = () => {
+      try {
+        if (cancelled) return
+        const w = img.naturalWidth || 320
+        const h = img.naturalHeight || 1
+        const canvas = document.createElement('canvas')
+        canvas.width = w
+        canvas.height = h
+        const cx = canvas.getContext('2d')
+        if (!cx) return
+        cx.drawImage(img, 0, 0)
+        const row = cx.getImageData(0, Math.max(0, h - 2), w, 1).data
+        let r = 0, g = 0, b = 0, n = 0
+        for (let i = 0; i < row.length; i += 4) {
+          if (row[i + 3] > 200) { r += row[i]; g += row[i + 1]; b += row[i + 2]; n++ }
+        }
+        if (n > 0) {
+          const hex = '#' + [r, g, b].map(v => Math.round(v / n).toString(16).padStart(2, '0')).join('')
+          setFillColor(hex)
+        }
+      } catch { /* tainted/decoding — keep fallback */ } finally { URL.revokeObjectURL(url) }
+    }
+    img.onerror = () => URL.revokeObjectURL(url)
+    img.src = url
+    return () => { cancelled = true; URL.revokeObjectURL(url) }
+  }, [beachSvg])
+
   const svgReady = !!mainSvg
 
   // Trigger entrance animation after SVG is rendered to DOM
@@ -345,9 +390,11 @@ export default function BackgroundCanvas() {
     const bushMidY = bushRect.top + bushRect.height / 2 // viewport px
     const beachTop = beach.getBoundingClientRect().top  // viewport px, reflects current margin
     const current = parseFloat(beach.style.marginTop) || 0
-    // Move the beach so its TOP meets bush 01's centre; correct relative to the current
-    // margin so it converges in one step and self-corrects on resize (negative = up).
-    beach.style.marginTop = `${current + (bushMidY - beachTop)}px`
+    // Move the beach so its TOP sits BEACH_LOWER_PX below bush 01's centre; correct
+    // relative to the current margin so it converges in one step and self-corrects on
+    // resize (negative = up). The extra BEACH_LOWER_PX lowers the beach into its overlap
+    // reserve so more real sea/beach art shows below the fold before the terminal fill.
+    beach.style.marginTop = `${current + (bushMidY - beachTop) + BEACH_LOWER_PX}px`
 
     // STRETCH the wave layer BEHIND the beach to span the gap between main2's `curb 3`
     // (upper edge) and `curb` (lower edge) groups — the transparent band the waves show
@@ -397,7 +444,7 @@ export default function BackgroundCanvas() {
   useBigTreeAnimation(bigTreeRef, { enabled: !!bigTreeSvg })
   useHumanAnimation(containerRef, humanRefs, { enabled: svgReady, debug: false })
 
-  const coverage = useBackgroundCoverage(containerRef, COVERAGE_CONFIG, { ready: svgReady && !!beachSvg })
+  const coverage = useBackgroundCoverage(containerRef, COVERAGE_CONFIG, { ready: svgReady && !!beachSvg, sceneLift })
 
   // Apply cover-zoom (width) + the static part of the transform (focal + BG_SHIFT),
   // then re-measure the px-based anchors at the new width. The scroll-driven parallax
@@ -638,7 +685,7 @@ export default function BackgroundCanvas() {
             left: 0,
             width: '100%',
             height: coverage.fillHeight,
-            backgroundColor: TERMINAL_FILL_COLOR,
+            backgroundColor: fillColor,
             zIndex: 0,
           }}
         />

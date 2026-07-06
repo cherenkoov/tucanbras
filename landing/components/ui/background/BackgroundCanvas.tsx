@@ -5,6 +5,7 @@ import ChristScene from './ChristScene'
 import { injectRailPath, injectCloudAnimation } from './utils/injectRailPath'
 import { useTrainAnimation } from './useTrainAnimation'
 import { useCarAnimation } from './useCarAnimation'
+import { injectBeachCarAnimation } from './beachCars'
 import { useCloudAnimation } from './useCloudAnimation'
 import { useBushAnimation } from './useBushAnimation'
 import { useBigTreeAnimation } from './useBigTreeAnimation'
@@ -265,7 +266,7 @@ export default function BackgroundCanvas() {
   useEffect(() => {
     fetch('/SVG/background/main%202.svg')
       .then(r => r.text())
-      .then(raw => setBeachSvg(prepareBeachSvg(raw)))
+      .then(raw => setBeachSvg(injectBeachCarAnimation(prepareBeachSvg(raw))))
       .catch(err => console.warn('BackgroundCanvas: beach SVG fetch failed', err))
   }, [])
 

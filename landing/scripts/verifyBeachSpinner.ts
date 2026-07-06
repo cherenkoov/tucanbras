@@ -5,6 +5,7 @@ import {
   originPercent,
   type SpinState,
 } from '../components/ui/background/beachSpinnerMath'
+import { BEACH_SPINNERS } from '../components/ui/background/beachSpinners'
 
 // originPercent: centre of the full canvas is 50/50
 {
@@ -49,5 +50,16 @@ import {
   spinStep(s, 0.1, 0.82)
   assert.ok(!isSettled(s, 0.01), 'mid-flight not settled')
 }
+
+// config data integrity
+assert.equal(BEACH_SPINNERS.length, 20, '11 palms + 9 umbrellas = 20')
+assert.equal(BEACH_SPINNERS.filter((s) => s.id.includes('palm')).length, 11, '11 palms')
+assert.equal(BEACH_SPINNERS.filter((s) => s.id.includes('umbrella')).length, 9, '9 umbrellas')
+for (const s of BEACH_SPINNERS) {
+  assert.ok(s.dir === 1 || s.dir === -1, `${s.id}: dir must be ±1`)
+}
+const ids = BEACH_SPINNERS.map((s) => s.id)
+assert.equal(new Set(ids).size, ids.length, 'no duplicate ids')
+assert.ok(ids.includes('type 2 palm 04 '), 'trailing-space id preserved verbatim')
 
 console.log('verifyBeachSpinner: math assertions passed')

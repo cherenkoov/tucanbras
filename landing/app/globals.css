@@ -317,11 +317,17 @@ input:-webkit-autofill:active {
    to 26px, the card-system radius) so the button reads as a rounded rectangle.
    On a full pill, shrinking the radius is visible where growing it (btn-press-hero)
    would not be — the rest radius is already pinned at half the height. Pairs with
-   the standard press scale. */
+   the standard press scale.
+
+   Like .btn-press-hero: the 1.04 scale pushes each side out by 2% of the button
+   width but only 2% of the much smaller height at the bottom, so the side gap to
+   the card closes more than the bottom one. Drop the button down by the net of the
+   two (2% of width minus 2% of the button's own height) so the gap stays even on
+   the sides and the bottom. Needs the wrapper marked `@container` for cqw. */
 .btn-press-tighten {
   transition: transform 120ms ease-out, border-radius 120ms ease-out;
 }
-.btn-press-tighten:hover  { transform: scale(1.04); border-radius: 26px; }
+.btn-press-tighten:hover  { transform: scale(1.04) translateY(calc(2cqw - 2%)); border-radius: 26px; }
 .btn-press-tighten:active { transform: scale(0.95); }
 
 /* Header desktop plate fill — frosted (translucent) → solid when the bar is hovered. */

@@ -89,8 +89,9 @@ export default function About({ data }: AboutProps) {
 
             <div className="flex-1" />
 
-            {/* Button container — plants positioned relative to it */}
-            <div className="relative w-full mt-[420px] lg:mt-0">
+            {/* Button container — plants positioned relative to it.
+                @container so the hover drop can reference the button's own width (cqw). */}
+            <div className="relative w-full mt-[420px] lg:mt-0 @container">
 
               {/* Hibiscus orange (upsideup) */}
               <div className="absolute h-[250px] right-[-30px] top-[-205px] w-[260px] pointer-events-none z-10">

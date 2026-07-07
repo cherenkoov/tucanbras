@@ -6,6 +6,8 @@ import { injectRailPath, injectCloudAnimation } from './utils/injectRailPath'
 import { useTrainAnimation } from './useTrainAnimation'
 import { useCarAnimation } from './useCarAnimation'
 import { injectBeachCarAnimation } from './beachCars'
+import { BEACH_SPINNERS, SPINNER_VIEWBOX } from './beachSpinners'
+import { useBeachSpinnerAnimation } from './useBeachSpinnerAnimation'
 import { useCloudAnimation } from './useCloudAnimation'
 import { useBushAnimation } from './useBushAnimation'
 import { useBigTreeAnimation } from './useBigTreeAnimation'
@@ -42,6 +44,19 @@ function extractGroup(svgString: string, groupId: string): { inner: string; with
 
 function wrapSvg(inner: string): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 800 2047" overflow="visible">${inner}</svg>`
+}
+
+// Wrap a single lifted beach object in its own full-canvas SVG so it overlays the
+// beach 1:1 (same viewBox → same coordinate mapping). overflow:visible + display:block
+// mirror wrapSvg; the beach viewBox is 1027×3614 (not the collage's 800×2047).
+function wrapBeachSpinner(inner: string): string {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="${SPINNER_VIEWBOX}" overflow="visible" style="display:block">${inner}</svg>`
+}
+
+// Drop the clip-path on the object's OUTER <g> so the rotated art isn't cropped to
+// its authored box (same reasoning as the cars) and needs none of the beach's defs.
+function stripSpinnerClip(groupSvg: string): string {
+  return groupSvg.replace(/(<g id="[^"]*")\s+clip-path="[^"]*"/, '$1')
 }
 
 // `main 2.svg` (the beach/boulevard scene) is a STANDALONE Figma export. Two problems
@@ -144,6 +159,7 @@ const BEACH_LOWER_PX = 300
 export default function BackgroundCanvas() {
   const [mainSvg, setMainSvg] = useState('')
   const [beachSvg, setBeachSvg] = useState('')
+  const [spinnerSvgs, setSpinnerSvgs] = useState<string[]>([])
   const [citySvg, setCitySvg] = useState('')
   const [cloudsSvg, setCloudsSvg] = useState('')
   const [frontSvg, setFrontSvg] = useState('')
@@ -266,7 +282,21 @@ export default function BackgroundCanvas() {
   useEffect(() => {
     fetch('/SVG/background/main%202.svg')
       .then(r => r.text())
-      .then(raw => setBeachSvg(injectBeachCarAnimation(prepareBeachSvg(raw))))
+      .then(raw => {
+        // Prepare (namespace ids, strip backdrops), then LIFT each palm/umbrella out
+        // into its own overlay (clip-path stripped). The base beach = the remainder,
+        // with the car SMIL injected as before. Index alignment with BEACH_SPINNERS is
+        // kept via '' placeholders for any id not found.
+        let s = prepareBeachSvg(raw)
+        const spinners: string[] = []
+        for (const cfg of BEACH_SPINNERS) {
+          const { inner, without } = extractGroup(s, `${BEACH_PREFIX}${cfg.id}`)
+          spinners.push(inner ? wrapBeachSpinner(stripSpinnerClip(inner)) : '')
+          s = without
+        }
+        setSpinnerSvgs(spinners)
+        setBeachSvg(injectBeachCarAnimation(s))
+      })
       .catch(err => console.warn('BackgroundCanvas: beach SVG fetch failed', err))
   }, [])
 
@@ -444,6 +474,7 @@ export default function BackgroundCanvas() {
   useBushAnimation(bush01Ref, bush02Ref, { enabled: svgReady })
   useBigTreeAnimation(bigTreeRef, { enabled: !!bigTreeSvg })
   useHumanAnimation(containerRef, humanRefs, { enabled: svgReady, debug: false })
+  useBeachSpinnerAnimation(beachRef, { enabled: !!beachSvg })
 
   const coverage = useBackgroundCoverage(containerRef, COVERAGE_CONFIG, { ready: svgReady && !!beachSvg, sceneLift })
 
@@ -507,13 +538,13 @@ export default function BackgroundCanvas() {
 
   return (
     <div
-      className="absolute top-0 left-0 w-full pointer-events-none"
+      className="background-canvas absolute top-0 left-0 w-full pointer-events-none"
       style={{
         overflow: 'visible',
         isolation: 'isolate',
         opacity: entered ? 1 : 0,
         transform: entered ? 'translateY(0)' : 'translateY(80px)',
-        transition: 'opacity 1.4s ease, transform 1.4s cubic-bezier(0.16,1,0.3,1)',
+        transition: 'opacity 1.4s ease, transform 1.4s cubic-bezier(0.16,1,0.3,1), filter 0.3s ease',
       }}
     >
       <div
@@ -560,11 +591,23 @@ export default function BackgroundCanvas() {
       {/* Beach scene (main 2.svg) — in-flow block right below the collage so it extends
           the container height and sits flush under bush 01/02; full width, own viewBox. */}
       {beachSvg && (
-        <div
-          ref={beachRef}
-          style={{ position: 'relative', zIndex: 10, width: '100%' }}
-          dangerouslySetInnerHTML={{ __html: beachSvg }}
-        />
+        <div ref={beachRef} style={{ position: 'relative', zIndex: 10, width: '100%' }}>
+          {/* base beach (minus the lifted palms/umbrellas) — establishes the block height;
+              curb/curb3/brown/fill queries still resolve against this child */}
+          <div dangerouslySetInnerHTML={{ __html: beachSvg }} />
+          {/* one absolute overlay per lifted object, pixel-aligned via the shared viewBox;
+              the hook rotates each around its own centre by data-spin-id */}
+          {spinnerSvgs.map((svg, i) =>
+            svg ? (
+              <div
+                key={BEACH_SPINNERS[i].id}
+                data-spin-id={BEACH_SPINNERS[i].id}
+                style={{ position: 'absolute', top: 0, left: 0, width: '100%' }}
+                dangerouslySetInnerHTML={{ __html: svg }}
+              />
+            ) : null,
+          )}
+        </div>
       )}
       {/* clouds — own layer (z 11: above mainSvg z10, below the train overlay z12 /
           roads z15), reproducing the original "clouds on top of mainSvg" paint order.

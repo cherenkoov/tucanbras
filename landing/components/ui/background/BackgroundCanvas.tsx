@@ -6,6 +6,7 @@ import { injectRailPath, injectCloudAnimation } from './utils/injectRailPath'
 import { useTrainAnimation } from './useTrainAnimation'
 import { useCarAnimation } from './useCarAnimation'
 import { injectBeachCarAnimation } from './beachCars'
+import { injectWaveSurfAnimation } from './beachWaves'
 import { BEACH_SPINNERS, SPINNER_VIEWBOX } from './beachSpinners'
 import { useBeachSpinnerAnimation } from './useBeachSpinnerAnimation'
 import { useCloudAnimation } from './useCloudAnimation'
@@ -295,7 +296,7 @@ export default function BackgroundCanvas() {
           s = without
         }
         setSpinnerSvgs(spinners)
-        setBeachSvg(injectBeachCarAnimation(s))
+        setBeachSvg(injectWaveSurfAnimation(injectBeachCarAnimation(s)))
       })
       .catch(err => console.warn('BackgroundCanvas: beach SVG fetch failed', err))
   }, [])

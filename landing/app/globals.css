@@ -188,6 +188,10 @@ body.menu-open main {
   user-select: none;
 }
 
+body.menu-open .background-canvas {
+  filter: blur(6px);
+}
+
 /* ── Free-lesson modal animation ─────────────────────────────────────────── */
 
 @keyframes modal-scale-in {

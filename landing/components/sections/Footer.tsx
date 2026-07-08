@@ -195,10 +195,10 @@ export default function Footer({ data, tutors, planNames, planPrices, locale }: 
             )}
           </div>
 
-          {/* ── Bottom bar: copyright + language ── */}
-          <div className="flex flex-col items-center text-center gap-y-[20px] w-full md:flex-row md:items-center md:justify-between md:text-left">
+          {/* ── Bottom bar: stacked & centered when tight; copyright left / language right (32px gap) when wide ── */}
+          <div className="flex flex-col items-center gap-y-[20px] w-full sm:flex-row sm:items-center sm:justify-between sm:gap-x-[32px]">
             {/* Copyright */}
-            <div className="flex flex-col gap-[0] items-center md:items-start">
+            <div className="flex flex-col gap-[0] items-center sm:items-start">
               <p
                 className="font-sans font-bold text-ink"
                 style={{ fontSize: 'clamp(16px, 2vw, 32px)', lineHeight: '1' }}

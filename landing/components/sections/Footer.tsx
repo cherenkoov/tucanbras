@@ -18,7 +18,7 @@ function FaqAccordion({ group }: { group: FaqGroupType }) {
     <div className="flex flex-col gap-[24px] flex-1 min-w-[276px] max-w-[320px]">
       {/* Group heading */}
       <p
-        className="font-heading font-normal text-ink"
+        className="font-heading font-normal text-ink text-center md:text-left"
         style={{ fontSize: 'clamp(20px, 2vw, 28px)', lineHeight: '32px' }}
       >
         {group.title}
@@ -152,7 +152,7 @@ export default function Footer({ data, tutors, planNames, planPrices, locale }: 
           <div className="flex flex-wrap gap-[60px_30px] items-start justify-center w-full">
 
             {/* Legal / Policy links */}
-            <div className="flex flex-col gap-[24px] flex-1 min-w-[276px] max-w-[320px]">
+            <div className="flex flex-col items-center text-center gap-[24px] flex-1 min-w-[276px] max-w-[320px] md:items-start md:text-left">
               <p
                 className="font-heading font-normal text-ink"
                 style={{ fontSize: 'clamp(20px, 2vw, 28px)', lineHeight: '32px' }}
@@ -196,9 +196,9 @@ export default function Footer({ data, tutors, planNames, planPrices, locale }: 
           </div>
 
           {/* ── Bottom bar: copyright + language ── */}
-          <div className="flex flex-wrap gap-y-[20px] items-center justify-between w-full">
+          <div className="flex flex-col items-center text-center gap-y-[20px] w-full md:flex-row md:items-center md:justify-between md:text-left">
             {/* Copyright */}
-            <div className="flex flex-col gap-[0]">
+            <div className="flex flex-col gap-[0] items-center md:items-start">
               <p
                 className="font-sans font-bold text-ink"
                 style={{ fontSize: 'clamp(16px, 2vw, 32px)', lineHeight: '1' }}

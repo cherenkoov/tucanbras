@@ -50,8 +50,11 @@ function TutorCard({
           marginBottom: 'calc(-1 * var(--edge-h))',
           WebkitMaskImage: 'linear-gradient(#fff,#fff), url(/SVG/tutors/cover-notch-cut.svg)',
           maskImage: 'linear-gradient(#fff,#fff), url(/SVG/tutors/cover-notch-cut.svg)',
-          WebkitMaskSize: '100% calc(100% - var(--edge-h)), 100% var(--edge-h)',
-          maskSize: '100% calc(100% - var(--edge-h)), 100% var(--edge-h)',
+          // +1px overlap on the solid layer so it tucks under the notch mask —
+          // prevents a sub-pixel transparent seam where the two mask regions meet
+          // (same guard the glass cover below uses).
+          WebkitMaskSize: '100% calc(100% - var(--edge-h) + 1px), 100% var(--edge-h)',
+          maskSize: '100% calc(100% - var(--edge-h) + 1px), 100% var(--edge-h)',
           WebkitMaskPosition: 'top, bottom',
           maskPosition: 'top, bottom',
           WebkitMaskRepeat: 'no-repeat, no-repeat',

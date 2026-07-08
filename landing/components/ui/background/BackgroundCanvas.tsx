@@ -612,10 +612,28 @@ export default function BackgroundCanvas() {
       )}
       {/* clouds — own layer (z 11: above mainSvg z10, below the train overlay z12 /
           roads z15), reproducing the original "clouds on top of mainSvg" paint order.
-          A counter-shift to keep it pinned is added in Task 2. */}
+          Decoupled from the cover-zoom framing so the sky looks the SAME at every width
+          (like desktop): the collage zooms/shifts to keep the statue framed, but that
+          ballooned the clouds and flung them off-screen on narrow viewports. We undo it —
+          • width 100/zoom% cancels the container's `width: zoom%` scale → clouds render
+            at natural (zoom-1) size, aspect-locked to the viewport width;
+          • translateX(-focalTranslateX) cancels the horizontal focal shift → left edge
+            flush with the viewport, so cloud columns sit where they do on desktop;
+          • +sceneLift cancels the statue-head lift, which balloons on narrow widths
+            (62->400px) and otherwise shoves the whole sky above the viewport top;
+          • BG_SHIFT_NEG still cancels the mobile vertical descent.
+          Net vertical offset is then 0 (+ the scroll parallax, which is ~0 at the hero
+          where the clouds live). transformOrigin top-left so the width change scales from
+          the corner, not centre. */}
       {cloudsSvg && (
         <div
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 11, transform: `translateY(${BG_SHIFT_NEG})` }}
+          style={{
+            position: 'absolute', top: 0, left: 0,
+            width: `${100 / coverage.zoom}%`,
+            zIndex: 11,
+            transformOrigin: 'top left',
+            transform: `translateX(${-coverage.focalTranslateX}px) translateY(calc(${BG_SHIFT_NEG} + ${sceneLift}px))`,
+          }}
           dangerouslySetInnerHTML={{ __html: cloudsSvg }}
         />
       )}

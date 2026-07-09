@@ -3,6 +3,7 @@ import { ComparisonProps } from '@/types'
 import AdaptiveText from '@/components/ui/AdaptiveText'
 import AdaptiveIcon from '@/components/ui/AdaptiveIcon'
 import PixelWalker from '@/components/ui/PixelWalker'
+import FitText from '@/components/ui/FitText'
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
 const IMG_TUCAN_PIXEL      = '/PNG/comparison/Tucan Pixel.png'
@@ -55,13 +56,13 @@ export default function Comparison({ data }: ComparisonProps) {
           >
             {/* Block heading */}
             <div className="flex items-center justify-between gap-[16px] w-full">
-              <p
-                className="font-accent font-bold text-cream min-w-0"
+              <FitText
+                className="font-accent font-bold text-cream min-w-0 break-words"
                 style={{ fontSize: 'clamp(22px, 2.5vw, 36px)', lineHeight: '1.1' }}
               >
                 {data.tucanTitle}
-              </p>
-              <PixelWalker src={IMG_TUCAN_PIXEL} width={110} height={72} faceSign={1} pace={2.4} phase={0} />
+              </FitText>
+              <PixelWalker src={IMG_TUCAN_PIXEL} width={110} height={72} faceSign={1} pace={2.4} phase={0} minLane={140} />
             </div>
 
             {/* Features — 2 balanced columns on tablet, single column on mobile & desktop-row */}
@@ -102,13 +103,13 @@ export default function Comparison({ data }: ComparisonProps) {
           >
             {/* Block heading */}
             <div className="flex items-center justify-between gap-[16px] w-full">
-              <p
-                className="font-accent font-bold min-w-0"
+              <FitText
+                className="font-accent font-bold min-w-0 break-words"
                 style={{ fontSize: 'clamp(22px, 2.5vw, 36px)', lineHeight: '1.1', color: '#5b595a' }}
               >
                 {data.schoolTitle}
-              </p>
-              <PixelWalker src={IMG_STONE_PIXEL} width={69} height={72} faceSign={-1} pace={2.7} phase={0.35} />
+              </FitText>
+              <PixelWalker src={IMG_STONE_PIXEL} width={69} height={72} faceSign={-1} pace={2.7} phase={0.35} minLane={120} />
             </div>
 
             {/* Features — 2 balanced columns on tablet, single column on mobile & desktop-row */}

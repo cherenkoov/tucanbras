@@ -11,14 +11,14 @@
 
 | Слой | Технология | Версия |
 |------|-----------|--------|
-| Framework | Next.js App Router | 16.2.2 |
+| Framework | Next.js App Router | 16.2.10 |
 | Runtime | React | 19.2.4 |
 | Language | TypeScript | 5.x strict |
 | Styling | Tailwind CSS | v4 (PostCSS) |
 | CMS | Notion API (`@notionhq/client`) | 5.17.0 |
-| Database | PostgreSQL (`pg`) | 8.20.0 |
+| Database | PostgreSQL (`pg`) | 8.20.0 — общая БД `tukan` тукан-бота на VPS |
 | Email | Resend | 6.12.0 |
-| Deploy | Netlify | (plugin v5) |
+| Deploy | VPS: `next start` за nginx, pm2 `tucanbras-landing` | см. корневой CLAUDE.md |
 
 Tailwind v4 не имеет `tailwind.config.ts` — все токены (цвета, тени, шрифты) объявлены в `app/globals.css`. Всегда использовать `var(--color-*)`, никогда не вводить сырые hex-значения.
 
@@ -77,8 +77,8 @@ tucanbras/
 ├── docs/superpowers/
 │   ├── plans/                  # Планы реализации
 │   └── specs/                  # Дизайн-документы
-├── docker-compose.yml          # PostgreSQL dev container
-└── netlify.toml                # Deploy config
+├── migrations/                 # SQL для БД (сейчас применяются к БД бота `tukan`)
+└── docker-compose.yml          # PostgreSQL dev container
 ```
 
 ---

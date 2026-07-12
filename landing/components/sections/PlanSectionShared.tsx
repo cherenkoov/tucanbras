@@ -144,7 +144,7 @@ export function PlanSection({ plan, index }: { plan: PlanCard; index: number }) 
             {plan.name}
           </p>
 
-          <div className={`flex items-baseline lg:flex-col ${priceColor}`}>
+          <div className={`text-center lg:text-left lg:flex items-baseline lg:flex-col ${priceColor}`}>
             <span className="font-heading font-bold" style={{ fontSize: 'clamp(40px, 5vw, 80px)', lineHeight: '1.1' }}>
               {plan.priceAmount}
             </span>

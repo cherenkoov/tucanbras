@@ -163,7 +163,7 @@ function NavPill({ label, href, bg, text }: {
 
 export default function Header({ navLinks }: HeaderProps) {
   const [menuOpen,       setMenuOpen]       = useState(false)
-  const [collapsedCount, setCollapsedCount] = useState(0)   // 0 = all pills, 1 = last hidden, 2 = last two hidden
+  const [collapsedCount, setCollapsedCount] = useState(0)   // 0 = all pills visible, N = last N pills collapsed into ⋮ (up to navLinks.length)
   const [dotsOpen,       setDotsOpen]       = useState(false)
 
   const brandRef        = useRef<HTMLAnchorElement>(null)
@@ -201,7 +201,7 @@ export default function Header({ navLinks }: HeaderProps) {
           ? navRect.right - fullNavWidthRef.current - thresholdX
           : actualGap
 
-        if (prev < 2 && actualGap <= COLLAPSE_GAP) {
+        if (prev < navLinks.length && actualGap <= COLLAPSE_GAP) {
           if (prev === 0) fullNavWidthRef.current = navRect.width
           return prev + 1
         }
@@ -215,7 +215,10 @@ export default function Header({ navLinks }: HeaderProps) {
     check()
     window.addEventListener('resize', check)
     return () => window.removeEventListener('resize', check)
-  }, [])
+    // Re-runs after every collapse/expand step so a single mount at a narrow
+    // width (no resize event fires) cascades through all needed steps instead
+    // of stopping after collapsing just one pill.
+  }, [navLinks.length, collapsedCount])
 
   // Close ⋮ dropdown on outside click
   useEffect(() => {
@@ -327,7 +330,7 @@ export default function Header({ navLinks }: HeaderProps) {
               />
             ))}
 
-            {/* ⋮ button — shown when 1 or 2 pills are collapsed */}
+            {/* ⋮ button — shown when at least 1 pill is collapsed */}
             {collapsedCount > 0 && (
               <div ref={dotsRef} className="relative shrink-0">
                 <button

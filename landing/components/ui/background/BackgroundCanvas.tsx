@@ -89,6 +89,18 @@ const BG_SHIFT = 'clamp(0px, calc((1024px - 100vw) * 400 / 649), 400px)'
 // factor, flip the clamp bounds) or the clouds will drift instead of staying pinned.
 const BG_SHIFT_NEG = 'clamp(-400px, calc((1024px - 100vw) * -400 / 649), 0px)'
 
+// EXPERIMENT: stretch the whole background vertically on phones only, so more art
+// covers the tall phone viewport. Origin 'top' keeps the statue/hero anchor in place —
+// the added height is added below, not split above+below. Below MOBILE_VSTRETCH_BREAKPOINT
+// (phones; tablets/desktop are untouched, matching the phones-only cutoff already used
+// for focalAnchorEnd below).
+const MOBILE_VSTRETCH = 1.2
+const MOBILE_VSTRETCH_BREAKPOINT = 768
+const mobileVScale = () =>
+  typeof window !== 'undefined' && window.innerWidth < MOBILE_VSTRETCH_BREAKPOINT
+    ? MOBILE_VSTRETCH
+    : 1
+
 // Decorative wave bands (moved OUT of the page flow into this background). They sit
 // BEHIND the beach (z9 < main2's z10), STRETCHED to fill the gap between main2's
 // `curb 3` (upper edge) and `curb` (lower edge) groups — the empty band the waves
@@ -121,6 +133,23 @@ const TERMINAL_FILL_COLOR = '#ECDBB5'
 // at the page bottom is handled by the deficit-driven parallax + terminal fill (see
 // computeCoverage). Kept well inside the measured overlap so no collage↔beach gap opens.
 const BEACH_LOWER_PX = 300
+// Desktop counterpart: at ≥1024px (same mobile/tablet-vs-desktop line as BG_SHIFT) the
+// wide viewport was pushing main2 down far enough that the ocean waves at the very
+// bottom of the page mostly fell into the flat terminal-fill band instead of showing
+// real wave art. Retract main2 by 100px on wide screens to pull the waves back into view.
+const BEACH_LOWER_PX_WIDE = BEACH_LOWER_PX - 100
+const BEACH_LOWER_WIDE_BREAKPOINT = 1024
+
+// How deep the statue's pedestal base bites into #Peak, as a FRACTION of the peak's
+// rendered height — NOT a fixed pixel value. A fixed sink (was +15px) is a different
+// FRACTION of the peak at every width: the peak renders ~118px tall on desktop but only
+// ~80px on a phone, so +15px sat the base ~0.12 down on desktop yet ~0.21 down on phones
+// — floating on desktop, sunk on mobile. Scaling the bite with the peak's own height
+// keeps the base on the same visual point of the crest at EVERY width (and rides the
+// mobile scaleY stretch automatically, since peakRect.height already includes it). Tuned
+// so the base plants right on the rim: bigger peak (desktop) → deeper px bite; smaller
+// peak (phone) → shallower px bite.
+const PEAK_SINK_FRACTION = 0.16
 
 export default function BackgroundCanvas() {
   const [mainSvg, setMainSvg] = useState('')
@@ -333,13 +362,20 @@ export default function BackgroundCanvas() {
     if (!peak) return
     const containerRect = container.getBoundingClientRect()
     const peakRect = peak.getBoundingClientRect()
+    // getBoundingClientRect reflects the container's scaleY(mobileVScale()) transform
+    // (see coverage effect below), but `top` on christRef is a PRE-transform local
+    // offset that the SAME transform then re-scales — divide it out here or the
+    // stretch gets applied twice and the statue drifts off the peak on mobile.
+    const vScale = mobileVScale()
     setPeakPos({
-      // horizontal: 2/5 from left edge (ratio 2:3)
+      // horizontal: 2/5 from left edge (ratio 2:3) — unaffected, scaleY doesn't touch X
       x: peakRect.left - containerRect.left + peakRect.width * (2 / 5),
-      // vertical: seat the pedestal base right on the crest — a small bite into Peak
-      // so it reads as planted on the rim, not floating. (Was +25 = base sunk ~13px
-      // below the crest; +12 lands the base on the crest, +15 keeps ~3px overlap.)
-      y: peakRect.top - containerRect.top + 15,
+      // vertical: seat the pedestal base on the crest with a bite PROPORTIONAL to the
+      // peak's rendered height (PEAK_SINK_FRACTION), so it plants on the same visual point
+      // of the rim at every viewport width instead of floating (desktop) / sinking (mobile)
+      // as a fixed px offset did. Both terms are divided by vScale because peakPos.y is a
+      // PRE-transform local top that the container's scaleY(vScale) then re-scales.
+      y: (peakRect.top - containerRect.top + PEAK_SINK_FRACTION * peakRect.height) / vScale,
     })
   }, [])
 
@@ -391,16 +427,26 @@ export default function BackgroundCanvas() {
     if (!beach || !container) return
     const bush = container.querySelector<SVGGraphicsElement>('[id="bush 01"]')
     if (!bush) return
+    // All getBoundingClientRect reads below reflect the container's scaleY(mobileVScale())
+    // transform (see coverage effect below), but marginTop/top/height set on descendants
+    // of that same container are PRE-transform local values that the transform re-scales
+    // — every post-transform delta must be divided by vScale before being written back,
+    // or the stretch applies twice (beach, waves, brown ground all drift on mobile).
+    const vScale = mobileVScale()
     const cRect = container.getBoundingClientRect()
     const bushRect = bush.getBoundingClientRect()
     const bushMidY = bushRect.top + bushRect.height / 2 // viewport px
     const beachTop = beach.getBoundingClientRect().top  // viewport px, reflects current margin
     const current = parseFloat(beach.style.marginTop) || 0
-    // Move the beach so its TOP sits BEACH_LOWER_PX below bush 01's centre; correct
+    // Move the beach so its TOP sits beachLowerPx below bush 01's centre; correct
     // relative to the current margin so it converges in one step and self-corrects on
-    // resize (negative = up). The extra BEACH_LOWER_PX lowers the beach into its overlap
+    // resize (negative = up). The extra offset lowers the beach into its overlap
     // reserve so more real sea/beach art shows below the fold before the terminal fill.
-    beach.style.marginTop = `${current + (bushMidY - beachTop) + BEACH_LOWER_PX}px`
+    // Desktop (≥1024px) uses a smaller offset (BEACH_LOWER_PX_WIDE) than mobile/tablet.
+    const beachLowerPx = window.innerWidth >= BEACH_LOWER_WIDE_BREAKPOINT
+      ? BEACH_LOWER_PX_WIDE
+      : BEACH_LOWER_PX
+    beach.style.marginTop = `${current + (bushMidY - beachTop) / vScale + beachLowerPx}px`
 
     // STRETCH the wave layer BEHIND the beach to span the gap between main2's `curb 3`
     // (upper edge) and `curb` (lower edge) groups — the transparent band the waves show
@@ -414,8 +460,8 @@ export default function BackgroundCanvas() {
     if (waves && curb && curb3) {
       const rCurb = curb.getBoundingClientRect()
       const rCurb3 = curb3.getBoundingClientRect()
-      const curbMid = (rCurb.top + rCurb.bottom) / 2 - cRect.top   // lower edge of the gap
-      const curb3Mid = (rCurb3.top + rCurb3.bottom) / 2 - cRect.top // upper edge of the gap
+      const curbMid = ((rCurb.top + rCurb.bottom) / 2 - cRect.top) / vScale   // lower edge of the gap
+      const curb3Mid = ((rCurb3.top + rCurb3.bottom) / 2 - cRect.top) / vScale // upper edge of the gap
       // Offsets EXPAND the band independently: raise the top edge, lower the bottom.
       const top = curb3Mid - WAVES_TOP_OFFSET_PX
       const bottom = curbMid + WAVES_BOTTOM_OFFSET_PX
@@ -430,8 +476,8 @@ export default function BackgroundCanvas() {
     const brown = brownRef.current
     if (brown) {
       const bRect = beach.getBoundingClientRect()
-      brown.style.top = `${bRect.top - cRect.top}px`
-      brown.style.height = `${bRect.height}px`
+      brown.style.top = `${(bRect.top - cRect.top) / vScale}px`
+      brown.style.height = `${bRect.height / vScale}px`
     }
   }, [])
 
@@ -465,9 +511,11 @@ export default function BackgroundCanvas() {
     const container = containerRef.current
     if (!container) return
     container.style.width = `${coverage.zoom * 100}%`
+    container.style.transformOrigin = 'top'
     // translateY composes BG_SHIFT (mobile descent) − sceneLift (start head on hero line).
+    // scaleY: phones-only vertical stretch experiment (MOBILE_VSTRETCH), 1 elsewhere.
     container.style.transform =
-      `translateX(${coverage.focalTranslateX}px) translateY(calc(${BG_SHIFT} - ${sceneLift}px))`
+      `translateX(${coverage.focalTranslateX}px) translateY(calc(${BG_SHIFT} - ${sceneLift}px)) scaleY(${mobileVScale()})`
     // Width changed → the getBoundingClientRect-based anchors must re-measure.
     // getBoundingClientRect inside these forces the pending reflow first.
     updatePeakPos()
@@ -493,9 +541,10 @@ export default function BackgroundCanvas() {
     let current = (1 - p) * window.scrollY
     let idle = 0
     const lift = sceneLift
+    const vScale = mobileVScale()
     const write = (par: number) => {
       container.style.transform =
-        `translateX(${fx}px) translateY(calc(${BG_SHIFT} - ${lift}px + ${par}px))`
+        `translateX(${fx}px) translateY(calc(${BG_SHIFT} - ${lift}px + ${par}px)) scaleY(${vScale})`
     }
     const tick = () => {
       const target = (1 - p) * window.scrollY
@@ -696,7 +745,14 @@ export default function BackgroundCanvas() {
         />
       )}
 
-      {/* ChristScene: bottom-center anchored to top-center of #Peak, 15px overlap */}
+      {/* ChristScene: bottom-center anchored to top-center of #Peak, 15px overlap.
+          The container's phones-only scaleY(MOBILE_VSTRETCH) stretches the scenery to
+          cover the tall phone viewport, but it would ALSO stretch this statue overlay
+          (a recognisable object, not scenery) into a distorted elongated figure. Counter
+          it here: scaleY(1/vScale) cancels the container's vertical scale so the statue
+          renders at natural proportions, while transformOrigin '50% 100%' pivots the undo
+          about the pedestal base — the exact point planted on the peak — so seating on
+          the crest is preserved. On desktop vScale===1 and this is a no-op. */}
       {peakPos && (
         <div
           ref={christRef}
@@ -704,7 +760,8 @@ export default function BackgroundCanvas() {
           style={{
             left: peakPos.x,
             top: peakPos.y,
-            transform: 'translate(-50%, -100%)',
+            transformOrigin: '50% 100%',
+            transform: `translate(-50%, -100%) scaleY(${1 / mobileVScale()})`,
             zIndex: 55,
           }}
         >

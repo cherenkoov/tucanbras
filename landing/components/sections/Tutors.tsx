@@ -1,10 +1,13 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useRef, useState, type CSSProperties } from 'react'
+import Image from 'next/image'
+import { canOptimizeImage } from '@/lib/optimizableImage'
 import type { TutorsProps, Locale, FreeLessonModalStrings } from '@/types'
 import type { Tutor } from '@/lib/tutors'
 import { getStubTutors } from '@/lib/tutorStubs'
 import FreeLessonModal from '@/components/ui/FreeLessonModal'
+import AdaptiveText from '@/components/ui/AdaptiveText'
 
 // ─── Tutor card ──────────────────────────────────────────────────────────────
 
@@ -27,7 +30,7 @@ function TutorCard({
       type="button"
       onClick={onSelect}
       className="relative flex flex-col w-full max-w-[410px] mx-auto cursor-pointer select-none active:opacity-80 lg:active:opacity-100 transition-opacity bg-transparent border-0 p-0 text-left"
-      style={{ touchAction: 'pan-x' }}
+      style={{ touchAction: 'pan-x', '--edge-h': 'calc(min(78vw, 370px) * 0.192)' } as CSSProperties}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onMouseMove={e => {
@@ -36,38 +39,82 @@ function TutorCard({
       }}
     >
 
-      {/* Photo — overlaps into card body */}
-      <div className="relative w-full flex justify-center z-0 mb-[-80px]">
-        <div
-          className="relative overflow-hidden rounded-[21px]"
-          style={{ width: 'calc(100% - 80px)', maxWidth: '326px', aspectRatio: '1/1' }}
-        >
-          {tutor.imageUrl ? (
-            <img
-              src={tutor.imageUrl}
-              alt={tutor.fullName}
-              className="absolute inset-0 w-full h-full object-cover object-top pointer-events-none"
-            />
-          ) : (
-            <div className="absolute inset-0" style={{ backgroundColor: '#a8d5ac' }} />
-          )}
-          {/* Inner shadow overlay */}
+      {/*
+        Photo — full-card-width layer so its mask shares the cover's coordinate
+        space. Two mask layers: a solid gradient keeps the whole square above the
+        overlap visible; cover-notch-cut.svg trims the bottom `--edge-h` strip
+        along the cover's decorative top edge, so the avatar tucks into the notch
+        and nothing bleeds under the cover.
+      */}
+      <div
+        className="relative w-full z-20 pointer-events-none"
+        style={{
+          marginBottom: 'calc(-1 * var(--edge-h))',
+          WebkitMaskImage: 'linear-gradient(#fff,#fff), url(/SVG/tutors/cover-notch-cut.svg)',
+          maskImage: 'linear-gradient(#fff,#fff), url(/SVG/tutors/cover-notch-cut.svg)',
+          // +1px overlap on the solid layer so it tucks under the notch mask —
+          // prevents a sub-pixel transparent seam where the two mask regions meet
+          // (same guard the glass cover below uses).
+          WebkitMaskSize: '100% calc(100% - var(--edge-h) + 1px), 100% var(--edge-h)',
+          maskSize: '100% calc(100% - var(--edge-h) + 1px), 100% var(--edge-h)',
+          WebkitMaskPosition: 'top, bottom',
+          maskPosition: 'top, bottom',
+          WebkitMaskRepeat: 'no-repeat, no-repeat',
+          maskRepeat: 'no-repeat, no-repeat',
+        }}
+      >
+        <div className="flex justify-center">
           <div
-            className="absolute inset-0 rounded-[21px] pointer-events-none"
-            style={{ boxShadow: 'inset 0px 4px 4px rgba(255,255,255,0.25), inset 0px -24px 36px rgba(0,0,0,0.32)' }}
-          />
+            className="relative overflow-hidden rounded-[21px]"
+            style={{ width: 'calc(100% - 80px)', maxWidth: '326px', aspectRatio: '1/1' }}
+          >
+            {tutor.imageUrl ? (
+              <Image
+                src={tutor.imageUrl}
+                alt={tutor.fullName}
+                fill
+                sizes="(max-width: 767px) 80vw, 326px"
+                unoptimized={!canOptimizeImage(tutor.imageUrl)}
+                className="object-cover object-top pointer-events-none"
+              />
+            ) : (
+              <div className="absolute inset-0" style={{ backgroundColor: '#a8d5ac' }} />
+            )}
+            {/* Inner shadow overlay */}
+            <div
+              className="absolute inset-0 rounded-[21px] pointer-events-none"
+              style={{ boxShadow: 'inset 0px 4px 4px rgba(255,255,255,0.25), inset 0px -24px 36px rgba(0,0,0,0.32)' }}
+            />
+          </div>
         </div>
       </div>
 
-      {/* Card body */}
+      {/* Card body — content defines height; glass cover sits behind it */}
       <div
-        className="relative rounded-[36px] pt-[88px] pb-[24px] px-[12px] z-10"
-        style={{
-          backgroundImage: 'url(/SVG/tutors/cover.svg)',
-          backgroundSize: '100% 100%',
-        }}
+        data-glass-center
+        className="group relative z-10 px-[12px] pb-[24px]"
+        style={{ paddingTop: 'calc(var(--edge-h) + 16px)' }}
       >
-        <div className="relative flex flex-col gap-[16px]">
+        {/*
+          Glass cover — frosted green panel masked to the cover silhouette so the
+          blur follows the notch shape (not the rectangle). Fixed-height notched
+          band on top + stretchy rounded body below; solidifies on hover / centre.
+        */}
+        <div
+          aria-hidden
+          className="absolute inset-0 z-0 rounded-b-[36px] backdrop-blur-[4px] bg-[#8fd096]/80 transition-all duration-[600ms] group-hover:backdrop-blur-none group-hover:bg-[#8fd096] group-[.is-center]:backdrop-blur-none group-[.is-center]:bg-[#8fd096] pointer-events-none"
+          style={{
+            WebkitMaskImage: 'url(/SVG/tutors/cover-edge.svg), linear-gradient(#fff,#fff)',
+            maskImage: 'url(/SVG/tutors/cover-edge.svg), linear-gradient(#fff,#fff)',
+            WebkitMaskSize: '100% var(--edge-h), 100% calc(100% - var(--edge-h) + 1px)',
+            maskSize: '100% var(--edge-h), 100% calc(100% - var(--edge-h) + 1px)',
+            WebkitMaskPosition: 'top, bottom',
+            maskPosition: 'top, bottom',
+            WebkitMaskRepeat: 'no-repeat, no-repeat',
+            maskRepeat: 'no-repeat, no-repeat',
+          }}
+        />
+        <div className="relative z-10 flex flex-col gap-[16px]">
 
           {/* Name */}
           {(() => {
@@ -213,7 +260,7 @@ function TutorCarousel({
         className="flex items-center overflow-x-auto overflow-y-hidden snap-x snap-mandatory gap-[12px] py-[20px] -my-[20px] pl-6 lg:pl-[100px] pr-6 lg:pr-[100px]"
         style={{ scrollbarWidth: 'none', touchAction: 'pan-x' }}
       >
-        {tutors.map((tutor, i) => (
+        {tutors.map(tutor => (
           <div
             key={tutor.id}
             className="snap-center shrink-0"
@@ -287,18 +334,20 @@ export default function Tutors({ data, tutors, locale, modalStrings }: TutorsSec
 
         {/* ══ Headings row ══ */}
         <div className="flex flex-col lg:flex-row gap-[24px] lg:gap-[48px] items-start w-full">
-          <h2
-            className="font-heading font-bold text-ink flex-1"
+          <AdaptiveText
+            as="h2"
+            className="font-heading font-bold flex-1"
             style={{ fontSize: 'clamp(32px, 4vw, 64px)', lineHeight: '1.1' }}
           >
             {data.heading1}
-          </h2>
-          <h2
-            className="font-heading font-bold text-ink flex-1 text-right"
+          </AdaptiveText>
+          <AdaptiveText
+            as="h2"
+            className="font-heading font-bold flex-1 text-right"
             style={{ fontSize: 'clamp(32px, 4vw, 64px)', lineHeight: '1.1' }}
           >
             {data.heading2}
-          </h2>
+          </AdaptiveText>
         </div>
 
         {/* ══ Cards — carousel ══ */}
@@ -310,19 +359,20 @@ export default function Tutors({ data, tutors, locale, modalStrings }: TutorsSec
         />
 
         {/* ══ Description quote ══ */}
-        <p
-          className="font-accent font-bold text-ink text-center w-full uppercase"
+        <AdaptiveText
+          as="p"
+          className="font-accent font-bold text-center w-full uppercase"
           style={{ fontSize: 'clamp(24px, 1.2vw, 36px)', lineHeight: '1', letterSpacing: '0.02em' }}
         >
           &ldquo;{data.description}&rdquo;
-        </p>
+        </AdaptiveText>
 
         {/* ══ CTA button — opens modal without pre-selected tutor ══ */}
         <div className="flex justify-center w-full">
           <button
             type="button"
             onClick={() => openModal(null)}
-            className="flex items-center justify-center rounded-[66px] px-[36px] w-full lg:w-auto lg:min-w-[400px] cursor-pointer"
+            className="flex items-center justify-center rounded-[66px] px-[36px] w-full lg:w-auto lg:min-w-[400px] cursor-pointer transition-transform duration-[120ms] ease-out hover:scale-[1.04] active:scale-[0.95]"
             style={{
               backgroundColor: '#2b2a2b',
               paddingTop: '44px',

@@ -171,5 +171,6 @@ export interface FooterProps {
   data: FooterData;
   tutors: TutorRef[];
   planNames: string[];  // formFreeLessonOption prepended, then plan names from Notion
+  planPrices: Record<string, string>;  // plan name → price label (trial → localized "free")
   locale: string;
 }

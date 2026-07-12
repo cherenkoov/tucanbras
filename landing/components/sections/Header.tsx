@@ -13,13 +13,18 @@ const NAV_PILL_STYLES = [
   { bg: 'var(--color-orange)', text: 'var(--color-cream)' }, // Тарифы
 ] as const
 
+const PILL_HOVER = 'hover:scale-[1.04] active:scale-[0.95]'
+
 // Anchor hrefs are hardcoded — labels come from Notion via page.tsx
 
 // Inner shadow overlay used on nav pills (from Figma "Round Inner" effect → --shadow-round-inner)
 const PILL_INNER_SHADOW = 'var(--shadow-round-inner)'
 
 // Gap (px) at which the last 2 nav pills collapse into the ⋮ button
-const COLLAPSE_GAP = 16
+const COLLAPSE_GAP = 8
+
+// x position of background shape step in SVG viewBox (0 0 1728 120) — the width transition point
+const SHAPE_STEP_RATIO = 984.43 / 1728
 
 // ─── Tucan bird logo ─────────────────────────────────────────────────────────
 // Two-layer approach matching the original design:
@@ -136,7 +141,7 @@ function NavPill({ label, href, bg, text }: {
   return (
     <a
       href={href}
-      className="relative flex items-center justify-center overflow-hidden rounded-btn min-w-[50px] font-semibold whitespace-nowrap select-none"
+      className={`relative flex items-center justify-center overflow-hidden rounded-btn min-w-[50px] font-semibold whitespace-nowrap select-none cursor-pointer transition-all duration-[120ms] ease-out ${PILL_HOVER}`}
       style={{
         backgroundColor: bg,
         color: text,
@@ -145,8 +150,8 @@ function NavPill({ label, href, bg, text }: {
         lineHeight: '32px',
         paddingTop: '8px',
         paddingBottom: '8px',
-        paddingLeft: 'clamp(8px, 0.83vw, 16px)',
-        paddingRight: 'clamp(8px, 0.83vw, 16px)',
+        paddingLeft: '16px',
+        paddingRight: '16px',
       }}
     >
       {label}
@@ -157,13 +162,14 @@ function NavPill({ label, href, bg, text }: {
 // ─── Header component ─────────────────────────────────────────────────────────
 
 export default function Header({ navLinks }: HeaderProps) {
-  const [menuOpen,  setMenuOpen]  = useState(false)
-  const [collapsed, setCollapsed] = useState(false)
-  const [dotsOpen,  setDotsOpen]  = useState(false)
+  const [menuOpen,       setMenuOpen]       = useState(false)
+  const [collapsedCount, setCollapsedCount] = useState(0)   // 0 = all pills visible, N = last N pills collapsed into ⋮ (up to navLinks.length)
+  const [dotsOpen,       setDotsOpen]       = useState(false)
 
-  const brandRef       = useRef<HTMLAnchorElement>(null)
-  const navRef         = useRef<HTMLElement>(null)
-  const dotsRef        = useRef<HTMLDivElement>(null)
+  const brandRef        = useRef<HTMLAnchorElement>(null)
+  const navRef          = useRef<HTMLElement>(null)
+  const dotsRef         = useRef<HTMLDivElement>(null)
+  const containerRef    = useRef<HTMLDivElement>(null)
   // Width of the nav when all 4 pills are visible — used for hysteresis check
   const fullNavWidthRef = useRef(0)
 
@@ -176,28 +182,31 @@ export default function Header({ navLinks }: HeaderProps) {
     }
   }, [menuOpen])
 
-  // Collision detection: collapse last 2 pills into ⋮ when gap ≤ COLLAPSE_GAP
+  // Progressively collapse pills into ⋮ one at a time when nav crosses shape step boundary
   useEffect(() => {
     const check = () => {
-      const brand = brandRef.current
-      const nav   = navRef.current
-      if (!brand || !nav) return
+      const container = containerRef.current
+      const nav       = navRef.current
+      if (!container || !nav) return
 
-      const brandRight = brand.getBoundingClientRect().right
-      const navRect    = nav.getBoundingClientRect()
+      const containerRect = container.getBoundingClientRect()
+      const thresholdX    = containerRect.left + containerRect.width * SHAPE_STEP_RATIO
+      const navRect       = nav.getBoundingClientRect()
 
-      setCollapsed(prev => {
-        const effectiveNavLeft = prev
-          ? navRect.right - fullNavWidthRef.current
-          : navRect.left
-        const gap = effectiveNavLeft - brandRight
+      setCollapsedCount(prev => {
+        // Actual left of nav as currently rendered
+        const actualGap = navRect.left - thresholdX
+        // Hypothetical left if all pills were restored — used for hysteresis on expand
+        const hypotheticalGap = prev > 0
+          ? navRect.right - fullNavWidthRef.current - thresholdX
+          : actualGap
 
-        if (!prev && gap <= COLLAPSE_GAP) {
-          fullNavWidthRef.current = navRect.width
-          return true
+        if (prev < navLinks.length && actualGap <= COLLAPSE_GAP) {
+          if (prev === 0) fullNavWidthRef.current = navRect.width
+          return prev + 1
         }
-        if (prev && gap > COLLAPSE_GAP) {
-          return false
+        if (prev > 0 && hypotheticalGap > COLLAPSE_GAP) {
+          return prev - 1
         }
         return prev
       })
@@ -206,7 +215,10 @@ export default function Header({ navLinks }: HeaderProps) {
     check()
     window.addEventListener('resize', check)
     return () => window.removeEventListener('resize', check)
-  }, [])
+    // Re-runs after every collapse/expand step so a single mount at a narrow
+    // width (no resize event fires) cascades through all needed steps instead
+    // of stopping after collapsing just one pill.
+  }, [navLinks.length, collapsedCount])
 
   // Close ⋮ dropdown on outside click
   useEffect(() => {
@@ -225,13 +237,20 @@ export default function Header({ navLinks }: HeaderProps) {
     <header id="header" className="relative z-50 w-full overflow-visible">
 
       {/* ── Main bar ── */}
-      <div className="relative h-[85px] lg:h-[96px] max-w-[1720px] mx-auto overflow-visible">
+      <div ref={containerRef} className="group relative h-[85px] lg:h-[96px] max-w-[1720px] mx-auto overflow-visible">
 
-        {/* Background plate — mobile: простой прямоугольник с radius-card */}
+        {/* Background plate — mobile: простой прямоугольник с radius-card (glass → solid по ховеру бара) */}
         <div
           aria-hidden
-          className="lg:hidden absolute inset-0 pointer-events-none bg-cream rounded-card"
+          className="lg:hidden absolute inset-0 pointer-events-none rounded-card bg-[rgba(255,252,229,0.72)] group-hover:bg-cream backdrop-blur-[4px] group-hover:backdrop-blur-none transition-all duration-[600ms]"
           style={{ boxShadow: 'var(--shadow-card)' }}
+        />
+
+        {/* Frosted backdrop — desktop: matte blur clipped to the plate silhouette, clears on hover */}
+        <div
+          aria-hidden
+          className="hidden lg:block absolute inset-0 pointer-events-none backdrop-blur-[4px] group-hover:backdrop-blur-none transition-all duration-[600ms]"
+          style={{ clipPath: 'url(#header-plate-clip)', WebkitClipPath: 'url(#header-plate-clip)' }}
         />
 
         {/* Background plate — desktop: inline SVG с кастомной формой */}
@@ -261,9 +280,16 @@ export default function Header({ navLinks }: HeaderProps) {
               <feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.25 0"/>
               <feBlend mode="normal" in2="shape" result="effect2_innerShadow"/>
             </filter>
+
+            {/* Same silhouette as the plate, normalised to 0..1 so it scales with
+                the box (matches preserveAspectRatio="none"). Used to clip the
+                frosted backdrop below to the custom shape. */}
+            <clipPath id="header-plate-clip" clipPathUnits="objectBoundingBox">
+              <path transform="scale(0.000578703704, 0.008333333333)" d="M4 30C4 14.536 16.536 2 32 2L756.869 2.00001L804.893 2.00002L1696 2.00001C1711.46 2.00001 1724 14.536 1724 30V59.4483C1724 74.9123 1711.46 87.4483 1696 87.4483H984.43C947.439 89.1205 967.761 105.772 941.058 118.084C938.054 119.469 934.712 120 931.405 120L32 120C16.536 120 4 107.464 4 92L4 30Z"/>
+            </clipPath>
           </defs>
           <g opacity="0.99" filter="url(#header-bg-filter)">
-            <path d="M4 30C4 14.536 16.536 2 32 2L756.869 2.00001L804.893 2.00002L1696 2.00001C1711.46 2.00001 1724 14.536 1724 30V59.4483C1724 74.9123 1711.46 87.4483 1696 87.4483H984.43C947.439 89.1205 967.761 105.772 941.058 118.084C938.054 119.469 934.712 120 931.405 120L32 120C16.536 120 4 107.464 4 92L4 30Z" fill="#FFFCE5"/>
+            <path className="header-plate" d="M4 30C4 14.536 16.536 2 32 2L756.869 2.00001L804.893 2.00002L1696 2.00001C1711.46 2.00001 1724 14.536 1724 30V59.4483C1724 74.9123 1711.46 87.4483 1696 87.4483H984.43C947.439 89.1205 967.761 105.772 941.058 118.084C938.054 119.469 934.712 120 931.405 120L32 120C16.536 120 4 107.464 4 92L4 30Z" fill="#FFFCE5"/>
           </g>
         </svg>
 
@@ -294,7 +320,7 @@ export default function Header({ navLinks }: HeaderProps) {
             className="relative z-10 hidden lg:flex w-fit items-start justify-start gap-3 pt-3 pb-4 px-3 shrink-0 h-full"
             aria-label="Основная навигация"
           >
-            {(collapsed ? navLinks.slice(0, 2) : navLinks).map((link, i) => (
+            {navLinks.slice(0, navLinks.length - collapsedCount).map((link, i) => (
               <NavPill
                 key={link.href}
                 label={link.label}
@@ -304,21 +330,21 @@ export default function Header({ navLinks }: HeaderProps) {
               />
             ))}
 
-            {/* ⋮ button — shown when last 2 pills are collapsed */}
-            {collapsed && (
+            {/* ⋮ button — shown when at least 1 pill is collapsed */}
+            {collapsedCount > 0 && (
               <div ref={dotsRef} className="relative shrink-0">
                 <button
                   type="button"
                   onClick={() => setDotsOpen(v => !v)}
-                  className="relative flex items-center justify-center overflow-hidden rounded-btn font-semibold whitespace-nowrap select-none"
+                  className={`relative flex items-center justify-center overflow-hidden rounded-btn font-semibold whitespace-nowrap select-none cursor-pointer transition-transform duration-[120ms] ease-out ${PILL_HOVER}`}
                   style={{
                     color:        'var(--color-cream)',
                     boxShadow:    PILL_INNER_SHADOW,
                     lineHeight:   '32px',
                     paddingTop:   '8px',
                     paddingBottom:'8px',
-                    paddingLeft:  'clamp(8px, 0.83vw, 16px)',
-                    paddingRight: 'clamp(8px, 0.83vw, 16px)',
+                    paddingLeft:  '12px',
+                    paddingRight: '12px',
                   }}
                   aria-haspopup="true"
                   aria-expanded={dotsOpen}
@@ -353,26 +379,26 @@ export default function Header({ navLinks }: HeaderProps) {
 
                 <div
                   role="menu"
-                  className="absolute right-0 top-full mt-4 flex flex-col gap-2 z-[60]"
+                  className="absolute right-0 top-full mt-4 flex flex-col items-end gap-2 z-[60]"
                   style={{ pointerEvents: dotsOpen ? 'auto' : 'none' }}
                 >
-                  {navLinks.slice(2).map((link, i) => (
+                  {navLinks.slice(navLinks.length - collapsedCount).map((link, i) => (
                     <a
                       key={link.href}
                       href={link.href}
                       role="menuitem"
                       onClick={() => setDotsOpen(false)}
-                      className="relative flex items-center justify-center overflow-hidden rounded-btn font-semibold whitespace-nowrap select-none"
+                      className={`relative flex items-center justify-center overflow-hidden rounded-btn font-semibold whitespace-nowrap select-none cursor-pointer ${PILL_HOVER}`}
                       style={{
-                        backgroundColor: NAV_PILL_STYLES[i + 2]?.bg ?? 'var(--color-green)',
-                        color:           NAV_PILL_STYLES[i + 2]?.text ?? 'var(--color-ink)',
+                        backgroundColor: NAV_PILL_STYLES[navLinks.length - collapsedCount + i]?.bg ?? 'var(--color-green)',
+                        color:           NAV_PILL_STYLES[navLinks.length - collapsedCount + i]?.text ?? 'var(--color-ink)',
                         boxShadow:       'var(--shadow-pill-float)',
                         fontSize:        'clamp(14px, 1.35vw, 26px)',
                         lineHeight:      '32px',
                         paddingTop:      '8px',
                         paddingBottom:   '8px',
-                        paddingLeft:     'clamp(8px, 0.83vw, 16px)',
-                        paddingRight:    'clamp(8px, 0.83vw, 16px)',
+                        paddingLeft:     '16px',
+                        paddingRight:    '16px',
                         opacity:         dotsOpen ? 1 : 0,
                         transform:       dotsOpen ? 'translateY(0)' : 'translateY(-10px)',
                         transition:      'opacity 200ms ease, transform 200ms ease',
@@ -416,7 +442,7 @@ export default function Header({ navLinks }: HeaderProps) {
             key={link.href}
             href={link.href}
             onClick={() => setMenuOpen(false)}
-            className="relative flex items-center justify-center overflow-hidden rounded-btn py-[18px] px-s400 font-semibold text-[22px] leading-[28px] transition-all duration-300 pointer-events-auto"
+            className={`relative flex items-center justify-center overflow-hidden rounded-btn py-[18px] px-s400 font-semibold text-[22px] leading-[28px] transition-all duration-300 pointer-events-auto cursor-pointer ${PILL_HOVER}`}
             style={{
               backgroundColor: NAV_PILL_STYLES[i]?.bg ?? 'var(--color-green)',
               color: NAV_PILL_STYLES[i]?.text ?? 'var(--color-ink)',

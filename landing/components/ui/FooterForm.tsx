@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
+import { canOptimizeImage } from '@/lib/optimizableImage'
 import type { TutorRef } from '@/types'
 
 // ─── Tutor Avatar ─────────────────────────────────────────────────────────────
@@ -14,9 +16,12 @@ function TutorAvatar({ tutor, size = 40 }: { tutor: TutorRef; size?: number }) {
 
   if (tutor.imageUrl) {
     return (
-      <img
+      <Image
         src={tutor.imageUrl}
         alt={tutor.fullName}
+        width={size}
+        height={size}
+        unoptimized={!canOptimizeImage(tutor.imageUrl)}
         className="rounded-full object-cover object-top shrink-0"
         style={{ width: size, height: size }}
       />
@@ -64,7 +69,7 @@ function TutorSelector({
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
-        className="flex items-center gap-[12px] w-full border-2 rounded-[66px] px-[32px] py-[24px] transition-colors hover:opacity-80"
+        className="btn-press flex items-center gap-[12px] w-full border-2 rounded-[66px] px-[32px] py-[24px]"
         style={{ borderColor: hasError ? '#f26434' : '#323031' }}
       >
         {selected ? (
@@ -128,12 +133,14 @@ function TutorSelector({
 function PlanSelector({
   selected,
   planNames,
+  planPrices,
   placeholder,
   hasError,
   onChange,
 }: {
   selected:    string | null
   planNames:   string[]
+  planPrices:  Record<string, string>
   placeholder: string
   hasError:    boolean
   onChange:    (plan: string) => void
@@ -155,7 +162,7 @@ function PlanSelector({
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
-        className="flex items-center gap-[12px] w-full border-2 rounded-[66px] px-[32px] py-[24px] transition-colors hover:opacity-80"
+        className="btn-press flex items-center gap-[12px] w-full border-2 rounded-[66px] px-[32px] py-[24px]"
         style={{ borderColor: hasError ? '#f26434' : '#323031' }}
       >
         <span
@@ -182,17 +189,25 @@ function PlanSelector({
               key={name}
               type="button"
               onClick={() => { onChange(name); setOpen(false) }}
-              className="flex items-center w-full px-[32px] py-[20px] hover:bg-[#f5f3d8] transition-colors text-left"
+              className="flex items-center justify-between gap-[16px] w-full px-[32px] py-[20px] hover:bg-[#f5f3d8] transition-colors text-left"
               style={{
                 borderRadius: i === 0 ? '22px 22px 0 0' : i === planNames.length - 1 ? '0 0 22px 22px' : '0',
               }}
             >
               <span
-                className="font-heading font-normal text-ink truncate"
+                className="font-heading font-normal text-ink flex-1 min-w-0 truncate"
                 style={{ fontSize: 'clamp(18px, 2vw, 28px)', lineHeight: '1.3' }}
               >
                 {name}
               </span>
+              {planPrices[name] && (
+                <span
+                  className="font-heading font-normal text-ink opacity-70 shrink-0"
+                  style={{ fontSize: 'clamp(16px, 1.6vw, 24px)', lineHeight: '1.3' }}
+                >
+                  {planPrices[name]}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -216,6 +231,7 @@ interface Props {
   formSubmitText:          string
   tutors:                  TutorRef[]
   planNames:               string[]
+  planPrices:              Record<string, string>
   locale:                  string
 }
 
@@ -234,6 +250,7 @@ export default function FooterForm({
   formSubmitText,
   tutors,
   planNames,
+  planPrices,
   locale,
 }: Props) {
   const [name,          setName]          = useState('')
@@ -241,6 +258,7 @@ export default function FooterForm({
   const [selectedPlan,  setSelectedPlan]  = useState<string | null>(null)
   const [telegram,      setTelegram]      = useState('')
   const [email,         setEmail]         = useState('')
+  const [website,       setWebsite]       = useState('') // honeypot — humans never see the field
 
   useEffect(() => {
     // Handle prefill from plan CTA clicks (page already mounted — via CustomEvent)
@@ -293,6 +311,7 @@ export default function FooterForm({
           plan:     selectedPlan,
           locale,
           source:   'footer',
+          website,
         }),
       })
       if (!res.ok) throw new Error('non-ok')
@@ -307,7 +326,7 @@ export default function FooterForm({
 
   if (status === 'success') {
     return (
-      <div className="bg-cream rounded-[26px] p-[36px] flex items-center justify-center" style={{ minHeight: 200 }}>
+      <div data-glass-center className="glass rounded-[26px] flex items-center justify-center" style={{ minHeight: 200, padding: 'clamp(12px, 4vw, 36px)' }}>
         <p
           className="font-heading font-medium text-ink text-center"
           style={{ fontSize: 'clamp(24px, 3vw, 40px)', lineHeight: '1.2' }}
@@ -322,7 +341,9 @@ export default function FooterForm({
     <form
       onSubmit={handleSubmit}
       noValidate
-      className="bg-cream rounded-[26px] p-[36px] flex flex-col gap-[24px]"
+      data-glass-center
+      className="glass rounded-[26px] flex flex-col gap-[24px]"
+      style={{ padding: 'clamp(12px, 4vw, 36px)' }}
     >
       {/* Title */}
       <div className="px-[8px]">
@@ -334,12 +355,28 @@ export default function FooterForm({
         </p>
       </div>
 
+      {/* Honeypot — off-screen; bots that fill it get a fake success upstream.
+          The input's name is deliberately meaningless: browser autofill matches
+          on name/id heuristics (a field literally named "website" can get
+          profile-filled despite autoComplete="off", silently dropping a real
+          lead), while naive bots fill every text input regardless of name. */}
+      <input
+        type="text"
+        name="xtr_note"
+        value={website}
+        onChange={e => setWebsite(e.target.value)}
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+        className="absolute -left-[9999px] w-px h-px overflow-hidden"
+      />
+
       {/* Inputs */}
       <div className="flex flex-col gap-[16px]">
 
         {/* Name */}
         <label
-          className="border-2 rounded-[66px] px-[32px] py-[24px] block transition-colors"
+          className="btn-press border-2 rounded-[66px] px-[32px] py-[24px] block"
           style={{ borderColor: nameErr ? '#f26434' : '#323031' }}
         >
           <input
@@ -366,6 +403,7 @@ export default function FooterForm({
         <PlanSelector
           selected={selectedPlan}
           planNames={planNames}
+          planPrices={planPrices}
           placeholder={formPlanPlaceholder}
           hasError={planErr}
           onChange={p => { setSelectedPlan(p); setPlanErr(false) }}
@@ -373,7 +411,7 @@ export default function FooterForm({
 
         {/* Telegram */}
         <label
-          className="border-2 rounded-[66px] px-[32px] py-[24px] block transition-colors"
+          className="btn-press border-2 rounded-[66px] px-[32px] py-[24px] block"
           style={{ borderColor: contactErr ? '#f26434' : '#323031' }}
         >
           <input
@@ -390,7 +428,7 @@ export default function FooterForm({
 
         {/* Email */}
         <label
-          className="border-2 rounded-[66px] px-[32px] py-[24px] block transition-colors"
+          className="btn-press border-2 rounded-[66px] px-[32px] py-[24px] block"
           style={{ borderColor: (contactErr || emailErr) ? '#f26434' : '#323031' }}
         >
           <input
@@ -418,7 +456,7 @@ export default function FooterForm({
       <button
         type="submit"
         disabled={status === 'loading'}
-        className="flex items-center justify-center w-full rounded-[66px] px-[36px] py-[36px] disabled:opacity-60 transition-opacity"
+        className="btn-press flex items-center justify-center w-full rounded-[66px] px-[36px] py-[36px] disabled:opacity-60"
         style={{
           backgroundColor: '#323031',
           boxShadow: '0px 1px 4px 0px rgba(0,0,0,0.18), inset 0px 1px 2px 0px rgba(255,255,255,0.18)',

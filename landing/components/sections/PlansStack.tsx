@@ -19,7 +19,11 @@ export default function PlansStack({ plans }: { plans: PlanCard[] }) {
     const heights = cardRefs.current.map(el => el?.offsetHeight ?? 0)
     const maxH = Math.max(...heights)
     if (maxH > 0) setCardHeight(maxH)
-    sectionTopRef.current = sectionRef.current?.offsetTop ?? 0
+    // Absolute document offset — offsetTop is relative to the nearest
+    // positioned ancestor (<main className="relative">), which would make
+    // this far smaller than window.scrollY and jump activeIndex to the last card.
+    const rectTop = sectionRef.current?.getBoundingClientRect().top ?? 0
+    sectionTopRef.current = rectTop + window.scrollY
   }, [])
 
   useEffect(() => {

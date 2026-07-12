@@ -18,7 +18,7 @@ function FaqAccordion({ group }: { group: FaqGroupType }) {
     <div className="flex flex-col gap-[24px] flex-1 min-w-[276px] max-w-[320px]">
       {/* Group heading */}
       <p
-        className="font-heading font-normal text-ink"
+        className="font-heading font-normal text-ink text-center md:text-left"
         style={{ fontSize: 'clamp(20px, 2vw, 28px)', lineHeight: '32px' }}
       >
         {group.title}
@@ -62,13 +62,12 @@ function FaqAccordion({ group }: { group: FaqGroupType }) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function Footer({ data, tutors, planNames, locale }: FooterProps) {
+export default function Footer({ data, tutors, planNames, planPrices, locale }: FooterProps) {
   return (
     <footer id="footer" className="w-full scroll-mt-[136px] lg:scroll-mt-[147px]">
-      {/* ══ Outer green container ══ */}
+      {/* ══ Outer container — transparent (green plate removed), keeps the 12px gutter ══ */}
       <div
         className="relative isolate flex flex-col max-w-[1720px] mx-auto w-full rounded-[38px] p-[12px]"
-        style={{ backgroundColor: '#8fd096' }}
       >
 
         {/* ══ Form row ══ */}
@@ -89,6 +88,7 @@ export default function Footer({ data, tutors, planNames, locale }: FooterProps)
               formSubmitText={data.formSubmitText}
               tutors={tutors}
               planNames={planNames}
+              planPrices={planPrices}
               locale={locale}
             />
           </div>
@@ -108,10 +108,14 @@ export default function Footer({ data, tutors, planNames, locale }: FooterProps)
 
         </div>
 
-        {/* ══ Footer content card ══ */}
+        {/* ══ Footer content card — glass → solid on hover ══ */}
         <div
-          className="relative z-[2] bg-cream rounded-[26px] overflow-hidden px-[36px] py-[36px] flex flex-col gap-[64px]"
-          style={{ boxShadow: '0px 2px 4px 0px rgba(0,0,0,0.18), inset 0px 4px 4px 0px rgba(255,255,255,0.25)' }}
+          data-glass-center
+          className="glass relative z-[2] rounded-[26px] overflow-hidden flex flex-col gap-[64px]"
+          style={{
+            boxShadow: '0px 2px 4px 0px rgba(0,0,0,0.18), inset 0px 4px 4px 0px rgba(255,255,255,0.25)',
+            padding: 'clamp(12px, 4vw, 36px)',
+          }}
         >
 
           {/* ── Logo + description ── */}
@@ -148,7 +152,7 @@ export default function Footer({ data, tutors, planNames, locale }: FooterProps)
           <div className="flex flex-wrap gap-[60px_30px] items-start justify-center w-full">
 
             {/* Legal / Policy links */}
-            <div className="flex flex-col gap-[24px] flex-1 min-w-[276px] max-w-[320px]">
+            <div className="flex flex-col items-center text-center gap-[24px] flex-1 min-w-[276px] max-w-[320px] md:items-start md:text-left">
               <p
                 className="font-heading font-normal text-ink"
                 style={{ fontSize: 'clamp(20px, 2vw, 28px)', lineHeight: '32px' }}
@@ -176,7 +180,7 @@ export default function Footer({ data, tutors, planNames, locale }: FooterProps)
                   <a
                     key={link.label}
                     href={link.href} // TODO: TBD — final URLs
-                    className="flex-1 aspect-square relative"
+                    className="btn-press flex-1 aspect-square relative"
                     style={{ maxWidth: '210px' }}
                     aria-label={link.label}
                   >
@@ -191,10 +195,10 @@ export default function Footer({ data, tutors, planNames, locale }: FooterProps)
             )}
           </div>
 
-          {/* ── Bottom bar: copyright + language ── */}
-          <div className="flex flex-wrap gap-y-[20px] items-center justify-between w-full">
+          {/* ── Bottom bar: stacked & centered when tight; copyright left / language right (32px gap) when wide ── */}
+          <div className="flex flex-col items-center gap-y-[20px] w-full sm:flex-row sm:items-center sm:justify-between sm:gap-x-[32px]">
             {/* Copyright */}
-            <div className="flex flex-col gap-[0]">
+            <div className="flex flex-col gap-[0] items-center sm:items-start">
               <p
                 className="font-sans font-bold text-ink"
                 style={{ fontSize: 'clamp(16px, 2vw, 32px)', lineHeight: '1' }}

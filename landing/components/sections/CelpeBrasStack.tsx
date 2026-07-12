@@ -1,10 +1,12 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import type { CSSProperties } from 'react'
 
 interface CardConfig {
   icon: string
   bg: string
+  tint: string
   text: string
 }
 
@@ -62,6 +64,9 @@ export default function CelpeBrasStack({ titles, cardConfig }: Props) {
                 style={{
                   position:   'absolute',
                   inset:      0,
+                  display:        'flex',
+                  justifyContent: 'center',
+                  alignItems:     'flex-start',
                   zIndex:     isPast ? 0 : titles.length - offset,
                   opacity:    isPast ? 0 : isFuture ? Math.max(0, 1 - offset * 0.15) : 1,
                   transform:  isPast
@@ -72,12 +77,12 @@ export default function CelpeBrasStack({ titles, cardConfig }: Props) {
                 }}
               >
                 <div
-                  className="flex items-center gap-[32px] w-full overflow-hidden rounded-[44px] px-[32px] py-[32px]"
+                  className={`glass flex items-center gap-[32px] w-fit max-w-full overflow-hidden rounded-[44px] px-[32px] py-[32px] hover:scale-[1.04] active:scale-[0.95] ${isActive ? 'is-center' : ''}`}
                   style={{
-                    minHeight: '164px',
-                    backgroundColor: cardConfig[i].bg,
+                    '--glass-tint': cardConfig[i].tint,
+                    '--glass-solid': cardConfig[i].bg,
                     boxShadow: 'inset 0px 4px 4px 0px rgba(255,255,255,0.25), 0px 2px 4px 0px rgba(0,0,0,0.18)',
-                  }}
+                  } as CSSProperties}
                 >
                   <div className="shrink-0" style={{ width: 'clamp(48px, 6vw, 100px)', height: 'clamp(48px, 6vw, 100px)' }}>
                     <img src={cardConfig[i].icon} alt="" className="w-full h-full object-contain pointer-events-none" />

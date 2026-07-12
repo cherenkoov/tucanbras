@@ -90,14 +90,17 @@ tucanbras/
 2. Hero
 3. About
 4. Comparison
-5. WaveSection      ← декоративная, без CMS-контента
-6. Tutors
-7. CelpeBras
-8. Plans
-9. Footer (+ Form + FAQ)
+5. Tutors
+6. CelpeBras
+7. Plans
+8. Footer (+ Form + FAQ)
 ```
 
 Порядок **не менять** без явной команды.
+
+> Волны (`WavesAnimated`) больше **не секция** — вынесены в `BackgroundCanvas` как фоновый
+> слой позади пляжа (`main2`), `z-index: 9` (ниже `main2` z=10). Видны сквозь прозрачные
+> участки пляжа. См. «Background Collage» ниже.
 
 ---
 
@@ -109,7 +112,7 @@ tucanbras/
 |-------|--------|--------|
 | 1 — Гора | Hero | Небо, гора Корковаду, статуя Христа |
 | 2 — Лес | About, Comparison | Джунгли, кроны деревьев, лианы |
-| 3 — Пляж | WaveSection, Tutors (heading) | Океан, волны, пальмы |
+| 3 — Пляж | Tutors (heading) | Пляж (`main2`), волны (`WavesAnimated`, фон позади `main2`), пальмы |
 | 4 — Обрыв | Tutors (cards) | Скала, океан далеко внизу |
 
 Статуя Христа: реализация пока открыта — SVG (стилизованная 2D) или Three.js (интерактивная 3D). Обе опции валидны.
@@ -146,7 +149,7 @@ tucanbras/
 - Порядок секций
 - Анимации, hover-эффекты, декоративная логика
 - Логика отправки формы
-- `WaveSection` — полностью хардкод (декоративная, без CMS)
+- Волны (`WavesAnimated`) — фоновый слой в `BackgroundCanvas`, позади пляжа (декоративные, без CMS)
 
 ---
 

@@ -7,7 +7,7 @@ const globalForPg = globalThis as typeof globalThis & { pgPool?: Pool }
 const pool =
   globalForPg.pgPool ??
   (process.env.DATABASE_URL
-    ? new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } })
+    ? new Pool({ connectionString: process.env.DATABASE_URL, ssl: true })
     : new Pool({
         host:     process.env.DB_HOST     || 'localhost',
         port:     Number(process.env.DB_PORT) || 5432,

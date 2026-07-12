@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
+import { canOptimizeImage } from '@/lib/optimizableImage'
 import type { TutorRef } from '@/types'
 
 // ─── Tutor Avatar ─────────────────────────────────────────────────────────────
@@ -14,9 +16,12 @@ function TutorAvatar({ tutor, size = 40 }: { tutor: TutorRef; size?: number }) {
 
   if (tutor.imageUrl) {
     return (
-      <img
+      <Image
         src={tutor.imageUrl}
         alt={tutor.fullName}
+        width={size}
+        height={size}
+        unoptimized={!canOptimizeImage(tutor.imageUrl)}
         className="rounded-full object-cover object-top shrink-0"
         style={{ width: size, height: size }}
       />
@@ -253,6 +258,7 @@ export default function FooterForm({
   const [selectedPlan,  setSelectedPlan]  = useState<string | null>(null)
   const [telegram,      setTelegram]      = useState('')
   const [email,         setEmail]         = useState('')
+  const [website,       setWebsite]       = useState('') // honeypot — humans never see the field
 
   useEffect(() => {
     // Handle prefill from plan CTA clicks (page already mounted — via CustomEvent)
@@ -305,6 +311,7 @@ export default function FooterForm({
           plan:     selectedPlan,
           locale,
           source:   'footer',
+          website,
         }),
       })
       if (!res.ok) throw new Error('non-ok')
@@ -347,6 +354,22 @@ export default function FooterForm({
           {formTitle}
         </p>
       </div>
+
+      {/* Honeypot — off-screen; bots that fill it get a fake success upstream.
+          The input's name is deliberately meaningless: browser autofill matches
+          on name/id heuristics (a field literally named "website" can get
+          profile-filled despite autoComplete="off", silently dropping a real
+          lead), while naive bots fill every text input regardless of name. */}
+      <input
+        type="text"
+        name="xtr_note"
+        value={website}
+        onChange={e => setWebsite(e.target.value)}
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+        className="absolute -left-[9999px] w-px h-px overflow-hidden"
+      />
 
       {/* Inputs */}
       <div className="flex flex-col gap-[16px]">

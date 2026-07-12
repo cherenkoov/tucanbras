@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import Image from 'next/image'
+import { canOptimizeImage } from '@/lib/optimizableImage'
 import type { TutorRef, FreeLessonModalStrings } from '@/types'
 
 export type { TutorRef }
@@ -17,9 +19,12 @@ function TutorAvatar({ tutor, size = 36 }: { tutor: TutorRef; size?: number }) {
 
   if (tutor.imageUrl) {
     return (
-      <img
+      <Image
         src={tutor.imageUrl}
         alt={tutor.fullName}
+        width={size}
+        height={size}
+        unoptimized={!canOptimizeImage(tutor.imageUrl)}
         className="rounded-full object-cover object-top shrink-0"
         style={{ width: size, height: size }}
       />
@@ -167,6 +172,7 @@ export default function FreeLessonModal({
   const [name,          setName]          = useState('')
   const [telegram,      setTelegram]      = useState('')
   const [email,         setEmail]         = useState('')
+  const [website,       setWebsite]       = useState('') // honeypot — humans never see the field
   const [nameErr,       setNameErr]       = useState(false)
   const [contactErr,    setContactErr]    = useState(false)
   const [emailErr,      setEmailErr]      = useState(false)
@@ -195,7 +201,7 @@ export default function FreeLessonModal({
   useEffect(() => {
     if (!open) {
       const t = setTimeout(() => {
-        setName(''); setTelegram(''); setEmail('')
+        setName(''); setTelegram(''); setEmail(''); setWebsite('')
         setNameErr(false); setContactErr(false); setEmailErr(false); setStatus('idle')
       }, 300)
       return () => clearTimeout(t)
@@ -231,6 +237,7 @@ export default function FreeLessonModal({
           email:    em,
           tutor_id: selectedTutor?.id ?? null,
           locale,
+          website,
         }),
       })
       if (!res.ok) throw new Error('non-ok')
@@ -288,6 +295,22 @@ export default function FreeLessonModal({
           </p>
         ) : (
           <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-[16px]">
+
+            {/* Honeypot — off-screen; bots that fill it get a fake success upstream.
+                The input's name is deliberately meaningless: browser autofill
+                matches on name/id heuristics (a field literally named "website"
+                can get profile-filled despite autoComplete="off", silently
+                dropping a real lead), while naive bots fill every text input. */}
+            <input
+              type="text"
+              name="xtr_note"
+              value={website}
+              onChange={e => setWebsite(e.target.value)}
+              tabIndex={-1}
+              autoComplete="off"
+              aria-hidden="true"
+              className="absolute -left-[9999px] w-px h-px overflow-hidden"
+            />
 
             {/* Tutor selector (shown when there are tutors to choose from) */}
             {allTutors.length > 0 && (

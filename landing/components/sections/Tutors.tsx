@@ -1,6 +1,8 @@
 'use client'
 
 import { useRef, useState, type CSSProperties } from 'react'
+import Image from 'next/image'
+import { canOptimizeImage } from '@/lib/optimizableImage'
 import type { TutorsProps, Locale, FreeLessonModalStrings } from '@/types'
 import type { Tutor } from '@/lib/tutors'
 import { getStubTutors } from '@/lib/tutorStubs'
@@ -67,10 +69,13 @@ function TutorCard({
             style={{ width: 'calc(100% - 80px)', maxWidth: '326px', aspectRatio: '1/1' }}
           >
             {tutor.imageUrl ? (
-              <img
+              <Image
                 src={tutor.imageUrl}
                 alt={tutor.fullName}
-                className="absolute inset-0 w-full h-full object-cover object-top pointer-events-none"
+                fill
+                sizes="(max-width: 767px) 80vw, 326px"
+                unoptimized={!canOptimizeImage(tutor.imageUrl)}
+                className="object-cover object-top pointer-events-none"
               />
             ) : (
               <div className="absolute inset-0" style={{ backgroundColor: '#a8d5ac' }} />
@@ -255,7 +260,7 @@ function TutorCarousel({
         className="flex items-center overflow-x-auto overflow-y-hidden snap-x snap-mandatory gap-[12px] py-[20px] -my-[20px] pl-6 lg:pl-[100px] pr-6 lg:pr-[100px]"
         style={{ scrollbarWidth: 'none', touchAction: 'pan-x' }}
       >
-        {tutors.map((tutor, i) => (
+        {tutors.map(tutor => (
           <div
             key={tutor.id}
             className="snap-center shrink-0"

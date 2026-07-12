@@ -4,8 +4,8 @@ import { sendWelcomeEmail } from '@/lib/email'
 import pool from '@/lib/db'
 
 // ─── Rate limiting ────────────────────────────────────────────────────────────
-// In-memory sliding window, per warm serverless instance. Not a distributed
-// limiter — but enough to stop naive form-spam and accidental double-submits.
+// In-memory sliding window. Prod runs as a single long-lived `next start`
+// process behind nginx, so one Map covers all traffic (unlike serverless).
 
 const RATE_LIMIT_MAX = 5
 const RATE_LIMIT_WINDOW_MS = 60_000
@@ -13,8 +13,12 @@ const hitLog = new Map<string, number[]>()
 
 function isRateLimited(ip: string): boolean {
   const now = Date.now()
-  const recent = (hitLog.get(ip) ?? []).filter(t => now - t < RATE_LIMIT_WINDOW_MS)
+  let recent = (hitLog.get(ip) ?? []).filter(t => now - t < RATE_LIMIT_WINDOW_MS)
   recent.push(now)
+  // Cap the per-IP array: past MAX+1 entries the verdict can't change, and without
+  // a cap a flooding client grows its own array (and the filter cost) unboundedly
+  // for the life of the process.
+  if (recent.length > RATE_LIMIT_MAX + 1) recent = recent.slice(-(RATE_LIMIT_MAX + 1))
   hitLog.set(ip, recent)
   if (hitLog.size > 5000) {
     for (const [key, times] of hitLog) {
@@ -25,11 +29,20 @@ function isRateLimited(ip: string): boolean {
 }
 
 function clientIp(req: NextRequest): string {
-  return (
-    req.headers.get('x-nf-client-connection-ip') ??
-    req.headers.get('x-forwarded-for')?.split(',')[0].trim() ??
-    'unknown'
-  )
+  // Behind nginx the FIRST X-Forwarded-For entry is whatever the client sent —
+  // trivially spoofable. With the standard `proxy_add_x_forwarded_for` setup the
+  // proxy APPENDS the real peer address, so the LAST entry is the trustworthy one.
+  // X-Real-IP (when nginx sets it) is the peer address directly and wins.
+  const real = req.headers.get('x-real-ip')?.trim()
+  if (real) return real
+  const nf = req.headers.get('x-nf-client-connection-ip') // Netlify (legacy hosting)
+  if (nf) return nf
+  const xff = req.headers.get('x-forwarded-for')
+  if (xff) {
+    const parts = xff.split(',')
+    return parts[parts.length - 1].trim()
+  }
+  return 'unknown'
 }
 
 // ─── Validation ───────────────────────────────────────────────────────────────

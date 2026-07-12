@@ -10,7 +10,7 @@ import { injectWaveSurfAnimation } from './beachWaves'
 import { loadOceanWaveShapes, type OceanWaveShape } from './oceanWaves'
 import { useWaveDepthOrder } from './useWaveDepthOrder'
 import { prepareBeachSvg, BEACH_GROUND_COLOR, BEACH_PREFIX } from './prepareBeachSvg'
-import { BEACH_SPINNERS, SPINNER_VIEWBOX } from './beachSpinners'
+import { BEACH_SPINNERS, readViewBox } from './beachSpinners'
 import { useBeachSpinnerAnimation } from './useBeachSpinnerAnimation'
 import { useCloudAnimation } from './useCloudAnimation'
 import { useBushAnimation } from './useBushAnimation'
@@ -50,11 +50,11 @@ function wrapSvg(inner: string): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 800 2047" overflow="visible">${inner}</svg>`
 }
 
-// Wrap a single lifted beach object in its own full-canvas SVG so it overlays the
-// beach 1:1 (same viewBox → same coordinate mapping). overflow:visible + display:block
-// mirror wrapSvg; the beach viewBox is 1027×3614 (not the collage's 800×2047).
-function wrapBeachSpinner(inner: string): string {
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="${SPINNER_VIEWBOX}" overflow="visible" style="display:block">${inner}</svg>`
+// Wrap a single lifted beach object in its own full-canvas SVG so it overlays the beach 1:1.
+// The viewBox is the beach's OWN (passed in, read from its markup — see readViewBox), which
+// is what makes the coordinates line up; overflow:visible + display:block mirror wrapSvg.
+function wrapBeachSpinner(inner: string, viewBox: string): string {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="${viewBox}" overflow="visible" style="display:block">${inner}</svg>`
 }
 
 // Drop the clip-path on the object's OUTER <g> so the rotated art isn't cropped to
@@ -257,10 +257,14 @@ export default function BackgroundCanvas() {
         // with the car SMIL injected as before. Index alignment with BEACH_SPINNERS is
         // kept via '' placeholders for any id not found.
         let s = prepareBeachSvg(raw)
+        // The overlays must carry the beach's OWN viewBox, read from the markup — a hardcoded
+        // copy goes stale the moment the art is re-exported, and every object then lands in
+        // the wrong place. Lift before the surf injection, which rewrites that viewBox.
+        const viewBox = readViewBox(s)
         const spinners: string[] = []
         for (const cfg of BEACH_SPINNERS) {
           const { inner, without } = extractGroup(s, `${BEACH_PREFIX}${cfg.id}`)
-          spinners.push(inner ? wrapBeachSpinner(stripSpinnerClip(inner)) : '')
+          spinners.push(inner && viewBox ? wrapBeachSpinner(stripSpinnerClip(inner), viewBox) : '')
           s = without
         }
         setSpinnerSvgs(spinners)

@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import ChristScene from './ChristScene'
+import ChristScene, { CHRIST_SCENE, christBoxHeight } from './ChristScene'
 import { injectRailPath, injectCloudAnimation } from './utils/injectRailPath'
 import { useTrainAnimation } from './useTrainAnimation'
 import { useCarAnimation } from './useCarAnimation'
@@ -140,16 +140,25 @@ const BEACH_LOWER_PX = 300
 const BEACH_LOWER_PX_WIDE = BEACH_LOWER_PX - 100
 const BEACH_LOWER_WIDE_BREAKPOINT = 1024
 
-// How deep the statue's pedestal base bites into #Peak, as a FRACTION of the peak's
-// rendered height — NOT a fixed pixel value. A fixed sink (was +15px) is a different
-// FRACTION of the peak at every width: the peak renders ~118px tall on desktop but only
-// ~80px on a phone, so +15px sat the base ~0.12 down on desktop yet ~0.21 down on phones
-// — floating on desktop, sunk on mobile. Scaling the bite with the peak's own height
-// keeps the base on the same visual point of the crest at EVERY width (and rides the
-// mobile scaleY stretch automatically, since peakRect.height already includes it). Tuned
-// so the base plants right on the rim: bigger peak (desktop) → deeper px bite; smaller
-// peak (phone) → shallower px bite.
-const PEAK_SINK_FRACTION = 0.16
+// Seat the statue on the crest. What we can position is the scene BOX (its bottom edge),
+// but what must land on the rock is the PEDESTAL — and the two are not the same line: the
+// art leaves a transparent gap under the pedestal (it ends at PEDESTAL_TOP+PEDESTAL_H of
+// H, see ChristScene). That gap scales with the box, and the box is sized off the VIEWPORT
+// (clamp(234px, 27vw, 522px)) — a completely different curve from the mountain, which
+// scales with the collage zoom. So any offset expressed against the PEAK drifts: a fixed
+// +15px sank the pedestal 0.12 of the peak on desktop but 0.21 on a phone (floating vs
+// buried), and even a peak-proportional offset still slid from 0.067 to 0.115 across
+// 360→767px because the gap underneath it kept changing size.
+//
+// Anchoring the PEDESTAL instead removes the mountain from the equation entirely: push the
+// box bottom below the crest by the gap (so the pedestal's own base lands ON the crest),
+// plus a bite of the pedestal's own height so it reads as planted in the rock rather than
+// balanced on it. Both terms are fractions of the box, so the bite is a constant share of
+// the pedestal at EVERY width — the statue sits on the edge everywhere, by construction.
+const PEDESTAL_BITE = 0.10 // pedestal sinks 10% of its own height into the crest
+const STATUE_SEAT_FRACTION =
+  (CHRIST_SCENE.H - (CHRIST_SCENE.PEDESTAL_TOP + CHRIST_SCENE.PEDESTAL_H)
+    + PEDESTAL_BITE * CHRIST_SCENE.PEDESTAL_H) / CHRIST_SCENE.H
 
 export default function BackgroundCanvas() {
   const [mainSvg, setMainSvg] = useState('')
@@ -370,12 +379,13 @@ export default function BackgroundCanvas() {
     setPeakPos({
       // horizontal: 2/5 from left edge (ratio 2:3) — unaffected, scaleY doesn't touch X
       x: peakRect.left - containerRect.left + peakRect.width * (2 / 5),
-      // vertical: seat the pedestal base on the crest with a bite PROPORTIONAL to the
-      // peak's rendered height (PEAK_SINK_FRACTION), so it plants on the same visual point
-      // of the rim at every viewport width instead of floating (desktop) / sinking (mobile)
-      // as a fixed px offset did. Both terms are divided by vScale because peakPos.y is a
-      // PRE-transform local top that the container's scaleY(vScale) then re-scales.
-      y: (peakRect.top - containerRect.top + PEAK_SINK_FRACTION * peakRect.height) / vScale,
+      // vertical: drop the scene BOX bottom below the crest by STATUE_SEAT_FRACTION of the
+      // box height, which lands the PEDESTAL (not the box) on the rock with a constant bite
+      // at every width — see STATUE_SEAT_FRACTION. Scaled off the box, never the peak.
+      // Divided by vScale because peakPos.y is a PRE-transform local top that the
+      // container's scaleY(vScale) then re-scales.
+      y: (peakRect.top - containerRect.top
+        + STATUE_SEAT_FRACTION * christBoxHeight(window.innerWidth)) / vScale,
     })
   }, [])
 
@@ -745,7 +755,9 @@ export default function BackgroundCanvas() {
         />
       )}
 
-      {/* ChristScene: bottom-center anchored to top-center of #Peak, 15px overlap.
+      {/* ChristScene: bottom-center anchored to #Peak's crest, offset so the PEDESTAL
+          (not the scene box, which has transparent space under it) plants on the rock —
+          see STATUE_SEAT_FRACTION.
           The container's phones-only scaleY(MOBILE_VSTRETCH) stretches the scenery to
           cover the tall phone viewport, but it would ALSO stretch this statue overlay
           (a recognisable object, not scenery) into a distorted elongated figure. Counter

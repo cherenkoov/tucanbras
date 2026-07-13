@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { IMAGE_HOSTS } from "./lib/imageHosts";
 
 const isDev = process.env.NODE_ENV === 'development';
 
@@ -14,7 +15,7 @@ const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://res.cloudinary.com https://drive.google.com https://lh3.googleusercontent.com https://i.ibb.co https://*.imgbb.com",
+  `img-src 'self' data: blob: ${IMAGE_HOSTS.map(h => `https://${h}`).join(' ')}`,
   "font-src 'self'",
   "connect-src 'self'",
   "object-src 'none'",
@@ -27,13 +28,7 @@ const csp = [
 const nextConfig: NextConfig = {
   allowedDevOrigins: ['26.93.*.*', '192.168.*.*', '10.*.*.*', '172.*.*.*'],
   images: {
-    remotePatterns: [
-      { protocol: 'https', hostname: 'res.cloudinary.com' },
-      { protocol: 'https', hostname: 'drive.google.com' },
-      { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
-      { protocol: 'https', hostname: 'i.ibb.co' },
-      { protocol: 'https', hostname: '*.imgbb.com' },
-    ],
+    remotePatterns: IMAGE_HOSTS.map(hostname => ({ protocol: 'https' as const, hostname })),
   },
   async headers() {
     return [

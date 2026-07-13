@@ -1,6 +1,7 @@
 export const revalidate = 3600 // ISR: обновлять кэш раз в час
 
 import type { Locale } from '@/types'
+import { LOCALES } from '@/lib/locales'
 import Header from '@/components/sections/Header'
 import Hero from '@/components/sections/Hero'
 import About from '@/components/sections/About'
@@ -36,10 +37,10 @@ const NAV_HREFS = ['#about', '#tutors', '#celpe-bras', '#plans']
 const FREE_LABEL: Record<Locale, string> = { ru: 'бесплатно', en: 'free', pt: 'grátis' }
 
 export function generateStaticParams() {
-  return [{ locale: 'ru' }, { locale: 'en' }, { locale: 'pt' }]
+  return LOCALES.map(locale => ({ locale }))
 }
 
-const VALID_LOCALES = new Set(['ru', 'en', 'pt'])
+const VALID_LOCALES = new Set<string>(LOCALES)
 
 export default async function Home({
   params,

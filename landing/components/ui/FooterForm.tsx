@@ -1,41 +1,9 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import Image from 'next/image'
-import { canOptimizeImage } from '@/lib/optimizableImage'
+import TutorAvatar from '@/components/ui/TutorAvatar'
+import HoneypotField from '@/components/ui/HoneypotField'
 import type { TutorRef } from '@/types'
-
-// ─── Tutor Avatar ─────────────────────────────────────────────────────────────
-
-function TutorAvatar({ tutor, size = 40 }: { tutor: TutorRef; size?: number }) {
-  const initials = tutor.fullName
-    .split(' ')
-    .slice(0, 2)
-    .map(w => w[0])
-    .join('')
-
-  if (tutor.imageUrl) {
-    return (
-      <Image
-        src={tutor.imageUrl}
-        alt={tutor.fullName}
-        width={size}
-        height={size}
-        unoptimized={!canOptimizeImage(tutor.imageUrl)}
-        className="rounded-full object-cover object-top shrink-0"
-        style={{ width: size, height: size }}
-      />
-    )
-  }
-  return (
-    <div
-      className="rounded-full bg-green flex items-center justify-center shrink-0 font-sans font-bold text-ink"
-      style={{ width: size, height: size, fontSize: size * 0.38 }}
-    >
-      {initials}
-    </div>
-  )
-}
 
 // ─── Tutor Selector ───────────────────────────────────────────────────────────
 
@@ -355,21 +323,7 @@ export default function FooterForm({
         </p>
       </div>
 
-      {/* Honeypot — off-screen; bots that fill it get a fake success upstream.
-          The input's name is deliberately meaningless: browser autofill matches
-          on name/id heuristics (a field literally named "website" can get
-          profile-filled despite autoComplete="off", silently dropping a real
-          lead), while naive bots fill every text input regardless of name. */}
-      <input
-        type="text"
-        name="xtr_note"
-        value={website}
-        onChange={e => setWebsite(e.target.value)}
-        tabIndex={-1}
-        autoComplete="off"
-        aria-hidden="true"
-        className="absolute -left-[9999px] w-px h-px overflow-hidden"
-      />
+      <HoneypotField value={website} onChange={setWebsite} />
 
       {/* Inputs */}
       <div className="flex flex-col gap-[16px]">

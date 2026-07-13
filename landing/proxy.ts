@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { LOCALES } from '@/lib/locales'
 
-const LOCALES = ['ru', 'en', 'pt']
 const DEFAULT_LOCALE = 'en'
 
 // Pick the site locale from the Accept-Language header: the first language the
@@ -18,7 +18,7 @@ function detectLocale(header: string | null): string {
       return { lang: tag.trim().toLowerCase().split('-')[0], q: Number.isNaN(q) ? 0 : q }
     })
     .sort((a, b) => b.q - a.q)
-  const match = ranked.find(r => LOCALES.includes(r.lang))
+  const match = ranked.find(r => (LOCALES as readonly string[]).includes(r.lang))
   return match ? match.lang : DEFAULT_LOCALE
 }
 

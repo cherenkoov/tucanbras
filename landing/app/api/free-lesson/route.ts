@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Client as NotionClient } from '@notionhq/client'
 import { sendWelcomeEmail } from '@/lib/email'
+import { isLocale } from '@/lib/locales'
 import pool from '@/lib/db'
 
 // ─── Rate limiting ────────────────────────────────────────────────────────────
@@ -48,7 +49,6 @@ function clientIp(req: NextRequest): string {
 // ─── Validation ───────────────────────────────────────────────────────────────
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const LOCALES = ['ru', 'en', 'pt'] as const
 const SOURCES = ['free_lesson', 'footer'] as const
 
 const MAX_NAME = 100
@@ -162,7 +162,7 @@ export async function POST(req: NextRequest) {
   }
 
   const plan    = rawPlan.slice(0, MAX_PLAN)
-  const locale  = LOCALES.includes(body.locale as typeof LOCALES[number]) ? body.locale as string : 'ru'
+  const locale  = isLocale(body.locale) ? body.locale : 'ru'
   const source  = SOURCES.includes(body.source as typeof SOURCES[number]) ? body.source as string : 'free_lesson'
   const tutorId =
     typeof body.tutor_id === 'number' && Number.isInteger(body.tutor_id) &&

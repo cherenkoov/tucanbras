@@ -86,26 +86,18 @@ export function PlanSection({ plan, index }: { plan: PlanCard; index: number }) 
       className={`group relative px-[32px] py-[64px] w-full overflow-hidden rounded-[28px] lg:overflow-visible lg:rounded-none ${isLast ? '' : 'mb-[-48px]'}`}
     >
       {/*
-        Frost layers — backdrop-blur clipped to the plate silhouette via the SVG
-        mask. Kept SEPARATE from the colored layer because element `opacity` on a
-        backdrop-filter element breaks the mask clip and leaks a square halo at
-        the corners; this layer carries no opacity, only the blur + mask.
+        Frost layer — DESKTOP-ONLY backdrop-blur clipped to the plate silhouette
+        via the SVG mask. Kept SEPARATE from the colored layer because element
+        `opacity` on a backdrop-filter element breaks the mask clip and leaks a
+        square halo at the corners; this layer carries no opacity, only the
+        blur + mask. The mobile twin is removed on purpose: phone compositors
+        pay element-size × DPR buffers per backdrop-filter and were crashing.
+        Blur не транзишенится (снимается мгновенно) — анимация радиуса
+        перефильтровывает весь backdrop-буфер каждый кадр.
       */}
       <div
         aria-hidden
-        className="lg:hidden absolute inset-0 pointer-events-none backdrop-blur-[4px] group-hover:backdrop-blur-none group-[.is-center]:backdrop-blur-none transition-all duration-[600ms]"
-        style={{
-          WebkitMaskImage: `url(${MOBILE_BG[index]})`,
-          WebkitMaskSize: '100% 100%',
-          WebkitMaskRepeat: 'no-repeat',
-          maskImage: `url(${MOBILE_BG[index]})`,
-          maskSize: '100% 100%',
-          maskRepeat: 'no-repeat',
-        }}
-      />
-      <div
-        aria-hidden
-        className="hidden lg:block absolute inset-0 pointer-events-none backdrop-blur-[4px] group-hover:backdrop-blur-none group-[.is-center]:backdrop-blur-none transition-all duration-[600ms]"
+        className="hidden lg:block absolute inset-0 pointer-events-none backdrop-blur-[4px] group-hover:backdrop-blur-none group-[.is-center]:backdrop-blur-none"
         style={{
           WebkitMaskImage: `url(${BG[index]})`,
           WebkitMaskSize: '100% 100%',

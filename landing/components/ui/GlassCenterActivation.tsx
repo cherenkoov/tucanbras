@@ -37,9 +37,15 @@ export default function GlassCenterActivation() {
       const bandBottom = (vh * 2) / 3
       for (const el of els) {
         const rect = el.getBoundingClientRect()
-        // Skip hidden surfaces (e.g. desktop-only cards on a touch tablet).
+        // Skip hidden surfaces (e.g. desktop-only cards on a touch tablet) AND
+        // giant ones (the About frame is ~2700px tall): repainting a card that
+        // big costs a viewport-multiple IOSurface on iOS — toggling several of
+        // them while scrolling About starved the compositor (paint void /
+        // jetsam crash), and a mostly-off-screen surface going solid isn't a
+        // readable effect anyway.
         const active =
           rect.height > 0 &&
+          rect.height <= vh * 1.2 &&
           rect.top + rect.height / 2 >= bandTop &&
           rect.top + rect.height / 2 <= bandBottom
         if (active !== el.classList.contains(ACTIVE)) {

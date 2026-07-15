@@ -48,6 +48,8 @@ export default function PixelWalker({
     const lane = laneRef.current
     const pixel = pixelRef.current
     if (!lane || !pixel) return
+    // Debug kill-switch (?noanim=1): mascot rests, no gsap ticker.
+    if (new URLSearchParams(location.search).has('noanim')) return
 
     pixel.style.transformOrigin = 'bottom center'
 

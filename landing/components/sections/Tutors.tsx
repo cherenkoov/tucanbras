@@ -99,10 +99,13 @@ function TutorCard({
           Glass cover — frosted green panel masked to the cover silhouette so the
           blur follows the notch shape (not the rectangle). Fixed-height notched
           band on top + stretchy rounded body below; solidifies on hover / centre.
+          Blur only on hover-capable devices (как .glass в globals.css): на
+          телефонах backdrop-буферы element×DPR роняли вкладку; transition —
+          только цвет, анимация радиуса блюра перефильтровывает буфер каждый кадр.
         */}
         <div
           aria-hidden
-          className="absolute inset-0 z-0 rounded-b-[36px] backdrop-blur-[4px] bg-[#8fd096]/80 transition-all duration-[600ms] group-hover:backdrop-blur-none group-hover:bg-[#8fd096] group-[.is-center]:backdrop-blur-none group-[.is-center]:bg-[#8fd096] pointer-events-none"
+          className="absolute inset-0 z-0 rounded-b-[36px] [@media(hover:hover)]:backdrop-blur-[4px] bg-[#8fd096]/80 transition-colors duration-[600ms] group-hover:backdrop-blur-none group-hover:bg-[#8fd096] group-[.is-center]:bg-[#8fd096] pointer-events-none"
           style={{
             WebkitMaskImage: 'url(/SVG/tutors/cover-edge.svg), linear-gradient(#fff,#fff)',
             maskImage: 'url(/SVG/tutors/cover-edge.svg), linear-gradient(#fff,#fff)',

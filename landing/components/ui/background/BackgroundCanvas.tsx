@@ -6,7 +6,7 @@ import { injectRailPath, injectCloudAnimation } from './utils/injectRailPath'
 import { useTrainAnimation } from './useTrainAnimation'
 import { useCarAnimation } from './useCarAnimation'
 import { injectBeachCarAnimation } from './beachCars'
-import { injectWaveSurfAnimation } from './beachWaves'
+import { injectWaveSurfAnimation, injectStaticSea } from './beachWaves'
 import { loadOceanWaveShapes, type OceanWaveShape } from './oceanWaves'
 import { useWaveDepthOrder } from './useWaveDepthOrder'
 import { prepareBeachSvg, BEACH_GROUND_COLOR, BEACH_PREFIX } from './prepareBeachSvg'
@@ -19,6 +19,28 @@ import { useHumanAnimation } from './useHumanAnimation'
 import { HUMANS } from './humanPaths'
 import { WavesAnimated } from '@/components/ui/WavesAnimated'
 import { useBackgroundCoverage } from './useBackgroundCoverage'
+import {
+  BOX_BLEED,
+  boundedLayerStyle,
+  measureGroupBoxes,
+  padBox,
+  unionBoxes,
+  wrapSvgBounded,
+  type SpriteBox,
+} from './utils/spriteBoxes'
+
+// A sprite lifted out of the base art: tight markup + the box (canvas units) that
+// both its viewBox and its wrapper-div position/size are derived from.
+type SpriteLayer = { svg: string; box: SpriteBox }
+
+// The collage's own viewBox (matches wrapSvg / background-collage.svg).
+const COLLAGE_VB = { x: 0, y: 0, w: 800, h: 2047 } as const
+
+function parseViewBox(str: string | null): { x: number; y: number; w: number; h: number } | null {
+  if (!str) return null
+  const [x, y, w, h] = str.trim().split(/[\s,]+/).map(Number)
+  return Number.isFinite(x) && Number.isFinite(y) && w > 0 && h > 0 ? { x, y, w, h } : null
+}
 
 function Placeholder() {
   return (
@@ -48,13 +70,6 @@ function extractGroup(svgString: string, groupId: string): { inner: string; with
 
 function wrapSvg(inner: string): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 800 2047" overflow="visible">${inner}</svg>`
-}
-
-// Wrap a single lifted beach object in its own full-canvas SVG so it overlays the beach 1:1.
-// The viewBox is the beach's OWN (passed in, read from its markup — see readViewBox), which
-// is what makes the coordinates line up; overflow:visible + display:block mirror wrapSvg.
-function wrapBeachSpinner(inner: string, viewBox: string): string {
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="${viewBox}" overflow="visible" style="display:block">${inner}</svg>`
 }
 
 // Drop the clip-path on the object's OUTER <g> so the rotated art isn't cropped to
@@ -100,6 +115,35 @@ const mobileVScale = () =>
   typeof window !== 'undefined' && window.innerWidth < MOBILE_VSTRETCH_BREAKPOINT
     ? MOBILE_VSTRETCH
     : 1
+
+// Background tiers. Sprite layers are BOUNDED (viewBox = sprite box, see spriteBoxes.ts)
+// so extraction is affordable everywhere — the page-sized-surface problem that crashed
+// the iPhone 12 mini tab (≈1.5 GB of IOSurface backing at DPR 3) is gone by construction.
+//  • full     — the default EVERYWHERE: everything, incl. the surf conveyor and the
+//               WavesAnimated band. The balanced tier passed the iPhone 12 mini device
+//               test with zero lag (2026-07-15), and the user asked for the waves back,
+//               so touch was promoted to full — with the levers below as the retreat.
+//  • balanced — ?balanced=1: ALL sprite animations, but the sea stays STATIC
+//               (injectStaticSea) and the waves band is skipped — the remaining big
+//               animated surfaces / per-frame repaint regions. Fall back here first if
+//               the surf ever lags or crashes a device.
+//  • lite     — ?lite=1 emergency lever: ONE collage svg + clouds, nothing extracted,
+//               static sea (the mode that was the touch default while bisecting the crash).
+// Decided once per load, like the rest of the DOM structure.
+type BackgroundTier = 'full' | 'balanced' | 'lite'
+const backgroundTier = (): BackgroundTier => {
+  if (typeof window === 'undefined') return 'full'
+  const params = new URLSearchParams(location.search)
+  if (params.has('lite')) return 'lite'
+  if (params.has('balanced')) return 'balanced'
+  return 'full'
+}
+
+// Debug kill-switch (?nobg=1): skip the artwork fetches entirely — the canvas stays
+// an empty cream placeholder. Lets a crash be bisected on a real device: if the tab
+// still dies with the whole background gone, the background is exonerated.
+const isBgDisabled = () =>
+  typeof window !== 'undefined' && new URLSearchParams(location.search).has('nobg')
 
 // Decorative wave bands (moved OUT of the page flow into this background). They sit
 // BEHIND the beach (z9 < main2's z10), STRETCHED to fill the gap between main2's
@@ -164,18 +208,21 @@ export default function BackgroundCanvas() {
   const [mainSvg, setMainSvg] = useState('')
   const [beachSvg, setBeachSvg] = useState('')
   const [waveShapes, setWaveShapes] = useState<Record<string, OceanWaveShape> | null>(null)
-  const [spinnerSvgs, setSpinnerSvgs] = useState<string[]>([])
-  const [citySvg, setCitySvg] = useState('')
+  // Beach's ORIGINAL viewBox (pre surf-injection, which rewrites the base svg's one) —
+  // the spinner host div reproduces this canvas so the bounded overlays line up.
+  const [beachVB, setBeachVB] = useState<{ x: number; y: number; w: number; h: number } | null>(null)
+  const [spinnerLayers, setSpinnerLayers] = useState<(SpriteLayer | null)[]>([])
+  const [cityLayer, setCityLayer] = useState<SpriteLayer | null>(null)
   const [cloudsSvg, setCloudsSvg] = useState('')
   const [frontSvg, setFrontSvg] = useState('')
-  const [bigTreeSvg, setBigTreeSvg] = useState('')
-  const [bush01Svg, setBush01Svg] = useState('')
-  const [bush02Svg, setBush02Svg] = useState('')
-  const [roadsSvg, setRoadsSvg] = useState('')
-  const [house4Svg, setHouse4Svg] = useState('')
-  const [house5Svg, setHouse5Svg] = useState('')
-  const [house6Svg, setHouse6Svg] = useState('')
-  const [humanSvgs, setHumanSvgs] = useState<string[]>(['', '', '', ''])
+  const [bigTreeLayer, setBigTreeLayer] = useState<SpriteLayer | null>(null)
+  const [bush01Layer, setBush01Layer] = useState<SpriteLayer | null>(null)
+  const [bush02Layer, setBush02Layer] = useState<SpriteLayer | null>(null)
+  const [roadsLayer, setRoadsLayer] = useState<SpriteLayer | null>(null)
+  const [house4Layer, setHouse4Layer] = useState<SpriteLayer | null>(null)
+  const [house5Layer, setHouse5Layer] = useState<SpriteLayer | null>(null)
+  const [house6Layer, setHouse6Layer] = useState<SpriteLayer | null>(null)
+  const [humanLayers, setHumanLayers] = useState<(SpriteLayer | null)[]>([null, null, null, null])
   const [peakPos, setPeakPos] = useState<{ x: number; y: number } | null>(null)
   // Whole-scene upward lift (px) so the statue's head STARTS at the hero's top line.
   // Parallax then carries it down on scroll — hence a starting lift, not a fixed pin.
@@ -202,73 +249,138 @@ export default function BackgroundCanvas() {
   )
 
   useEffect(() => {
+    if (isBgDisabled()) return
     fetch('/SVG/background/background-collage.svg')
       .then(r => r.text())
       .then(raw => {
-        const { inner: cityInner, without: s0 } = extractGroup(raw, 'Background city')
-        if (cityInner) setCitySvg(wrapSvg(cityInner))
+        let s = raw
 
-        // Pull the figures + their two occlusion houses OUT of `City` FIRST (all of
-        // house 1..11 and human 1..4 are nested inside the `City` group). They must
-        // leave City before it is lifted to the front layer below.
-        let s = s0
+        // Lite (?lite=1): NO sprite layers — everything except the clouds stays inside
+        // the one main SVG (static city, houses, humans, bushes, big tree in their
+        // authored paint order). See backgroundTier.
+        if (backgroundTier() !== 'lite') {
+          // Measure every sprite's rendered box (canvas units) BEFORE extraction, so
+          // each overlay carries a TIGHT viewBox instead of the whole 800×2047 canvas
+          // (page-sized surfaces were the mobile crash — see backgroundTier).
+          const boxes = measureGroupBoxes(raw, [
+            'Background city', 'house 6', 'house 4', 'house 5',
+            'road 1', 'road 2', 'road 3',
+            ...HUMANS.map(h => h.id),
+            'bush 02', 'bush 01', 'Big tree',
+          ])
+          // Extract a group into a bounded layer. If its box could not be measured
+          // (id drift after an art re-export), the group is LEFT inside mainSvg — the
+          // sprite degrades to static instead of disappearing.
+          const takeLayer = (
+            src: string,
+            id: string,
+            pad = BOX_BLEED,
+          ): { layer: SpriteLayer | null; rest: string } => {
+            const measured = boxes.get(id)
+            if (!measured) return { layer: null, rest: src }
+            const { inner, without } = extractGroup(src, id)
+            if (!inner) return { layer: null, rest: src }
+            const box = padBox(measured, pad)
+            return { layer: { svg: wrapSvgBounded(inner, box), box }, rest: without }
+          }
 
-        // house 6 (own layer z3), house 4 & house 5 (own layers z5) — figures interleave
-        // by their per-figure z: human 1 (z6) in front, the others (z4) behind.
-        const { inner: house6, without: sh6 } = extractGroup(s, 'house 6')
-        if (house6) setHouse6Svg(wrapSvg(house6))
-        s = sh6
-        const { inner: house4, without: sh4 } = extractGroup(s, 'house 4')
-        if (house4) setHouse4Svg(wrapSvg(house4))
-        s = sh4
-        const { inner: house5, without: sh5 } = extractGroup(s, 'house 5')
-        if (house5) setHouse5Svg(wrapSvg(house5))
-        s = sh5
+          const city = takeLayer(s, 'Background city')
+          setCityLayer(city.layer)
+          // Pull the figures + their two occlusion houses OUT of `City` FIRST (all of
+          // house 1..11 and human 1..4 are nested inside the `City` group). They must
+          // leave City before it is lifted to the front layer below.
+          s = city.rest
 
-        // Roads are nested in City too, but the figures must walk ON TOP of them.
-        // Pull them out and render below the figures (z1, above the base terrain).
-        let roadsInner = ''
-        for (const id of ['road 1', 'road 2', 'road 3']) {
-          const { inner, without } = extractGroup(s, id)
-          roadsInner += inner
-          s = without
+          // house 6, house 4, house 5 — own layers; figures interleave by their
+          // per-figure z (see the JSX z map).
+          const h6 = takeLayer(s, 'house 6')
+          setHouse6Layer(h6.layer)
+          s = h6.rest
+          const h4 = takeLayer(s, 'house 4')
+          setHouse4Layer(h4.layer)
+          s = h4.rest
+          const h5 = takeLayer(s, 'house 5')
+          setHouse5Layer(h5.layer)
+          s = h5.rest
+
+          // Roads are nested in City too, but the figures must walk ON TOP of them.
+          // Pull them out into ONE layer (union box) below the figures.
+          let roadsInner = ''
+          const roadBoxes: (SpriteBox | undefined)[] = []
+          for (const id of ['road 1', 'road 2', 'road 3']) {
+            if (!boxes.get(id)) continue // unmeasured → stays baked in mainSvg
+            const { inner, without } = extractGroup(s, id)
+            if (!inner) continue
+            roadsInner += inner
+            roadBoxes.push(boxes.get(id))
+            s = without
+          }
+          const roadsUnion = unionBoxes(roadBoxes)
+          if (roadsInner && roadsUnion) {
+            const box = padBox(roadsUnion, BOX_BLEED)
+            setRoadsLayer({ svg: wrapSvgBounded(roadsInner, box), box })
+          }
+
+          // human 1–4 — each its own animated wrapper-div layer. Wider bleed: the gait
+          // adds a slight scale and a per-figure seat offset around the tight bbox.
+          const humans: (SpriteLayer | null)[] = []
+          for (const cfg of HUMANS) {
+            const t = takeLayer(s, cfg.id, 20)
+            humans.push(t.layer)
+            s = t.rest
+          }
+          setHumanLayers(humans)
+
+          // Lift the front-set groups out of the main SVG into their own layer (z:7, above the train).
+          // Deliberately NOT bounded: the set spans mountains across most of the canvas —
+          // its union box ≈ the canvas anyway, so it stays one big (static) layer.
+          let frontInner = ''
+          for (const id of FRONT_IDS) {
+            const { inner, without } = extractGroup(s, id)
+            frontInner += inner
+            s = without
+          }
+          if (frontInner) setFrontSvg(wrapSvg(frontInner))
+
+          // bush 01 / bush 02 — own layers so the slide-in can transform the wrapper div.
+          // Their boxes are EXTENDED to the canvas edge on the pivot side: the sway hook
+          // pivots at originX '0%'/'100%' of the layer, which must stay the container
+          // edge (long-lever sway), not the bush's own edge. bush 1 → left, bush 2 → right.
+          const toEdge = (b: SpriteBox, side: 'left' | 'right'): SpriteBox => {
+            const pb = padBox(b, BOX_BLEED)
+            return side === 'left'
+              ? { x: COLLAGE_VB.x, y: pb.y, w: pb.x + pb.w - COLLAGE_VB.x, h: pb.h }
+              : { x: pb.x, y: pb.y, w: COLLAGE_VB.x + COLLAGE_VB.w - pb.x, h: pb.h }
+          }
+          const b02 = boxes.get('bush 02')
+          if (b02) {
+            const { inner, without } = extractGroup(s, 'bush 02')
+            if (inner) {
+              const box = toEdge(b02, 'right')
+              setBush02Layer({ svg: wrapSvgBounded(inner, box), box })
+              s = without
+            }
+          }
+          const b01 = boxes.get('bush 01')
+          if (b01) {
+            const { inner, without } = extractGroup(s, 'bush 01')
+            if (inner) {
+              const box = toEdge(b01, 'left')
+              setBush01Layer({ svg: wrapSvgBounded(inner, box), box })
+              s = without
+            }
+          }
+
+          // Big tree gets its own layer so the sway can rotate the wrapper div
+          // (rotating a <g> inside dangerouslySetInnerHTML doesn't take visually).
+          const tree = takeLayer(s, 'Big tree', 40)
+          setBigTreeLayer(tree.layer)
+          s = tree.rest
         }
-        if (roadsInner) setRoadsSvg(wrapSvg(roadsInner))
-
-        // human 1–4 — each its own animated wrapper-div layer
-        const humanInner: string[] = []
-        for (const cfg of HUMANS) {
-          const { inner, without } = extractGroup(s, cfg.id)
-          humanInner.push(inner ? wrapSvg(inner) : '')
-          s = without
-        }
-        setHumanSvgs(humanInner)
-
-        // Lift the front-set groups out of the main SVG into their own layer (z:7, above the train)
-        let frontInner = ''
-        for (const id of FRONT_IDS) {
-          const { inner, without } = extractGroup(s, id)
-          frontInner += inner
-          s = without
-        }
-        if (frontInner) setFrontSvg(wrapSvg(frontInner))
-
-        // bush 01 / bush 02 get their own layers so the slide-in can transform the wrapper div
-        const { inner: bush02, without: sb2 } = extractGroup(s, 'bush 02')
-        if (bush02) setBush02Svg(wrapSvg(bush02))
-        s = sb2
-        const { inner: bush01, without: sb1 } = extractGroup(s, 'bush 01')
-        if (bush01) setBush01Svg(wrapSvg(bush01))
-        s = sb1
-
-        // Big tree gets its own layer so the sway can rotate the wrapper div
-        // (rotating a <g> inside dangerouslySetInnerHTML doesn't take visually)
-        const { inner: bigTree, without: s1 } = extractGroup(s, 'Big tree')
-        if (bigTree) setBigTreeSvg(wrapSvg(bigTree))
-        s = s1
 
         // Clouds — own layer so the mobile descent leaves the sky pinned while
         // everything else shifts down. Extract in document order (overlap preserved).
+        // Lifted in ALL tiers: the lite mobile descent needs the pinned sky most.
         let cloudsInner = ''
         for (const id of CLOUD_IDS) {
           const { inner, without } = extractGroup(s, id)
@@ -285,30 +397,66 @@ export default function BackgroundCanvas() {
   // Beach scene (Scene 3, `main 2.svg`) — fetched separately and appended BELOW the
   // collage as a full-width in-flow block. Space in the filename → %20 in the URL.
   useEffect(() => {
-    Promise.all([
-      fetch('/SVG/background/main%202.svg').then(r => r.text()),
-      loadOceanWaveShapes(),
-    ])
+    if (isBgDisabled()) return
+    const tier = backgroundTier()
+    // Lite (?lite=1): static beach — baked wave silhouettes + static water plane (no
+    // SMIL surf conveyor, no car SMIL, no lifted palm/umbrella overlays), skip the
+    // Ocean Waves fetches.
+    if (tier === 'lite') {
+      fetch('/SVG/background/main%202.svg')
+        .then(r => r.text())
+        .then(raw => setBeachSvg(injectStaticSea(prepareBeachSvg(raw))))
+        .catch(err => console.warn('BackgroundCanvas: beach SVG fetch failed', err))
+      return
+    }
+    // full: surf conveyor (needs the Ocean Waves shapes). balanced: static sea — the
+    // conveyor is a large per-frame SMIL repaint region, kept off phones; skip the fetch.
+    const wantSurf = tier === 'full'
+    const load: Promise<[string, Record<string, OceanWaveShape> | null]> = wantSurf
+      ? Promise.all([fetch('/SVG/background/main%202.svg').then(r => r.text()), loadOceanWaveShapes()])
+      : fetch('/SVG/background/main%202.svg').then(r => r.text()).then(raw => [raw, null])
+    load
       .then(([raw, shapes]) => {
         // Prepare (namespace ids, strip backdrops), then LIFT each palm/umbrella out
-        // into its own overlay (clip-path stripped). The base beach = the remainder,
-        // with the car SMIL injected as before. Index alignment with BEACH_SPINNERS is
-        // kept via '' placeholders for any id not found.
+        // into its own BOUNDED overlay (clip-path stripped; viewBox = the object's own
+        // measured box — a full-canvas overlay is a page-sized composited surface, the
+        // mobile crash). The base beach = the remainder, with the car SMIL injected as
+        // before. Index alignment with BEACH_SPINNERS is kept via null placeholders.
         let s = prepareBeachSvg(raw)
-        // The overlays must carry the beach's OWN viewBox, read from the markup — a hardcoded
-        // copy goes stale the moment the art is re-exported, and every object then lands in
-        // the wrong place. Lift before the surf injection, which rewrites that viewBox.
-        const viewBox = readViewBox(s)
-        const spinners: string[] = []
+        // Boxes are measured against the beach's OWN viewBox, read from the markup — a
+        // hardcoded copy goes stale the moment the art is re-exported, and every object
+        // then lands in the wrong place. Lift before the surf injection, which rewrites
+        // that viewBox; the spinner host div reproduces this ORIGINAL canvas.
+        const vb = parseViewBox(readViewBox(s))
+        const spinnerIds = BEACH_SPINNERS.map(cfg => `${BEACH_PREFIX}${cfg.id}`)
+        const boxes = vb ? measureGroupBoxes(s, spinnerIds) : new Map<string, SpriteBox>()
+        const spinners: (SpriteLayer | null)[] = []
         for (const cfg of BEACH_SPINNERS) {
-          const { inner, without } = extractGroup(s, `${BEACH_PREFIX}${cfg.id}`)
-          spinners.push(inner && viewBox ? wrapBeachSpinner(stripSpinnerClip(inner), viewBox) : '')
+          const id = `${BEACH_PREFIX}${cfg.id}`
+          const measured = boxes.get(id)
+          if (!measured) {
+            spinners.push(null) // unmeasured → stays baked in the beach, static
+            continue
+          }
+          const { inner, without } = extractGroup(s, id)
+          if (!inner) {
+            spinners.push(null)
+            continue
+          }
+          const box = padBox(measured, BOX_BLEED)
+          spinners.push({ svg: wrapSvgBounded(stripSpinnerClip(inner), box), box })
           s = without
         }
-        setSpinnerSvgs(spinners)
-        setWaveShapes(shapes) // also feeds the terminal sea-fill band
-        // Replace the old sea with the Ocean Waves queue + foam sweep.
-        setBeachSvg(injectWaveSurfAnimation(injectBeachCarAnimation(s), { shapes }))
+        setBeachVB(vb)
+        setSpinnerLayers(spinners)
+        s = injectBeachCarAnimation(s)
+        if (wantSurf && shapes) {
+          setWaveShapes(shapes) // also feeds the terminal sea-fill band
+          // Replace the old sea with the Ocean Waves queue + foam sweep.
+          setBeachSvg(injectWaveSurfAnimation(s, { shapes }))
+        } else {
+          setBeachSvg(injectStaticSea(s))
+        }
       })
       .catch(err => console.warn('BackgroundCanvas: beach SVG fetch failed', err))
   }, [])
@@ -499,13 +647,22 @@ export default function BackgroundCanvas() {
     return () => ro.disconnect()
   }, [svgReady, beachSvg, updateBeachOffset])
 
-  useTrainAnimation(containerRef, { enabled: svgReady })
-  useCarAnimation(containerRef, { enabled: svgReady })
+  // In lite mode the sprite layers don't exist — their hooks stay disabled (the
+  // cloud reveal is kept: it's a one-shot CSS transition on the still-lifted clouds).
+  const tier = backgroundTier()
+  const sprites = tier !== 'lite'
+  // Host renders only once some layer exists (all states start null), which also keeps
+  // SSR/hydration consistent — the server can't know the tier.
+  const hasCollageSprites =
+    !!(cityLayer || roadsLayer || house4Layer || house5Layer || house6Layer ||
+      bush01Layer || bush02Layer || bigTreeLayer) || humanLayers.some(Boolean)
+  useTrainAnimation(containerRef, { enabled: svgReady && sprites })
+  useCarAnimation(containerRef, { enabled: svgReady && sprites })
   useCloudAnimation(containerRef, { enabled: svgReady })
-  useBushAnimation(bush01Ref, bush02Ref, { enabled: svgReady })
-  useBigTreeAnimation(bigTreeRef, { enabled: !!bigTreeSvg })
-  useHumanAnimation(containerRef, humanRefs, { enabled: svgReady, debug: false })
-  useBeachSpinnerAnimation(beachRef, { enabled: !!beachSvg })
+  useBushAnimation(bush01Ref, bush02Ref, { enabled: svgReady && sprites })
+  useBigTreeAnimation(bigTreeRef, { enabled: !!bigTreeLayer })
+  useHumanAnimation(containerRef, humanRefs, { enabled: svgReady && sprites, debug: false })
+  useBeachSpinnerAnimation(beachRef, { enabled: !!beachSvg && sprites })
   // Animated sea for the terminal band below the beach (built once shapes load).
 
   const coverage = useBackgroundCoverage(containerRef, COVERAGE_CONFIG, { ready: svgReady && !!beachSvg, sceneLift })
@@ -594,12 +751,6 @@ export default function BackgroundCanvas() {
         }}
       >
       {!svgReady && <Placeholder />}
-      {citySvg && (
-        <div
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%' }}
-          dangerouslySetInnerHTML={{ __html: citySvg }}
-        />
-      )}
       {mainSvg && (
         <div style={{ position: 'relative', zIndex: 10 }} dangerouslySetInnerHTML={{ __html: mainSvg }} />
       )}
@@ -617,8 +768,10 @@ export default function BackgroundCanvas() {
           They sit BEHIND the beach (z9 < main2 z10) in its empty space; main2's opaque
           backdrops are stripped in prepareBeachSvg so they show through. Top + height set
           in JS to the gap [curb3+6, curb+6]; WavesAnimated (fillParent) fits the whole
-          band stack INTO that height, so the waves fill it exactly without overflowing. */}
-      {beachSvg && (
+          band stack INTO that height, so the waves fill it exactly without overflowing.
+          Skipped below the full tier: the baked static sea still covers that band there,
+          and each wave band is another 3 animated full-width layers. */}
+      {beachSvg && tier === 'full' && (
         <div
           ref={wavesRef}
           aria-hidden="true"
@@ -634,17 +787,34 @@ export default function BackgroundCanvas() {
           {/* base beach (minus the lifted palms/umbrellas) — establishes the block height;
               curb/curb3/brown/fill queries still resolve against this child */}
           <div dangerouslySetInnerHTML={{ __html: beachSvg }} />
-          {/* one absolute overlay per lifted object, pixel-aligned via the shared viewBox;
-              the hook rotates each around its own centre by data-spin-id */}
-          {spinnerSvgs.map((svg, i) =>
-            svg ? (
-              <div
-                key={BEACH_SPINNERS[i].id}
-                data-spin-id={BEACH_SPINNERS[i].id}
-                style={{ position: 'absolute', top: 0, left: 0, width: '100%' }}
-                dangerouslySetInnerHTML={{ __html: svg }}
-              />
-            ) : null,
+          {/* one BOUNDED overlay per lifted object, inside a host that reproduces the
+              beach's ORIGINAL canvas (the surf injection rewrites the base svg's
+              viewBox, so the host pins the pre-rewrite aspect); %-positions equal the
+              measured boxes. The hook rotates each wrapper around the object's own
+              centre by data-spin-id. The host must NOT create a stacking context. */}
+          {beachVB && (
+            <div
+              aria-hidden="true"
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                aspectRatio: `${beachVB.w} / ${beachVB.h}`,
+                overflow: 'visible',
+              }}
+            >
+              {spinnerLayers.map((layer, i) =>
+                layer ? (
+                  <div
+                    key={BEACH_SPINNERS[i].id}
+                    data-spin-id={BEACH_SPINNERS[i].id}
+                    style={boundedLayerStyle(layer.box, beachVB)}
+                    dangerouslySetInnerHTML={{ __html: layer.svg }}
+                  />
+                ) : null,
+              )}
+            </div>
           )}
         </div>
       )}
@@ -676,52 +846,6 @@ export default function BackgroundCanvas() {
         />
       )}
 
-      {/* roads — pulled out of City so the figures walk ON them (z15, above base terrain
-          z10, below every figure). Painted after mainSvg so it sits over the ground. */}
-      {roadsSvg && (
-        <div
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 15 }}
-          dangerouslySetInnerHTML={{ __html: roadsSvg }}
-        />
-      )}
-
-      {/* house 6 — own layer (z25, grouped with house 4): figures RED above / BLUE behind */}
-      {house6Svg && (
-        <div
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 25 }}
-          dangerouslySetInnerHTML={{ __html: house6Svg }}
-        />
-      )}
-
-      {/* human 1–4 — own animated layers (baseZ from HUMANS; hook drives transform + z) */}
-      {humanSvgs.map((svg, i) =>
-        svg ? (
-          <div
-            key={HUMANS[i].id}
-            ref={humanRefs[i]}
-            style={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: HUMANS[i].baseZ }}
-            dangerouslySetInnerHTML={{ __html: svg }}
-          />
-        ) : null
-      )}
-
-      {/* house 4 — own layer (z25, grouped with house 6): RED above / BLUE behind;
-          YELLOW (z30) passes in front of it but behind house 5 */}
-      {house4Svg && (
-        <div
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 25 }}
-          dangerouslySetInnerHTML={{ __html: house4Svg }}
-        />
-      )}
-
-      {/* house 5 — own layer (z35): only RED figures (z40) pass in front; YELLOW/BLUE behind */}
-      {house5Svg && (
-        <div
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 35 }}
-          dangerouslySetInnerHTML={{ __html: house5Svg }}
-        />
-      )}
-
       {/* Front layer (z50) — all other houses + mountains, ABOVE every figure */}
       {frontSvg && (
         <div
@@ -730,29 +854,100 @@ export default function BackgroundCanvas() {
         />
       )}
 
-      {/* bush 02 then bush 01 — own layers (above City, below Big tree) for the slide-in */}
-      {bush02Svg && (
+      {/* Bounded sprite host — spans exactly the collage canvas (width 100% +
+          aspect-ratio 800/2047), so the children's %-positions equal canvas
+          coordinates and survive resize/cover-zoom without JS. The host must NOT
+          get a z-index or transform (no stacking context): each child's z-index
+          keeps interleaving with the siblings outside — mainSvg z10 above the
+          z-auto city, clouds z11, the front layer z50 painted before the equal-z50
+          bushes/tree because this host comes AFTER it in the DOM. The z map is the
+          same as the old full-canvas layers carried. */}
+      {hasCollageSprites && (
         <div
-          ref={bush02Ref}
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 50 }}
-          dangerouslySetInnerHTML={{ __html: bush02Svg }}
-        />
-      )}
-      {bush01Svg && (
-        <div
-          ref={bush01Ref}
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 50 }}
-          dangerouslySetInnerHTML={{ __html: bush01Svg }}
-        />
-      )}
-
-      {/* Big tree — own layer (on top of the front-set) so the sway rotates this div */}
-      {bigTreeSvg && (
-        <div
-          ref={bigTreeRef}
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 50 }}
-          dangerouslySetInnerHTML={{ __html: bigTreeSvg }}
-        />
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            aspectRatio: '800 / 2047',
+            overflow: 'visible',
+          }}
+        >
+          {/* Background city — z-auto keeps it under mainSvg (z10), as before */}
+          {cityLayer && (
+            <div
+              style={boundedLayerStyle(cityLayer.box, COLLAGE_VB)}
+              dangerouslySetInnerHTML={{ __html: cityLayer.svg }}
+            />
+          )}
+          {/* roads — pulled out of City so the figures walk ON them (z15, above base
+              terrain z10, below every figure) */}
+          {roadsLayer && (
+            <div
+              style={{ ...boundedLayerStyle(roadsLayer.box, COLLAGE_VB), zIndex: 15 }}
+              dangerouslySetInnerHTML={{ __html: roadsLayer.svg }}
+            />
+          )}
+          {/* house 6 — z25, grouped with house 4: figures RED above / BLUE behind */}
+          {house6Layer && (
+            <div
+              style={{ ...boundedLayerStyle(house6Layer.box, COLLAGE_VB), zIndex: 25 }}
+              dangerouslySetInnerHTML={{ __html: house6Layer.svg }}
+            />
+          )}
+          {/* human 1–4 — own animated layers (baseZ from HUMANS; hook drives transform + z) */}
+          {humanLayers.map((layer, i) =>
+            layer ? (
+              <div
+                key={HUMANS[i].id}
+                ref={humanRefs[i]}
+                style={{ ...boundedLayerStyle(layer.box, COLLAGE_VB), zIndex: HUMANS[i].baseZ }}
+                dangerouslySetInnerHTML={{ __html: layer.svg }}
+              />
+            ) : null
+          )}
+          {/* house 4 — z25, grouped with house 6: RED above / BLUE behind;
+              YELLOW (z30) passes in front of it but behind house 5 */}
+          {house4Layer && (
+            <div
+              style={{ ...boundedLayerStyle(house4Layer.box, COLLAGE_VB), zIndex: 25 }}
+              dangerouslySetInnerHTML={{ __html: house4Layer.svg }}
+            />
+          )}
+          {/* house 5 — z35: only RED figures (z40) pass in front; YELLOW/BLUE behind */}
+          {house5Layer && (
+            <div
+              style={{ ...boundedLayerStyle(house5Layer.box, COLLAGE_VB), zIndex: 35 }}
+              dangerouslySetInnerHTML={{ __html: house5Layer.svg }}
+            />
+          )}
+          {/* bush 02 then bush 01 — z50, above the front-set (host is after it in the
+              DOM), below Big tree; boxes reach the pivot-side canvas edge (see toEdge)
+              so the sway hook's originX '0%'/'100%' stays the container edge */}
+          {bush02Layer && (
+            <div
+              ref={bush02Ref}
+              style={{ ...boundedLayerStyle(bush02Layer.box, COLLAGE_VB), zIndex: 50 }}
+              dangerouslySetInnerHTML={{ __html: bush02Layer.svg }}
+            />
+          )}
+          {bush01Layer && (
+            <div
+              ref={bush01Ref}
+              style={{ ...boundedLayerStyle(bush01Layer.box, COLLAGE_VB), zIndex: 50 }}
+              dangerouslySetInnerHTML={{ __html: bush01Layer.svg }}
+            />
+          )}
+          {/* Big tree — on top of the front-set; the sway rotates this div */}
+          {bigTreeLayer && (
+            <div
+              ref={bigTreeRef}
+              style={{ ...boundedLayerStyle(bigTreeLayer.box, COLLAGE_VB), zIndex: 50 }}
+              dangerouslySetInnerHTML={{ __html: bigTreeLayer.svg }}
+            />
+          )}
+        </div>
       )}
 
       {/* ChristScene: bottom-center anchored to #Peak's crest, offset so the PEDESTAL

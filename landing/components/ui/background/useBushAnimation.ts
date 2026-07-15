@@ -96,11 +96,17 @@ export function useBushAnimation(
 
     const play = (entry: BushEntry) => {
       entry.played = true
-      // Pivot = screen edge (x) at the bush's own vertical center (y, from getBBox in the
-      // 800×2047 canvas). One origin for both scale and rotate → no jump at the handoff.
+      // Pivot = container edge (x) at the bush's own vertical center. One origin for both
+      // scale and rotate → no jump at the handoff. Percentages are of the bush's OWN
+      // wrapper svg viewBox — the bounded bush box is deliberately EXTENDED to the canvas
+      // edge on its pivot side (see BackgroundCanvas), so '0%'/'100%' of the box IS the
+      // container edge, same long-lever sway as with the old full-canvas wrappers.
       const b = entry.g.getBBox()
+      const vb = entry.el.querySelector('svg')?.viewBox.baseVal
       const centerY =
-        b && b.height > 0 ? `${(((b.y + b.height / 2) / 2047) * 100).toFixed(2)}%` : '55%'
+        b && vb && b.height > 0 && vb.height > 0
+          ? `${(((b.y + b.height / 2 - vb.y) / vb.height) * 100).toFixed(2)}%`
+          : '55%'
       const originX = entry.index === 0 ? '0%' : '100%' // bush 1 → left edge, bush 2 → right edge
       gsap.set(entry.el, { scale: 1, transformOrigin: `${originX} ${centerY}` })
       tweens.push(

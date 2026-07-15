@@ -66,14 +66,19 @@ export function useHumanAnimation(
     const starts = paths.map((p) => p.getPointAtLength(0))
 
     // Per-figure transform-origin = feet (bbox bottom-center of the figure <g>), in %.
+    // Percentages are of the figure's OWN wrapper svg, whose viewBox is the bounded
+    // sprite box (read it — don't assume the full canvas): the group keeps its original
+    // canvas coordinates, so subtract the viewBox origin. Works for full-canvas
+    // wrappers too (origin 0,0).
     const els = humanRefs.map((r) => r.current)
     els.forEach((el, i) => {
       if (!el) return
       const g = el.querySelector<SVGGElement>('g')
-      if (!g) return
+      const vb = el.querySelector('svg')?.viewBox.baseVal
+      if (!g || !vb || vb.width === 0 || vb.height === 0) return
       const bb = g.getBBox()
-      const cx = ((bb.x + bb.width / 2) / SVG_W) * 100
-      const by = ((bb.y + bb.height) / SVG_H) * 100
+      const cx = ((bb.x + bb.width / 2 - vb.x) / vb.width) * 100
+      const by = ((bb.y + bb.height - vb.y) / vb.height) * 100
       el.style.transformOrigin = `${cx.toFixed(2)}% ${by.toFixed(2)}%`
       el.style.willChange = 'transform'
       el.style.zIndex = String(HUMANS[i].baseZ)

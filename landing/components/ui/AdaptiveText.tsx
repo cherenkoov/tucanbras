@@ -11,20 +11,23 @@ import {
 import { useAdaptiveText } from './useAdaptiveText'
 
 // Shared duotone filter applied to the adaptive text (backdrop or static-fill):
-// grayscale → HARD threshold around the midpoint (steep ramp, minimal gray midband) →
-// map onto the ink↔cream axis, inverted so a DARK background yields CREAM text and a
-// LIGHT one yields INK. Midpoint ~0.70 (intercept = −slope × 0.698); slope ×30 keeps
-// the transition band tiny so pixels resolve to near-pure ink or cream.
+// grayscale → BINARY threshold at luminance 0.70 → map onto the ink↔cream axis,
+// inverted so a DARK background yields CREAM text and a LIGHT one yields INK.
+// The threshold is type="discrete": 20 bins, bins 0–13 (lum < 0.70) → 0, bins
+// 14–19 (lum ≥ 0.70) → 1 — no transition band at all, every pixel resolves to
+// pure ink or pure cream (the previous steep linear ramp, slope ×30 around
+// 0.698, still let mid-luminance backgrounds through as gray letters).
 //   ink #323031 = rgb(.196078 .188235 .192157) · cream #fffce5 = rgb(1 .988235 .898039)
+const THRESHOLD_STEP = '0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1'
 export function AdaptiveDuotoneFilter() {
   return (
     <svg width="0" height="0" aria-hidden="true" style={{ position: 'absolute' }}>
       <filter id="adaptive-duotone" colorInterpolationFilters="sRGB">
         <feColorMatrix type="saturate" values="0" />
         <feComponentTransfer>
-          <feFuncR type="linear" slope={30} intercept={-20.95} />
-          <feFuncG type="linear" slope={30} intercept={-20.95} />
-          <feFuncB type="linear" slope={30} intercept={-20.95} />
+          <feFuncR type="discrete" tableValues={THRESHOLD_STEP} />
+          <feFuncG type="discrete" tableValues={THRESHOLD_STEP} />
+          <feFuncB type="discrete" tableValues={THRESHOLD_STEP} />
         </feComponentTransfer>
         <feComponentTransfer>
           <feFuncR type="table" tableValues="1 0.196078" />

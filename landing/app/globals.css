@@ -252,6 +252,13 @@ input:-webkit-autofill:active {
 
 
 
+/* Debug kill-switch (?noanim=1 → ScrollDebug ставит html.noanim): убирает все
+   mix-blend-mode — у декоративных SVG (гибискусы, папоротник) десятки blend-групп,
+   которые дороги для мобильного композитора. Только для бисекции крашей. */
+html.noanim * {
+  mix-blend-mode: normal !important;
+}
+
 /* ── Reusable interaction effects ────────────────────────────────────────── */
 
 /*
@@ -259,30 +266,52 @@ input:-webkit-autofill:active {
   Frosted translucent surface that becomes fully opaque & crisp on hover.
   Colour is parameterised per-use via --glass-tint (frosted) / --glass-solid
   (hover); defaults to the cream surface, matching the About blocks.
+
+  The blur is DESKTOP-ONLY and only background-color transitions: a
+  backdrop-filter needs a backdrop buffer the size of the element × DPR (on
+  phones the About frame is a single ~2700px-tall glass surface), and
+  animating the radius re-filters that buffer every frame — together this was
+  crashing mobile tabs (compositor OOM). Touch devices keep the translucent
+  tint with no blur.
 */
 .glass {
   background-color: var(--glass-tint, rgba(255, 252, 229, 0.72));
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
-  transition: all 600ms ease;
+  transition: background-color 600ms ease;
+}
+
+@media (hover: hover) {
+  .glass {
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+  }
+
+  .glass:hover {
+    -webkit-backdrop-filter: blur(0);
+    backdrop-filter: blur(0);
+  }
 }
 
 .glass:hover {
   background-color: var(--glass-solid, #fffce5);
-  -webkit-backdrop-filter: blur(0);
-  backdrop-filter: blur(0);
 }
 
 /*
   Touch devices have no :hover — GlassCenterActivation toggles `.is-center`
   when the surface scrolls into the middle third of the viewport (the 1:3
   activation band) instead.
+
+  NO transition on touch: animating background-color repaints the WHOLE card
+  every frame for 600ms, and the About cards are 1400–2700px tall — at DPR 3
+  each repainting card transiently costs a ~50–100MB IOSurface. Scrolling
+  About toggles several in sequence, which exhausted the iOS tab's surface
+  budget (magenta tiles → paint void → jetsam kill on iPhone 12 mini). The
+  colour change lands instantly instead.
 */
 @media (hover: none) {
+  .glass { transition: none; }
+
   .glass.is-center {
     background-color: var(--glass-solid, #fffce5);
-    -webkit-backdrop-filter: blur(0);
-    backdrop-filter: blur(0);
   }
 }
 

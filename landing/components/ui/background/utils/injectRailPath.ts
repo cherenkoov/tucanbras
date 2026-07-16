@@ -51,10 +51,15 @@ export function injectRailPath(svgString: string): string {
   // back to an identity matrix, mapping path coordinates to screen pixels instead of SVG
   // units, and the animated element flies to the wrong position.
   // visibility="hidden" keeps them invisible while still participating in layout.
-  const animPaths =
-    `<path id="rail-path" d="${TRAIN_PATH_D}" fill="none" visibility="hidden"/>` +
-    `<path id="cabine-anim-path" d="${CABINE_PATH_FWD}" fill="none" visibility="hidden"/>` +
-    `<path id="cabine-anim-path-rev" d="${CABINE_PATH_REV}" fill="none" visibility="hidden"/>`
+  // ONE template literal on purpose — NOT a `tpl` + `tpl` chain. Turbopack's prod
+  // minifier (Next 16.2.10) mis-folds fully-constant template-literal concatenations:
+  // each non-final operand loses its static tail after the last ${}, which corrupted
+  // exactly this markup (rail-path's d= swallowed both cabine <path> elements).
+  // The newlines are harmless whitespace between SVG elements.
+  const animPaths = `
+    <path id="rail-path" d="${TRAIN_PATH_D}" fill="none" visibility="hidden"/>
+    <path id="cabine-anim-path" d="${CABINE_PATH_FWD}" fill="none" visibility="hidden"/>
+    <path id="cabine-anim-path-rev" d="${CABINE_PATH_REV}" fill="none" visibility="hidden"/>`
 
   patched = patched.replace('</svg>', animPaths + '</svg>')
 

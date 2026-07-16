@@ -239,17 +239,20 @@ export default function Header({ navLinks }: HeaderProps) {
       {/* ── Main bar ── */}
       <div ref={containerRef} className="group relative h-[85px] lg:h-[96px] max-w-[1720px] mx-auto overflow-visible">
 
-        {/* Background plate — mobile: простой прямоугольник с radius-card (glass → solid по ховеру бара) */}
+        {/* Background plate — mobile: простой прямоугольник с radius-card (glass → solid по ховеру бара).
+            Без backdrop-blur: на телефонах блюр-буферы (размер элемента × DPR) роняли вкладку. */}
         <div
           aria-hidden
-          className="lg:hidden absolute inset-0 pointer-events-none rounded-card bg-[rgba(255,252,229,0.72)] group-hover:bg-cream backdrop-blur-[4px] group-hover:backdrop-blur-none transition-all duration-[600ms]"
+          className="lg:hidden absolute inset-0 pointer-events-none rounded-card bg-[rgba(255,252,229,0.72)] group-hover:bg-cream transition-colors duration-[600ms]"
           style={{ boxShadow: 'var(--shadow-card)' }}
         />
 
-        {/* Frosted backdrop — desktop: matte blur clipped to the plate silhouette, clears on hover */}
+        {/* Frosted backdrop — desktop: matte blur clipped to the plate silhouette, clears on hover.
+            Blur не транзишенится (снимается мгновенно): анимация радиуса перефильтровывает
+            весь backdrop-буфер каждый кадр. */}
         <div
           aria-hidden
-          className="hidden lg:block absolute inset-0 pointer-events-none backdrop-blur-[4px] group-hover:backdrop-blur-none transition-all duration-[600ms]"
+          className="hidden lg:block absolute inset-0 pointer-events-none backdrop-blur-[4px] group-hover:backdrop-blur-none"
           style={{ clipPath: 'url(#header-plate-clip)', WebkitClipPath: 'url(#header-plate-clip)' }}
         />
 

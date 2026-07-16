@@ -368,14 +368,34 @@ export interface WaveSurfOptions {
   shapes?: Record<string, OceanWaveShape>
 }
 
+// Static sea (mobile-lite + prefers-reduced-motion): the art contains only the wave
+// SILHOUETTES — the water plane was removed together with the old baked sea — so
+// without the SMIL conveyor the gaps between waves show whatever lies BEHIND the
+// beach. Paint the same over-wide water rect the conveyor uses (behind the baked
+// waves), and extend the viewBox/clip the same way so the water runs below the fold.
+// No animations of any kind.
+export function injectStaticSea(beachSvg: string): string {
+  let out = beachSvg
+  out = out.replace(/viewBox="0 0 1027 3614"/, `viewBox="0 0 ${VIEWBOX_W} ${BEACH_VIEW_H}"`)
+  out = out.replace(
+    /<rect width="1027" height="3614" fill="white"\/>/,
+    `<rect width="${VIEWBOX_W}" height="${BEACH_VIEW_H}" fill="white"/>`,
+  )
+  const sea = seaBaseRect()
+  const at = out.indexOf('<g id="b2-type 1 wave')
+  if (at !== -1) return out.slice(0, at) + sea + out.slice(at)
+  const end = out.lastIndexOf('</svg>')
+  return end !== -1 ? out.slice(0, end) + sea + out.slice(end) : out
+}
+
 // Bake the surf SMIL into the (already b2-prefixed) beach SVG string.
-// Returns the SVG unchanged under prefers-reduced-motion (static sea — project convention).
+// Under prefers-reduced-motion: static sea instead (project convention).
 export function injectWaveSurfAnimation(beachSvg: string, options: WaveSurfOptions = {}): string {
   if (
     typeof window !== 'undefined' &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches
   ) {
-    return beachSvg
+    return injectStaticSea(beachSvg)
   }
 
   const queueCount = Math.max(1, Math.round(options.queueCount ?? QUEUE_COUNT_DEFAULT))
@@ -457,9 +477,10 @@ export function injectWaveSurfAnimation(beachSvg: string, options: WaveSurfOptio
 
 // The water itself, painted BEHIND the waves. Over-wide so the waves' drift can never pull an
 // edge into frame.
+// ONE template literal on purpose — NOT a `tpl` + `tpl` chain: Turbopack's prod minifier
+// (Next 16.2.10) mis-folds fully-constant template concatenations, dropping the non-final
+// operand's static tail after its last ${} (here it ate the `" ` between width and height,
+// making the rect unparsable and the sea base invisible).
 function seaBaseRect(): string {
-  return (
-    `<rect x="${-2 * VIEWBOX_W}" y="${SEA_BASE_TOP}" width="${5 * VIEWBOX_W}" ` +
-    `height="${SEA_BASE_BOTTOM - SEA_BASE_TOP}" fill="${SEA_BASE_COLOR}"/>`
-  )
+  return `<rect x="${-2 * VIEWBOX_W}" y="${SEA_BASE_TOP}" width="${5 * VIEWBOX_W}" height="${SEA_BASE_BOTTOM - SEA_BASE_TOP}" fill="${SEA_BASE_COLOR}"/>`
 }

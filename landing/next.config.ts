@@ -22,7 +22,10 @@ const csp = [
   "base-uri 'self'",
   "form-action 'self'",
   "frame-ancestors 'none'",
-  "upgrade-insecure-requests",
+  // NO upgrade-insecure-requests: every asset reference here is same-origin/relative
+  // (no mixed content to upgrade), https в проде обеспечивают nginx-редирект + HSTS,
+  // а директива ломала тестирование по LAN (http://<ip>:3000 — браузер апгрейдил
+  // CSS/JS/шрифты на https, где никто не слушает → голый HTML).
 ].join('; ');
 
 const nextConfig: NextConfig = {

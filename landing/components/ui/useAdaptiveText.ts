@@ -2,12 +2,13 @@
 
 import { useEffect, type RefObject } from 'react'
 
-// Adaptive duotone text over the moving background. Two proven techniques, chosen per
-// device/line-count:
-//  • backdrop-filter (desktop, single line): the compositor samples the LIVE backdrop
-//    each frame → reflects the moving sprites; glyphs cut out by an SVG <text> mask.
-//    Content-agnostic — correct over any background region.
-//  • static-fill (mobile / reduced-motion / multi-line / no backdrop support):
+// Adaptive duotone text over the moving background. Two proven techniques, chosen by
+// engine capability:
+//  • backdrop-filter (engines that parse url(#) reference filters in it): the
+//    compositor samples the LIVE backdrop each frame → reflects the moving sprites;
+//    glyphs cut out by an SVG <text> mask. Content-agnostic — correct over any
+//    background region.
+//  • static-fill (reduced-motion / no reference-filter support):
 //    background-clip:text fills the glyphs with the slice of the background art behind
 //    them (handles any number of lines), kept aligned to that art's on-screen box.
 // Both run the result through the shared #adaptive-duotone filter (ink↔cream).
@@ -19,20 +20,49 @@ import { useEffect, type RefObject } from 'react'
 // the fill matches the rendered background where the art is transparent. The beach uses
 // a backdrop-stripped copy (main2-fill.svg) over the brown ground that BackgroundCanvas
 // re-paints as its own z8 layer; the collage art is opaque so it needs no ground.
+// Ordered by PAINT order, topmost first. The beach is raised INTO the collage and
+// painted ABOVE it (its brown ground + art cover the jungle), so wherever both rects
+// contain the text, the beach is what the eye sees — checking the collage first made
+// texts in the overlap zone sample the hidden jungle, and the pick even FLIPPED
+// mid-scroll (the parallax slides the art relative to the content, so the collage's
+// bottom edge crosses a heading while you scroll): dark jungle → cream glyphs over
+// the light mosaic = the Comparison quote "disappearing".
 const SOURCES = [
-  { viewBox: '0 0 800 2047', src: '/SVG/background/background-collage.svg', bg: 'transparent' },
-  { viewBox: '0 0 1027 3614', src: '/SVG/background/main2-fill.svg', bg: '#77533E' },
+  // The live beach svg's viewBox HEIGHT is rewritten at runtime (the sea injection —
+  // surf or static — EXTENDS it downward, e.g. 3614 → 4560, art staying top-anchored),
+  // so match by prefix, and size the fill image by the ART's own aspect (artW/artH),
+  // never by the on-screen element height — that would stretch the fill vertically.
+  {
+    match: 'svg[viewBox^="0 0 1027 "]',
+    src: '/SVG/background/main2-fill.svg',
+    artW: 1027, artH: 3614,
+    bg: '#77533E',
+  },
+  {
+    match: 'svg[viewBox="0 0 800 2047"]',
+    src: '/SVG/background/background-collage.svg',
+    artW: 800, artH: 2047,
+    bg: 'transparent',
+  },
 ] as const
 
 const BACKDROP = 'grayscale(1) url(#adaptive-duotone)'
 const FIND_TIMEOUT_FRAMES = 300
 const SVGNS = 'http://www.w3.org/2000/svg'
 
+// True when the engine PARSES an SVG reference filter inside backdrop-filter. Engines
+// that can't (WebKit rejects the whole declaration) leave the inline style empty — we
+// probe that instead of CSS.supports so those devices fall back to static-fill rather
+// than painting transparent (invisible) glyphs. Note this only detects parse-level
+// rejection: an engine may accept the value and still render the chain partially
+// (grayscale-only ⇒ gray letters) — not detectable from JS, verify on real devices.
 function supportsBackdrop(): boolean {
+  const probe = document.createElement('span')
+  probe.style.setProperty('backdrop-filter', BACKDROP)
+  probe.style.setProperty('-webkit-backdrop-filter', BACKDROP)
   return (
-    typeof CSS !== 'undefined' &&
-    (CSS.supports('backdrop-filter', 'grayscale(1)') ||
-      CSS.supports('-webkit-backdrop-filter', 'grayscale(1)'))
+    probe.style.getPropertyValue('backdrop-filter').includes('url(') ||
+    probe.style.getPropertyValue('-webkit-backdrop-filter').includes('url(')
   )
 }
 
@@ -90,6 +120,9 @@ export function useAdaptiveText({
   imageRef?: RefObject<HTMLImageElement | null>
 }): void {
   useEffect(() => {
+    // Debug kill-switch (?noadaptive=1): keep the solid-ink fallback — lets a mobile
+    // crash be bisected on a real device with the adaptive machinery fully off.
+    if (new URLSearchParams(location.search).has('noadaptive')) return
     const text = textRef.current
     const overlay = overlayRef.current
     const maskText = maskRef?.current ?? null
@@ -97,10 +130,17 @@ export function useAdaptiveText({
     if (!text || !overlay || (!imageSrc && !maskText)) return
     const imageMask = imageSrc ? `url("${imageSrc}") 0 0 / 100% 100% no-repeat` : ''
 
-    // backdrop works for any line count (multi-line mask below) and on touch devices;
-    // only reduced-motion or missing backdrop-filter support fall back to static-fill.
+    // backdrop works for any line count (multi-line mask below) — but NOT on touch
+    // devices. Verified on a real iPhone 12 mini (2026-07-15): iOS Safari PARSES the
+    // declaration (the supportsBackdrop probe passes) but renders NOTHING for the
+    // url(#) reference filter → masked overlay over transparent text = INVISIBLE
+    // headings. Playwright's WebKit renders it fine — do not trust emulators here,
+    // in either direction (Chromium's mobile emulation shows gray letters instead).
+    // Reduced-motion also prefers static: the whole point of the live backdrop is
+    // reflecting the MOVING background.
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const canBackdrop = supportsBackdrop() && !reduced
+    const touch = window.matchMedia('(hover: none)').matches
+    const canBackdrop = supportsBackdrop() && !reduced && !touch
 
     let mode: 'none' | 'static' | 'backdrop' = 'none'
 
@@ -125,14 +165,21 @@ export function useAdaptiveText({
     }
 
     // Which background art SVG is vertically behind the text's centre (collage / beach)?
-    const pickSource = (): { src: string; bg: string; rect: DOMRect } | null => {
+    // artFrac = the fraction of the LIVE viewBox height the art actually occupies
+    // (top-anchored): 1 for the collage; artH/rewrittenH for the beach after the sea
+    // injection extends its viewBox downward. Applied to the element's on-screen rect
+    // so any container transforms (phones' scaleY stretch) are inherited correctly.
+    const pickSource = (): { src: string; bg: string; rect: DOMRect; artFrac: number } | null => {
       const hr = text.getBoundingClientRect()
       const cy = hr.top + hr.height / 2
       for (const s of SOURCES) {
-        const el = document.querySelector<SVGSVGElement>(`svg[viewBox="${s.viewBox}"]`)
+        const el = document.querySelector<SVGSVGElement>(s.match)
         if (!el) continue
         const rect = el.getBoundingClientRect()
-        if (rect.width > 0 && cy >= rect.top && cy <= rect.bottom) return { src: s.src, bg: s.bg, rect }
+        if (rect.width > 0 && cy >= rect.top && cy <= rect.bottom) {
+          const liveH = el.viewBox.baseVal.height
+          return { src: s.src, bg: s.bg, rect, artFrac: liveH > 0 ? s.artH / liveH : 1 }
+        }
       }
       return null
     }
@@ -168,10 +215,14 @@ export function useAdaptiveText({
       }
       const hr = text.getBoundingClientRect()
       const { rect: cr } = pick
-      const key = `${cr.width}|${cr.height}|${cr.left - hr.left}|${cr.top - hr.top}`
+      // Fill height = the ART's share of the on-screen rect (see artFrac), NOT the raw
+      // rect height — the live svg's viewBox may be extended below the art (sea
+      // injection), while the rect still carries the container's transforms (scaleY).
+      const fillH = cr.height * pick.artFrac
+      const key = `${cr.width}|${fillH}|${cr.left - hr.left}|${cr.top - hr.top}`
       if (key !== lastBg) {
         lastBg = key
-        text.style.backgroundSize = `${cr.width}px ${cr.height}px`
+        text.style.backgroundSize = `${cr.width}px ${fillH}px`
         text.style.backgroundPosition = `${cr.left - hr.left}px ${cr.top - hr.top}px`
       }
       return true

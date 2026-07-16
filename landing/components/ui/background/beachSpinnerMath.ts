@@ -50,17 +50,19 @@ export function isOnScreen(
 /**
  * The object's own centre, as transform-origin percentages of the overlay box.
  *
- * The overlay is a FULL-canvas svg (same viewBox as the beach) holding one object, so the
- * object's centre is a fraction of the whole canvas, not of the object. This is what makes
- * the rotation a spin-in-place: put the axis anywhere else and the art swings along an arc,
- * i.e. it travels across the sand — a second motion nobody asked for.
+ * The overlay svg holds one object with its ORIGINAL canvas coordinates, and its viewBox is
+ * the object's own (bounded) box — so the centre must be taken relative to the viewBox
+ * ORIGIN, not to 0,0. This is what makes the rotation a spin-in-place: put the axis anywhere
+ * else and the art swings along an arc, i.e. it travels across the sand — a second motion
+ * nobody asked for. (With the old full-canvas overlays x/y were 0 and the subtraction was a
+ * no-op — passing them keeps this correct for ANY overlay box.)
  */
 export function centreOrigin(
   bbox: { x: number; y: number; width: number; height: number },
-  viewBox: { width: number; height: number },
+  viewBox: { x: number; y: number; width: number; height: number },
 ): { x: number; y: number } {
   return {
-    x: ((bbox.x + bbox.width / 2) / viewBox.width) * 100,
-    y: ((bbox.y + bbox.height / 2) / viewBox.height) * 100,
+    x: ((bbox.x + bbox.width / 2 - viewBox.x) / viewBox.width) * 100,
+    y: ((bbox.y + bbox.height / 2 - viewBox.y) / viewBox.height) * 100,
   }
 }

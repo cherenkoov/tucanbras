@@ -24,6 +24,12 @@ const BASE_HEIGHT     = 440
 // scroll delta: target = -delta * scale, so negative when scrolling down.
 // dir=-1 for cream → position += -1 * (negative) → translateX positive → moves RIGHT ✓
 const BAND_HEIGHT     = 260
+// The wave path repeats every 236 viewBox units (humps at x=143.7, 379.7, 615.7…);
+// stretched 3825→4974, one period on the band is 236·(4974/3825) px. The scroll
+// drift is kept MODULO this period: visually identical (repeating pattern), and the
+// band can never slide out of its own footprint — before this, a long page's worth
+// of scroll shoved the bands thousands of px sideways (empty band on phones).
+const BAND_PERIOD_PX  = 236 * (4974 / 3825)
 const BANDS = [
   { color: '#ECDBB5', top:  -34, speed:  90, dir: -1 },
   { color: '#ECDBB5', top:  118, speed:  90, dir: -1 },
@@ -57,11 +63,18 @@ export function WavesAnimated({ fillParent = false }: WavesAnimatedProps) {
     maxDegrees:          MAX_VELOCITY,
     decay:               FRICTION,
     velocitySensitivity: SCROLL_SCALE,
-    setup: (_el) => (velocity) => {
+    setup: (el) => (velocity) => {
+      // Integrate only while the band is ACTUALLY on screen. The hook's own gate
+      // arms 300px early — and on phones the band itself is ~2000px tall, so the
+      // pre-visible stretch of scroll used to drift the waves far sideways before
+      // the user ever saw them. This makes them start moving on arrival instead.
+      const r = el.getBoundingClientRect()
+      if (r.bottom <= 0 || r.top >= window.innerHeight) return
       BANDS.forEach((band, i) => {
-        positions.current[i] += band.dir * velocity * band.speed * POSITION_SCALE
-        const el = bandRefs.current[i]
-        if (el) el.style.transform = `translateX(${positions.current[i]}px)`
+        positions.current[i] =
+          (positions.current[i] + band.dir * velocity * band.speed * POSITION_SCALE) % BAND_PERIOD_PX
+        const bandEl = bandRefs.current[i]
+        if (bandEl) bandEl.style.transform = `translateX(${positions.current[i]}px)`
       })
     },
   })

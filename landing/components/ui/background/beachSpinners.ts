@@ -6,9 +6,11 @@
 //     two neighbours in the list turn against each other);
 //   • scroll down turns them one way, scroll up turns them back the other way.
 //
-// Each object is lifted out of the beach SVG into its own full-canvas overlay div
-// (BackgroundCanvas), which is what actually gets the CSS rotation — a transform on an inner
-// <g> does not render under dangerouslySetInnerHTML. useBeachSpinnerAnimation drives it.
+// Each object is lifted out of the beach SVG into its own BOUNDED overlay div (viewBox =
+// the object's own box; BackgroundCanvas), which is what actually gets the CSS rotation — a
+// transform on an inner <g> does not render under dangerouslySetInnerHTML, and a full-canvas
+// overlay would be a page-sized composited surface (the mobile crash). useBeachSpinnerAnimation
+// drives it; centreOrigin keeps the axis on the object centre for any viewBox.
 
 /** +1 = clockwise on scroll-DOWN (and counter-clockwise on scroll-up); -1 = the mirror. */
 export type SpinDir = 1 | -1

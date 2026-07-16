@@ -8,10 +8,11 @@ const DECAY         = 0.88
 const VELOCITY_SENS = 0.15
 const IDLE_FRAMES   = 20
 
-// Big tree bottom-center in SVG viewBox coordinates (800 × 2047)
-// cx = 712 / 800 = 89.0%,  cy = 950 / 2047 = 46.4%
-const ORIGIN_X = '89%'
-const ORIGIN_Y = '46.4%'
+// Big tree pivot (its bottom-center) in CANVAS units of the 800 × 2047 collage.
+// Converted to % of the wrapper svg's own viewBox at runtime — the wrapper is a
+// BOUNDED sprite box, not the full canvas, so hardcoded canvas percentages would
+// pivot the sway around the wrong point.
+const PIVOT = { x: 712, y: 950 } as const
 
 export function useBigTreeAnimation(
   layerRef: RefObject<HTMLDivElement | null>,
@@ -23,7 +24,9 @@ export function useBigTreeAnimation(
     if (!el) return
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
-    el.style.transformOrigin = `${ORIGIN_X} ${ORIGIN_Y}`
+    const vb = el.querySelector('svg')?.viewBox.baseVal
+    if (!vb || vb.width === 0 || vb.height === 0) return
+    el.style.transformOrigin = `${(((PIVOT.x - vb.x) / vb.width) * 100).toFixed(2)}% ${(((PIVOT.y - vb.y) / vb.height) * 100).toFixed(2)}%`
 
     let target    = 0
     let current   = 0

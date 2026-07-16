@@ -90,9 +90,20 @@ const settle = (s: SpinState, frames = 400) => {
 
 {
   // an object 100×200 at (200,1000) on a 1027×3614 canvas: its centre is (250,1100)
-  const o = centreOrigin({ x: 200, y: 1000, width: 100, height: 200 }, { width: 1027, height: 3614 })
+  const o = centreOrigin({ x: 200, y: 1000, width: 100, height: 200 }, { x: 0, y: 0, width: 1027, height: 3614 })
   assert.ok(Math.abs(o.x - (250 / 1027) * 100) < 1e-9, 'axis sits on the object centre x')
   assert.ok(Math.abs(o.y - (1100 / 3614) * 100) < 1e-9, 'axis sits on the object centre y')
+}
+
+{
+  // BOUNDED overlay (viewBox = object's own box + 8u bleed): the origin must be taken
+  // relative to the viewBox ORIGIN — here the object centre lands dead-centre of the box.
+  const o = centreOrigin(
+    { x: 200, y: 1000, width: 100, height: 200 },
+    { x: 192, y: 992, width: 116, height: 216 },
+  )
+  assert.ok(Math.abs(o.x - 50) < 1e-9, 'bounded box: axis at 50% x')
+  assert.ok(Math.abs(o.y - 50) < 1e-9, 'bounded box: axis at 50% y')
 }
 
 // ── The gate: an object turns while it is on screen, and only then ───────────────────────

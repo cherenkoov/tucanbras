@@ -12,7 +12,16 @@ const desktop = {
   viewportWidth: 1920, viewportHeight: 900, containerWidth: 1920, vScaleY: 1,
   aspects: ASPECTS,
 }
+// containerWidth == viewportWidth because the Task 1 probe measured zoom = 1.0 at every
+// width on a production build — cover-zoom has never actually engaged.
 const mobile = {
+  viewportWidth: 375, viewportHeight: 800, containerWidth: 375, vScaleY: 1.2,
+  aspects: ASPECTS,
+}
+// A phone whose cover-zoom DID engage. Below WIDE_BREAKPOINT maxZoom stays 2.0 (only wide
+// screens get the 1.0 ceiling), and shortening the sea lowers naturalHeight, so zoomFull
+// can climb past 1 here even though it never has before. Reachable, hence tested.
+const mobileZoomed = {
   viewportWidth: 375, viewportHeight: 800, containerWidth: 750, vScaleY: 1.2,
   aspects: ASPECTS,
 }
@@ -72,16 +81,50 @@ const mobile = {
   )
 }
 
-// ── Phones keep exactly the size they have today. 0.23 was measured, not chosen:
-// today's mean thUnits (1027 · 1.5 · 0.311389 ≈ 480) renders 480 · 375/1027 · 1.2 =
-// 210px on a 375×900 phone. A regression here means phones visibly changed. ──
+// ── Phones keep (approximately) the size AND density they have today. Comparing
+// against WAVE_H_VH_NARROW · vh directly would just restate the constant under test
+// (phonePx reduces to exactly that, independent of aspects/containerWidth/vScaleY) —
+// so instead compare against the OLD geometry computed an entirely different way. ──
 {
   const phone = computeWaveQueue({
     viewportWidth: 375, viewportHeight: 900, containerWidth: 375, vScaleY: 1.2,
     aspects: ASPECTS, contentHeight: 40000, baseHeightPx: 1000, verticalOffset: 0,
   })
   const phonePx = phone.thUnits * (375 / 1027) * 1.2
-  assert.ok(approx(phonePx, 207, 1.5), `phone wave stays ~210px (got ${phonePx.toFixed(1)})`)
+
+  // 0.23 is a ROUNDING of what phones render today: the old geometry was
+  // thUnits = WAVE_HEIGHT_REF_W · meanAspect = 1027 · 1.5 · 0.311389, and on a
+  // 375×900 phone that renders 210.3px. Assert against that number computed the OLD
+  // way — comparing against WAVE_H_VH_NARROW · vh would just restate the constant.
+  const oldThUnits = 1027 * 1.5 * 0.311389
+  const oldPhonePx = oldThUnits * (375 / 1027) * 1.2   // 210.3
+  assert.ok(
+    Math.abs(phonePx / oldPhonePx - 1) < 0.02,
+    `phone wave within 2% of today (got ${phonePx.toFixed(1)} vs ${oldPhonePx.toFixed(1)})`,
+  )
+
+  // Density: today's step is QUEUE_TRAVEL / QUEUE_COUNT_DEFAULT = 1150 / 14 = 82.1
+  // canvas units. STEP_RATIO_NARROW (0.17) exists specifically to keep phones at
+  // roughly that density instead of inheriting the desktop-tuned 0.50.
+  const oldStepUnits = 1150 / 14
+  assert.ok(
+    Math.abs(phone.stepUnits / oldStepUnits - 1) < 0.05,
+    `phone step within 5% of today's density (got ${phone.stepUnits.toFixed(1)} vs ${oldStepUnits.toFixed(1)})`,
+  )
+}
+
+// ── WIDE_BREAKPOINT boundary: 1024 is both the branch edge and the tightest measured
+// row (Task 1 probe: containerH == contentH == 9024 at 1024, zero headroom). Exactly
+// at the boundary the WIDE tier must apply, not the narrow one. ──
+{
+  const r = computeWaveQueue({
+    viewportWidth: 1024, viewportHeight: 900, containerWidth: 1024, vScaleY: 1,
+    aspects: ASPECTS, contentHeight: 40000, baseHeightPx: 1000, verticalOffset: 0,
+  })
+  assert.ok(r.n <= N_CAP_WIDE, 'boundary 1024: wide cap applies (n <= 6)')
+  const pxPerUnitY = (1024 / 1027) * 1
+  const px = r.thUnits * pxPerUnitY
+  assert.ok(approx(px, WAVE_H_VH_WIDE * 900, 0.5), 'boundary 1024: wave px uses WAVE_H_VH_WIDE')
 }
 
 // ── beachViewH never crops the authored beach art ──
@@ -103,6 +146,23 @@ const mobile = {
   assert.ok(approx(r.beachViewH, r.spawnCy + r.thMax / 2 + 60), 'viewBox = spawn + thMax/2 + SEA_MARGIN')
   assert.ok(approx(r.spawnCy, QUEUE_SHORE_CY + r.travel), 'spawn = shore + travel')
   assert.ok(approx(r.travel, r.n * r.stepUnits), 'travel = n · step')
+}
+
+// ── A zoomed phone floors at the art height instead, and that is CORRECT, not a bug.
+// Cover-zoom makes every canvas unit taller in px, so a 12-wave queue spans fewer units
+// and asks for a viewBox (~3611) marginally BELOW the art (3614) — the floor takes over.
+// Pinned because it lands 3 units from the boundary: a future STEP_RATIO_NARROW nudge
+// flips this case, and the floor is the only thing keeping the beach art uncropped. ──
+{
+  const r = computeWaveQueue({
+    ...mobileZoomed, contentHeight: 40000, baseHeightPx: 1000, verticalOffset: 0,
+  })
+  assert.equal(r.n, N_CAP_NARROW, 'zoomed phone: still capped at 12')
+  assert.equal(r.beachViewH, BEACH_ART_H, 'zoomed phone: viewBox floored at the art height')
+  assert.ok(
+    r.spawnCy + r.thMax / 2 + 60 < BEACH_ART_H,
+    'the floor is what is binding here, not the queue',
+  )
 }
 
 // ── Duration follows a CONSTANT speed: a shorter track means a shorter cycle,

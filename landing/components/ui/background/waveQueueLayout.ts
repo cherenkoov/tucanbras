@@ -27,7 +27,13 @@ export const SEA_BASE_TOP = 3180    // top edge of the painted water
 // directly comparable.
 export const WAVE_H_VH_WIDE = 0.30    // >= WIDE_BREAKPOINT: fixes the desktop wall
 export const WAVE_H_VH_NARROW = 0.23  // < WIDE_BREAKPOINT: matches today's phones
-export const STEP_RATIO = 0.50      // gap between waves as a fraction of their height
+// Step (gap between waves) as a fraction of wave height. Split like WAVE_H_VH: a single
+// 0.50 preserves phone wave SIZE but silently triples phone SPARSENESS — today's
+// effective ratio is 0.171 (old QUEUE_TRAVEL 1150 / QUEUE_COUNT_DEFAULT 14 = step 82.1
+// against a 480-unit wave), not 0.50. STEP_RATIO_NARROW keeps that density; only the
+// wide tier (which had the actual overlap-wall bug) gets the sparser 0.50.
+export const STEP_RATIO_WIDE = 0.50
+export const STEP_RATIO_NARROW = 0.17
 export const N_CAP_WIDE = 6         // wave cap at >= WIDE_BREAKPOINT
 export const N_CAP_NARROW = 12      // wave cap below it
 export const N_MIN = 3
@@ -90,18 +96,25 @@ export function computeWaveQueue(input: WaveQueueInput): WaveQueueLayout {
   const pxPerUnitY = (containerWidth / VIEWBOX_W) * vScaleY
 
   // Pre-render / degenerate measurement: fall back to the shortest legal queue rather
-  // than dividing by zero and poisoning the whole SVG with NaN.
-  if (!(pxPerUnitY > 0) || !(meanAspect > 0)) {
-    return degenerate(meanAspect, maxAspect)
+  // than dividing by zero and poisoning the whole SVG with NaN. viewportHeight must be
+  // checked too — otherwise a valid pxPerUnitY with viewportHeight 0 sails through to
+  // thUnits = 0 -> travel = 0 -> durSeconds = 0, which Task 6 would render as an invalid
+  // SMIL dur="0.0s".
+  if (!(pxPerUnitY > 0) || !(meanAspect > 0) || !(viewportHeight > 0)) {
+    return degenerate(meanAspect, maxAspect, viewportWidth >= WIDE_BREAKPOINT)
   }
 
   // Wide screens are the ones with the wall; phones keep the size they already have.
-  // Same breakpoint as the wave cap below — one line separates "desktop" from "not".
-  const waveHVh = viewportWidth >= WIDE_BREAKPOINT ? WAVE_H_VH_WIDE : WAVE_H_VH_NARROW
+  // Same breakpoint drives the wave height, the step density and the cap below —
+  // derive it once so a future edit can't pair a wide wave height with a mobile cap.
+  const isWide = viewportWidth >= WIDE_BREAKPOINT
+  const waveHVh = isWide ? WAVE_H_VH_WIDE : WAVE_H_VH_NARROW
+  const stepRatio = isWide ? STEP_RATIO_WIDE : STEP_RATIO_NARROW
+  const nCap = isWide ? N_CAP_WIDE : N_CAP_NARROW
   const thUnits = (waveHVh * viewportHeight) / pxPerUnitY
   const heightRefW = thUnits / meanAspect
   const thMax = heightRefW * maxAspect
-  const stepUnits = thUnits * STEP_RATIO
+  const stepUnits = thUnits * stepRatio
   const waveScale = thUnits / TH_TUNED_REF
 
   // How tall the beach viewBox would need to be for the ART ALONE to reach the content
@@ -109,7 +122,6 @@ export function computeWaveQueue(input: WaveQueueInput): WaveQueueLayout {
   // yields p = 1). The queue grows toward that, but never past its cap; the shortfall is
   // exactly what wakes the deficit-driven parallax up.
   const viewHNeeded = (contentHeight + verticalOffset - baseHeightPx) / pxPerUnitY
-  const nCap = viewportWidth >= WIDE_BREAKPOINT ? N_CAP_WIDE : N_CAP_NARROW
   const nNeeded = Math.ceil(
     (viewHNeeded - QUEUE_SHORE_CY - thMax / 2 - SEA_MARGIN) / stepUnits,
   )
@@ -128,12 +140,12 @@ export function computeWaveQueue(input: WaveQueueInput): WaveQueueLayout {
   }
 }
 
-function degenerate(meanAspect: number, maxAspect: number): WaveQueueLayout {
+function degenerate(meanAspect: number, maxAspect: number, isWide: boolean): WaveQueueLayout {
   const heightRefW = VIEWBOX_W * 1.5 // the old tuned reference
   const safeMean = meanAspect > 0 ? meanAspect : 0.311389
   const safeMax = maxAspect > 0 ? maxAspect : 0.364198
   const thUnits = heightRefW * safeMean
-  const stepUnits = thUnits * STEP_RATIO
+  const stepUnits = thUnits * (isWide ? STEP_RATIO_WIDE : STEP_RATIO_NARROW)
   const travel = N_MIN * stepUnits
   return {
     n: N_MIN,

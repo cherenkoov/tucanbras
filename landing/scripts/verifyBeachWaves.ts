@@ -34,7 +34,31 @@ const desktopLayout = computeWaveQueue({
 const out = injectWaveSurfAnimation(beachSvg, { layout: desktopLayout, shapes })
 
 // ── The viewBox and the Figma clip rect BOTH follow the layout (widening only one
-// leaves the extra strip empty — the clip still cuts at the old height). ──
+// leaves the extra strip empty — the clip still cuts at the old height).
+//
+// This MUST be asserted with a layout that lands ABOVE the 3614 floor. desktopLayout sits
+// exactly ON it (spawn 3433 + thMax/2 84 + 60 = 3578 → floored to 3614), and 3614 is also
+// the stand-in beach's authored height — so both strings are already in the INPUT, and the
+// assertions would pass even with the rewrites deleted. A 1080-tall viewport clears the
+// floor and makes the rewrite the only thing that can satisfy them. ──
+{
+  const tallLayout = computeWaveQueue({
+    viewportWidth: 1920, viewportHeight: 1080, containerWidth: 1920, vScaleY: 1,
+    contentHeight: 40000, baseHeightPx: 1000, verticalOffset: 0, aspects: ASPECTS,
+  })
+  assert.ok(tallLayout.beachViewH > 3614, 'precondition: this layout clears the art floor')
+  const tallOut = injectWaveSurfAnimation(beachSvg, { layout: tallLayout, shapes })
+  assert.ok(
+    tallOut.includes(`viewBox="0 0 1027 ${tallLayout.beachViewH}"`),
+    'viewBox is rewritten to layout.beachViewH',
+  )
+  assert.ok(
+    tallOut.includes(`<rect width="1027" height="${tallLayout.beachViewH}" fill="white"/>`),
+    'the root clip rect grows with the viewBox — both, or the extra strip stays empty',
+  )
+  assert.ok(!tallOut.includes('viewBox="0 0 1027 3614"'), 'the original viewBox is gone')
+}
+
 assert.ok(
   out.includes(`viewBox="0 0 1027 ${desktopLayout.beachViewH}"`),
   'viewBox follows layout.beachViewH',
@@ -62,17 +86,44 @@ assert.ok(
 // to drive restDepth past the wave's own box. ──
 assert.ok(!out.includes('NaN'), 'no NaN leaked into the baked SVG')
 
-// ── The foam's waterline clip must sit INSIDE its wave's box. This is the invariant
-// that breaks without waveScale: FOAM_CLIP_DEPTH is 150 canvas units, tuned against a
-// ~480-unit wave; on desktop the wave is now ~150 units tall. ──
-const clipY = out.match(/<clipPath id="b2-foamclip-\d+"[^>]*><rect[^>]*y="([-\d.]+)"/)
-assert.ok(clipY, 'a foam clipPath was emitted')
+// ── The foam's waterline clip must sit INSIDE its wave's box. THIS is the invariant that
+// breaks without waveScale: FOAM_CLIP_DEPTH is 150 canvas units, tuned against a ~480-unit
+// wave, and on desktop the shortest wave is now ~116 units tall — an unscaled clip line
+// would fall BELOW the wave's own box, cut nothing, and let the foam show through the
+// wave's band gaps while it is supposed to be submerged.
+//
+// Read the depth back OUT of the emitted markup. Asserting `150 * waveScale < minTh`
+// instead would be arithmetic over the layout that never touches `out`: it stays true even
+// if the implementation ignores waveScale entirely and emits a raw 150.
 {
-  // The emitted rect y is (yBase + clipDepth − 6000); recover clipDepth and compare it
-  // against the SHORTEST wave, which is the one that would break first.
+  // Every foam rides an instance whose shape is OCEAN_WAVE_IDS[k % 6], so its wave's own
+  // height (and therefore its box) is known per k. Recover clipDepth from the emitted
+  // rect: y = yBase + clipDepth − 6000, and yBase = spawnCy − th/2.
+  const clips = [...out.matchAll(
+    /<clipPath id="b2-foamclip-(\d+)"[^>]*><rect[^>]*y="([-\d.]+)"/g,
+  )]
+  assert.ok(clips.length > 0, 'at least one foam clipPath was emitted')
+
+  const expectedDepth = 150 * desktopLayout.waveScale
+  for (const m of clips) {
+    const k = Number(m[1])
+    const th = desktopLayout.heightRefW * ASPECTS[k % ASPECTS.length]
+    const yBase = desktopLayout.spawnCy - th / 2
+    const clipDepth = Number(m[2]) + 6000 - yBase
+    assert.ok(
+      Math.abs(clipDepth - expectedDepth) < 0.5,
+      `foam ${k}: emitted clip depth ${clipDepth.toFixed(2)} = 150 · waveScale ` +
+      `(${expectedDepth.toFixed(2)}), not the raw 150`,
+    )
+    assert.ok(
+      clipDepth < th,
+      `foam ${k}: clip line ${clipDepth.toFixed(2)} sits inside its wave's box (${th.toFixed(2)})`,
+    )
+  }
+
+  // And prove the guard has teeth: the UNSCALED constant would break the very same waves.
   const minTh = desktopLayout.heightRefW * Math.min(...ASPECTS)
-  assert.ok(150 * desktopLayout.waveScale < minTh, 'scaled clip depth fits the shortest wave')
-  assert.ok(200 * desktopLayout.waveScale < minTh, 'scaled rest depth fits the shortest wave')
+  assert.ok(150 > minTh, 'sanity: an unscaled 150 really would fall outside the shortest wave')
 }
 
 // ── The old baked-in type-1 sea groups are gone, replaced by the queue. ──

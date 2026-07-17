@@ -13,7 +13,7 @@
 // the bottom). Offset in phase, it reads as waves continuously approaching the shore. We:
 //   • place each wave via a nested <svg viewBox> mapped onto a target rect in beach space —
 //     the target is WIDER than the 1027 viewBox (WAVE_WIDTH_SCALE) so edges never enter frame,
-//   • CLONE shapes (cycling the 6 silhouettes) up to `queueCount` instances (ids suffixed so
+//   • CLONE shapes (cycling the 6 silhouettes) up to `layout.n` instances (ids suffixed so
 //     they never collide — waves reference no defs, so renaming is safe),
 //   • give every instance the SAME rise (+ a two-direction horizontal BEND: one way for the
 //     first half, the other for the second; start side alternating per wave) + duration,
@@ -31,10 +31,13 @@
 // wave's silhouette. It appears by rising above its wave's crest and hides by diving back under
 // the SAME wave (a fish out of water) — pure occlusion, no fade. It rides with its wave.
 //
-// prefers-reduced-motion → return the SVG untouched (static sea).
+// prefers-reduced-motion → injectStaticSea, NOT the SVG untouched. The art holds only the
+// wave SILHOUETTES — the water plane left with the old baked sea — so returning it as-is
+// shows whatever lies BEHIND the beach through the gaps between them. `return beachSvg`
+// here is a regression, however much it looks like a simplification.
 
 import { OCEAN_WAVE_IDS, type OceanWaveShape } from './oceanWaves'
-import { VIEWBOX_W, SEA_BASE_TOP, BEACH_ART_H, type WaveQueueLayout } from './waveQueueLayout'
+import { VIEWBOX_W, SEA_BASE_TOP, type WaveQueueLayout } from './waveQueueLayout'
 
 // ── Queue geometry (canvas units) + timing ───────────────────────────────────────
 // Count, wave height, track length, spawn/shore lines and cycle duration used to be module

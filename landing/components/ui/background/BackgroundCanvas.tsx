@@ -146,6 +146,36 @@ const backgroundTier = (): BackgroundTier => {
 const isBgDisabled = () =>
   typeof window !== 'undefined' && new URLSearchParams(location.search).has('nobg')
 
+// How long the beach bake waits for its inputs to settle. See the bake effect.
+const BAKE_DEBOUNCE_MS = 200
+
+// The viewport height the wave geometry is sized against — the TALLEST seen at the
+// current width, not the current one.
+//
+// Wave height is proportional to viewportHeight, so on iOS every URL-bar collapse would
+// otherwise rewrite the whole conveyor mid-scroll: an iPhone 13 goes 659 → 745 (+13%),
+// past the bake's 10% band, so scrolling down re-injected the beach, restarted every SMIL
+// clock and teleported all 12 waves to their canonical phases — then scrolling up did it
+// again, on every direction change. The browser chrome sliding away is not the page
+// getting taller; the art has no business reacting to it.
+//
+// Taking the max is what makes it stable: the expanded state IS the real viewport, and the
+// collapsed one is transient chrome. Reset on a width change, so rotation (a genuine
+// relayout) still re-measures instead of inheriting portrait's height in landscape.
+function stableViewportHeight(
+  ref: React.RefObject<{ width: number; maxHeight: number } | null>,
+): number {
+  const w = window.innerWidth
+  const h = window.innerHeight
+  const seen = ref.current
+  if (!seen || seen.width !== w) {
+    ref.current = { width: w, maxHeight: h }
+    return h
+  }
+  if (h > seen.maxHeight) seen.maxHeight = h
+  return seen.maxHeight
+}
+
 // Decorative wave bands (moved OUT of the page flow into this background). They sit
 // BEHIND the beach (z9 < main2's z10), STRETCHED to fill the gap between main2's
 // `curb 3` (upper edge) and `curb` (lower edge) groups — the empty band the waves
@@ -256,6 +286,8 @@ export default function BackgroundCanvas() {
   const christRef = useRef<HTMLDivElement>(null)
   const beachRef = useRef<HTMLDivElement>(null)
   const bakedLayout = useRef<WaveQueueLayout | null>(null)
+  // Tallest viewport seen at the CURRENT width — see stableViewportHeight().
+  const seenViewport = useRef<{ width: number; maxHeight: number } | null>(null)
   const brownRef = useRef<HTMLDivElement>(null)
   const wavesRef = useRef<HTMLDivElement>(null)
   const bigTreeRef = useRef<HTMLDivElement>(null)
@@ -693,8 +725,8 @@ export default function BackgroundCanvas() {
 
   const coverage = useBackgroundCoverage(containerRef, beachRef, COVERAGE_CONFIG, { ready: svgReady && !!beachSvg, sceneLift })
 
-  // Baking the SMIL into the beach string is not free, so the layout is only
-  // re-evaluated on a settled resize — never per pixel.
+  // A resize tick for the HEIGHT-only path. The width path does not need it: it arrives
+  // through coverage.containerWidth, which the hook re-measures on its own resize listener.
   useEffect(() => {
     let t: ReturnType<typeof setTimeout> | null = null
     const onResize = () => {
@@ -708,41 +740,53 @@ export default function BackgroundCanvas() {
     }
   }, [])
 
-  // Bake the wave conveyor into the beach string. Runs on the first load and then only
-  // when the layout has MATERIALLY changed — an integer wave count is a coarse signal by
-  // construction, and the 10% band on the wave height stops the (container width → zoom →
-  // naturalHeight → beachViewH → container width) feedback loop from thrashing. Converges
-  // in one or two passes: the first bake happens before the beach has any height, so
-  // baseHeightPx is still the collage's bottom; the injection changes the container height,
-  // the coverage hook re-measures, and this effect settles.
+  // Bake the wave conveyor into the beach string. Runs on the first load, then only when
+  // the layout MATERIALLY changed: an integer wave count is a coarse signal by construction,
+  // and the 10% band on the wave height absorbs the rest.
+  //
+  // The bake itself is DEBOUNCED, and that is not belt-and-braces — it is the actual guard.
+  // This effect's deps include coverage.containerWidth, and the coverage hook measures on an
+  // UN-debounced resize listener, so the 200ms tick above never gated the width path at all.
+  // Dragging a window 1920 → 375 crosses the 10% band ~17 times (thUnits ∝ 1/containerWidth),
+  // and each crossing re-injects the whole beach: a full SMIL rebuild, a dangerouslySetInnerHTML
+  // swap that restarts every animation from zero, a main-thread re-rasterise for the fill
+  // colour, plus re-anchoring and re-attaching the depth order and spinner hooks. Debouncing
+  // the bake — not the input — collapses that to one, whatever route the change arrives by.
+  // The first bake stays immediate so the surf is not held back on load.
   useEffect(() => {
     if (!beachRaw || !waveShapes) return
     const aspects = Object.values(waveShapes).map(s => s.h / s.w)
     if (aspects.length === 0) return
 
-    const main = document.querySelector('main')
-    if (!main) return
+    const run = () => {
+      const main = document.querySelector('main')
+      if (!main) return
 
-    const layout = computeWaveQueue({
-      viewportWidth: window.innerWidth,
-      viewportHeight: window.innerHeight,
-      containerWidth: coverage.containerWidth || window.innerWidth,
-      vScaleY: mobileVScale(),
-      contentHeight: main.offsetTop + main.offsetHeight,
-      baseHeightPx: coverage.baseHeightPx,
-      verticalOffset: coverage.verticalOffset,
-      aspects,
-    })
+      const layout = computeWaveQueue({
+        viewportWidth: window.innerWidth,
+        viewportHeight: stableViewportHeight(seenViewport),
+        containerWidth: coverage.containerWidth || window.innerWidth,
+        vScaleY: mobileVScale(),
+        contentHeight: main.offsetTop + main.offsetHeight,
+        baseHeightPx: coverage.baseHeightPx,
+        verticalOffset: coverage.verticalOffset,
+        aspects,
+      })
 
-    const prev = bakedLayout.current
-    const settled =
-      prev !== null &&
-      prev.n === layout.n &&
-      Math.abs(layout.thUnits / prev.thUnits - 1) <= 0.10
-    if (settled) return
+      const prev = bakedLayout.current
+      const settled =
+        prev !== null &&
+        prev.n === layout.n &&
+        Math.abs(layout.thUnits / prev.thUnits - 1) <= 0.10
+      if (settled) return
 
-    bakedLayout.current = layout
-    setBeachSvg(injectWaveSurfAnimation(beachRaw, { layout, shapes: waveShapes }))
+      bakedLayout.current = layout
+      setBeachSvg(injectWaveSurfAnimation(beachRaw, { layout, shapes: waveShapes }))
+    }
+
+    if (bakedLayout.current === null) { run(); return }
+    const t = setTimeout(run, BAKE_DEBOUNCE_MS)
+    return () => clearTimeout(t)
   }, [
     beachRaw, waveShapes, resizeTick,
     coverage.containerWidth, coverage.baseHeightPx, coverage.verticalOffset,

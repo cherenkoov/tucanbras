@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { computeCoverage } from '../components/ui/background/backgroundCoverage'
 
 const config = {
-  maxZoom: 1.6, focalX: 0.45, minP: 0.3,
+  maxZoom: 1.6, maxZoomWide: 1.6, focalX: 0.45, minP: 0.3,
   focalAnchorNarrow: 0.5, focalAnchorWide: 0.78, focalAnchorStart: 520, focalAnchorEnd: 768,
 }
 const approx = (a: number, b: number, eps = 1e-6) => Math.abs(a - b) <= eps
@@ -183,5 +183,45 @@ assert.ok(approx(framing(400), 0.5 * 400 - 0.5 * 400 * 1.6), 'framing: phone cen
 assert.ok(approx(framing(644), 0.57 * 644 - 0.5 * 644 * 1.6), 'framing: midpoint eased anchor 0.57')
 // Tablet (vw 768 = end): anchor = focalAnchorWide 0.78 (statue near the right edge).
 assert.ok(approx(framing(768), 0.78 * 768 - 0.5 * 768 * 1.6), 'framing: tablet+ anchor 0.78')
+
+// ── maxZoomWide: on wide screens the zoom ceiling is separate, so a shortened sea
+// cannot be re-inflated by cover-zoom. The freed space goes to parallax instead. ──
+const wideConfig = { ...config, maxZoom: 2.0, maxZoomWide: 1.0 }
+
+// Wide + art shorter than the page: without maxZoomWide this would zoom to 1.92 and
+// magnify every wave. With it, zoom stays 1 and the parallax picks the deficit up.
+{
+  const r = computeCoverage({
+    naturalHeight: 5000, contentHeight: 9600,
+    viewportHeight: 900, viewportWidth: 1440,
+    motionEnabled: true, config: wideConfig,
+  })
+  assert.equal(r.zoom, 1, 'wide: zoom held at maxZoomWide')
+  assert.equal(r.bgHeight, 5000, 'wide: H_bg = natural (no magnification)')
+  const S = 9600 - 900
+  assert.ok(approx(r.parallaxFactor, (5000 - 900) / S), 'wide: parallax engages on the deficit')
+  assert.ok(r.parallaxFactor < 1, 'wide: parallax actually moves')
+  assert.equal(r.fillHeight, 0, 'wide: parallax closes the gap → no flat band')
+}
+
+// Narrow keeps the ORIGINAL maxZoom — mobile still relies on cover-zoom.
+{
+  const r = computeCoverage({
+    naturalHeight: 2300, contentHeight: 9200,
+    viewportHeight: 800, viewportWidth: 375,
+    motionEnabled: true, config: wideConfig,
+  })
+  assert.equal(r.zoom, 2.0, 'narrow: still uses maxZoom, not maxZoomWide')
+}
+
+// Exactly ON the breakpoint counts as wide.
+{
+  const r = computeCoverage({
+    naturalHeight: 5000, contentHeight: 9600,
+    viewportHeight: 900, viewportWidth: 1024,
+    motionEnabled: true, config: wideConfig,
+  })
+  assert.equal(r.zoom, 1, 'breakpoint 1024 is wide')
+}
 
 console.log('verifyBackgroundCoverage: all assertions passed')

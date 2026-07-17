@@ -2,8 +2,15 @@
 // No DOM access — fully unit-testable (see scripts/verifyBackgroundCoverage.ts).
 // Mirrors the spec 2026-06-28-background-coverage-cover-zoom-parallax §3.3 + §3.4.
 
+import { WIDE_BREAKPOINT } from './waveQueueLayout'
+
 export interface CoverageConfig {
-  maxZoom: number   // crop ceiling, e.g. 1.6
+  maxZoom: number   // crop ceiling below WIDE_BREAKPOINT, e.g. 2.0
+  // Crop ceiling AT/ABOVE WIDE_BREAKPOINT. Separate because the two widths fill empty
+  // space by different means: mobile leans on cover-zoom, desktop must lean on parallax.
+  // Without this, shortening the sea just hands the space back to the zoom, which
+  // magnifies every wave again — the exact bug this is fixing.
+  maxZoomWide: number
   focalX: number    // art column kept centred when cropping, e.g. 0.45
   minP: number      // parallax floor, e.g. 0.3
   // Horizontal framing curve: where in the viewport the focal column sits, as a
@@ -48,7 +55,7 @@ export function computeCoverage(input: CoverageInput): CoverageResult {
     motionEnabled, config, verticalOffset = 0,
   } = input
   const {
-    maxZoom, focalX, minP,
+    maxZoom, maxZoomWide, focalX, minP,
     focalAnchorNarrow, focalAnchorWide, focalAnchorStart, focalAnchorEnd,
   } = config
 
@@ -57,8 +64,17 @@ export function computeCoverage(input: CoverageInput): CoverageResult {
     return { zoom: 1, parallaxFactor: 1, focalTranslateX: 0, fillHeight: 0, bgHeight: 0 }
   }
 
+  // Wide screens get their own, tighter crop ceiling. The two width classes close empty
+  // space by different means: narrow ones lean on cover-zoom, wide ones must lean on the
+  // deficit-driven parallax below. Without the split, shortening the sea band lowers
+  // naturalHeight, zoomFull climbs past 1, and the zoom simply takes the freed space back
+  // — magnifying every wave again, which is the bug being fixed. Measured: at 1024 the art
+  // has zero surplus today (bgHeight == contentHeight), so a shortened sea puts zoomFull
+  // at 1.16 there. Capping is a no-op for the statue's framing, because focalTranslateX
+  // already measures 0 at every width on a production build.
+  const zoomCeiling = viewportWidth >= WIDE_BREAKPOINT ? maxZoomWide : maxZoom
   const zoomFull = contentHeight / naturalHeight
-  const zoom = clamp(1, zoomFull, maxZoom)
+  const zoom = clamp(1, zoomFull, zoomCeiling)
   const bgHeight = naturalHeight * zoom
 
   // Horizontal framing: place the focal column at `focalAnchor · vw`, eased from

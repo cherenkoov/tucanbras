@@ -15,18 +15,25 @@ export const BEACH_ART_H = 3614     // authored height of main 2.svg — a HARD 
 export const QUEUE_SHORE_CY = 3000  // where a wave dissolves onto the sand — does not move
 export const SEA_BASE_TOP = 3180    // top edge of the painted water
 
-// ── Tuning block (spec §5). Confirmed against the Task 1 probe on a prod build. ──
-// Wave height as a fraction of the VIEWPORT HEIGHT. Two values, not one: the bug is
-// desktop-only. The probe measured today's rendered wave at 0.997 of the viewport at
-// 1920 (the "wall") but only 0.23 at 375 — phones were never broken, so they keep
-// their current size and only wide screens are pulled down to a sane fraction.
-// 0.23 is not a taste call: it is what 375 renders TODAY (mean thUnits 480 ->
-// 480 · 375/1027 · 1.2 = 210px of a 900px viewport), so phones come out unchanged.
-// The formula below is built so rendered px height == WAVE_H_VH · viewportHeight
-// exactly (containerWidth and vScaleY cancel), which is what makes that arithmetic
-// directly comparable.
-export const WAVE_H_VH_WIDE = 0.30    // >= WIDE_BREAKPOINT: fixes the desktop wall
-export const WAVE_H_VH_NARROW = 0.23  // < WIDE_BREAKPOINT: matches today's phones
+// ── Tuning block (spec §5). Measured against the Task 1 probe on a prod build. ──
+// Wave height as a fraction of the VIEWPORT HEIGHT. The formula below is built so the
+// rendered px height == WAVE_H_VH · viewportHeight EXACTLY (containerWidth and vScaleY
+// cancel out), so these read directly: 1.50 means one and a half screens tall.
+//
+// What this fixed, and what it did NOT: the bug was that wave size tracked viewport
+// WIDTH — 0.997 of the screen at 1920, 0.23 at 375, purely because the beach SVG scales
+// with the container. That is gone for good; size now follows viewport HEIGHT and is
+// width-independent within a tier, which is the invariant the tests pin.
+//
+// The FRACTION itself is a look, not a fix, and it has been dialled UP 5x from the
+// 0.30/0.23 first cut (2026-07-17, at the owner's request, after seeing it on a real
+// screen). Two values remain, not one, because the tiers were measured to need different
+// framing — but both are now deliberate art direction rather than "restore what phones
+// had". Waves stand well above the viewport; the sea band and beachViewH grow with them
+// (travel = n · step · thUnits), which is what puts the surf back in frame on the wide
+// screens where it had slid below the fold.
+export const WAVE_H_VH_WIDE = 1.50    // >= WIDE_BREAKPOINT
+export const WAVE_H_VH_NARROW = 1.15  // < WIDE_BREAKPOINT
 // Step (gap between waves) as a fraction of wave height. Split like WAVE_H_VH: a single
 // 0.50 preserves phone wave SIZE but silently triples phone SPARSENESS — today's
 // effective ratio is 0.171 (old QUEUE_TRAVEL 1150 / QUEUE_COUNT_DEFAULT 14 = step 82.1
@@ -38,7 +45,13 @@ export const N_CAP_WIDE = 6         // wave cap at >= WIDE_BREAKPOINT
 export const N_CAP_NARROW = 12      // wave cap below it
 export const N_MIN = 3
 export const WIDE_BREAKPOINT = 1024
-export const QUEUE_SPEED = 23       // canvas units per second (= the tuned 1150 / 50s)
+// Canvas units per second. Duration is derived from this (dur = travel / QUEUE_SPEED), so
+// a shorter track means a shorter cycle rather than slower waves — the speed is the thing
+// held constant. Was 23 (the original tuned 1150 / 50s); dialled to a third of that
+// 2026-07-17 at the owner's request, alongside the 5x height. Note the two compound: the
+// taller wave grows `travel` too, so the cycle lengthens by more than 3x and a wave's
+// arrival cadence slows accordingly.
+export const QUEUE_SPEED = 23 / 3
 export const SEA_MARGIN = 60        // headroom below the spawn line, canvas units
 // Mean wave height the FOAM constants were tuned against (the old
 // WAVE_HEIGHT_REF_W · mean aspect = 1027 · 1.5 · 0.3114). Every absolute foam depth in

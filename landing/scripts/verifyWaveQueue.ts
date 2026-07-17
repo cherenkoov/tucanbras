@@ -64,8 +64,16 @@ const mobileZoomed = {
   assert.ok(approx(dPx, WAVE_H_VH_WIDE * desktop.viewportHeight, 0.5), 'desktop: wave px = WAVE_H_VH_WIDE · vh')
   assert.ok(approx(mPx, WAVE_H_VH_NARROW * mobile.viewportHeight, 0.5), 'mobile: wave px = WAVE_H_VH_NARROW · vh')
 
-  // The wall is gone: on desktop a wave is now ~0.30 of the screen, not ~1.0 of it.
-  assert.ok(dPx / desktop.viewportHeight < 0.35, 'desktop wave is no longer a full screen tall')
+  // The BUG was never "waves are large" — it was that their size tracked viewport WIDTH
+  // (0.997 of the screen at 1920, 0.23 at 375, from the same constant). The fraction
+  // itself is art direction and has since been dialled up 5x, so asserting it is small
+  // would pin a preference. Assert the actual fix instead: the OLD width-driven formula
+  // gives two different wave/screen ratios at 1920 vs 2560, ours gives one.
+  const oldPxAt = (vw: number) => 1027 * 1.5 * 0.311389 * (vw / 1027)
+  assert.ok(
+    Math.abs(oldPxAt(1920) / 900 - oldPxAt(2560) / 900) > 0.3,
+    'precondition: the old width-driven formula really did differ across widths',
+  )
 
   // Width-independence WITHIN a tier is the real invariant — the same tier at two very
   // different widths must yield the same wave/screen ratio. (Across tiers it must NOT:
@@ -81,35 +89,39 @@ const mobileZoomed = {
   )
 }
 
-// ── Phones keep (approximately) the size AND density they have today. Comparing
-// against WAVE_H_VH_NARROW · vh directly would just restate the constant under test
-// (phonePx reduces to exactly that, independent of aspects/containerWidth/vScaleY) —
-// so instead compare against the OLD geometry computed an entirely different way. ──
+// ── Phones are their own tier. Both constants are split at WIDE_BREAKPOINT because the
+// two tiers were measured to need different framing; the 5x size bump (2026-07-17) kept
+// the split rather than collapsing it. Pin the RELATIONSHIP, not the absolute — an
+// absolute here would just restate the constant under test (phonePx reduces to exactly
+// WAVE_H_VH_NARROW · vh, independent of aspects/containerWidth/vScaleY). ──
 {
   const phone = computeWaveQueue({
     viewportWidth: 375, viewportHeight: 900, containerWidth: 375, vScaleY: 1.2,
     aspects: ASPECTS, contentHeight: 40000, baseHeightPx: 1000, verticalOffset: 0,
   })
   const phonePx = phone.thUnits * (375 / 1027) * 1.2
+  const deskPx = computeWaveQueue({
+    ...desktop, contentHeight: 40000, baseHeightPx: 1000, verticalOffset: 0,
+  }).thUnits * (1920 / 1027)
 
-  // 0.23 is a ROUNDING of what phones render today: the old geometry was
-  // thUnits = WAVE_HEIGHT_REF_W · meanAspect = 1027 · 1.5 · 0.311389, and on a
-  // 375×900 phone that renders 210.3px. Assert against that number computed the OLD
-  // way — comparing against WAVE_H_VH_NARROW · vh would just restate the constant.
-  const oldThUnits = 1027 * 1.5 * 0.311389
-  const oldPhonePx = oldThUnits * (375 / 1027) * 1.2   // 210.3
+  // Phones stay SHORTER than desktop relative to their screen — the tiers must not
+  // silently converge, which is what a single collapsed constant would do.
   assert.ok(
-    Math.abs(phonePx / oldPhonePx - 1) < 0.02,
-    `phone wave within 2% of today (got ${phonePx.toFixed(1)} vs ${oldPhonePx.toFixed(1)})`,
+    phonePx / 900 < deskPx / 900,
+    `phone wave is a smaller share of its screen than desktop's ` +
+    `(${(phonePx / 900).toFixed(2)} vs ${(deskPx / 900).toFixed(2)})`,
+  )
+  assert.ok(
+    approx(phonePx / 900, WAVE_H_VH_NARROW, 0.005),
+    'phone wave height is exactly its tier fraction of the viewport',
   )
 
-  // Density: today's step is QUEUE_TRAVEL / QUEUE_COUNT_DEFAULT = 1150 / 14 = 82.1
-  // canvas units. STEP_RATIO_NARROW (0.17) exists specifically to keep phones at
-  // roughly that density instead of inheriting the desktop-tuned 0.50.
-  const oldStepUnits = 1150 / 14
+  // Density stays a tier decision too: phones are DENSER than desktop (0.17 vs 0.50),
+  // which is what keeps their surf rhythm from thinning out. Ratio, not absolute —
+  // the step scales with the wave, so the 5x bump moved both together.
   assert.ok(
-    Math.abs(phone.stepUnits / oldStepUnits - 1) < 0.05,
-    `phone step within 5% of today's density (got ${phone.stepUnits.toFixed(1)} vs ${oldStepUnits.toFixed(1)})`,
+    phone.thUnits / phone.stepUnits > 5,
+    `phones keep the dense overlap (${(phone.thUnits / phone.stepUnits).toFixed(1)} waves deep)`,
   )
 }
 
@@ -127,13 +139,27 @@ const mobileZoomed = {
   assert.ok(approx(px, WAVE_H_VH_WIDE * 900, 0.5), 'boundary 1024: wave px uses WAVE_H_VH_WIDE')
 }
 
-// ── beachViewH never crops the authored beach art ──
+// ── beachViewH never crops the authored beach art. The floor must hold for EVERY input,
+// including the ones that ask for less than the art. ──
 {
-  const r = computeWaveQueue({
+  // At the current 5x wave sizes the queue clears 3614 on its own even at N_MIN, so the
+  // shortest possible desktop queue no longer reaches the floor — it can only be observed
+  // binding on a small wave. Both cases are asserted: one where the floor is what decides
+  // the viewBox, and one where the queue is.
+  const overshoot = computeWaveQueue({
     ...desktop, contentHeight: 1000, baseHeightPx: 5000, verticalOffset: 0,
   })
-  assert.equal(r.beachViewH, BEACH_ART_H, 'short queue: viewBox floored at the art height 3614')
-  assert.ok(r.beachViewH >= BEACH_ART_H, 'viewBox never below the art height')
+  assert.ok(overshoot.beachViewH >= BEACH_ART_H, 'art overshoots the page: still never below the art height')
+
+  const tiny = computeWaveQueue({
+    viewportWidth: 1920, viewportHeight: 120, containerWidth: 1920, vScaleY: 1,
+    contentHeight: 1000, baseHeightPx: 5000, verticalOffset: 0, aspects: ASPECTS,
+  })
+  assert.ok(
+    tiny.spawnCy + tiny.thMax / 2 + 60 < BEACH_ART_H,
+    'precondition: this queue asks for LESS than the art height',
+  )
+  assert.equal(tiny.beachViewH, BEACH_ART_H, 'and the floor overrides it — the art is never cropped')
 }
 
 // ── A long mobile queue pushes the viewBox PAST the floor ──
@@ -148,20 +174,30 @@ const mobileZoomed = {
   assert.ok(approx(r.travel, r.n * r.stepUnits), 'travel = n · step')
 }
 
-// ── A zoomed phone floors at the art height instead, and that is CORRECT, not a bug.
-// Cover-zoom makes every canvas unit taller in px, so a 12-wave queue spans fewer units
-// and asks for a viewBox (~3611) marginally BELOW the art (3614) — the floor takes over.
-// Pinned because it lands 3 units from the boundary: a future STEP_RATIO_NARROW nudge
-// flips this case, and the floor is the only thing keeping the beach art uncropped. ──
+// ── A phone whose cover-zoom engaged is still a legal, reachable state: below
+// WIDE_BREAKPOINT the ceiling stays maxZoom 2.0, and shortening the sea lowers
+// naturalHeight, so zoomFull can climb past 1 here even though the probe has never yet
+// caught it doing so. Zoom makes every canvas unit taller in px, so the same wave spans
+// FEWER units — the queue must shrink in canvas space and still stay legal. ──
 {
   const r = computeWaveQueue({
     ...mobileZoomed, contentHeight: 40000, baseHeightPx: 1000, verticalOffset: 0,
   })
+  const unzoomed = computeWaveQueue({
+    ...mobile, contentHeight: 40000, baseHeightPx: 1000, verticalOffset: 0,
+  })
   assert.equal(r.n, N_CAP_NARROW, 'zoomed phone: still capped at 12')
-  assert.equal(r.beachViewH, BEACH_ART_H, 'zoomed phone: viewBox floored at the art height')
+  assert.ok(r.beachViewH >= BEACH_ART_H, 'zoomed phone: never crops the art')
   assert.ok(
-    r.spawnCy + r.thMax / 2 + 60 < BEACH_ART_H,
-    'the floor is what is binding here, not the queue',
+    r.thUnits < unzoomed.thUnits,
+    'zoom buys taller px per unit, so the wave spans fewer canvas units',
+  )
+  // The px height is what the viewer sees, and it must NOT change with zoom — the
+  // fraction of the screen is the invariant, canvas units are just the medium.
+  const px = (l: typeof r, cw: number) => l.thUnits * (cw / 1027) * 1.2
+  assert.ok(
+    approx(px(r, 750), px(unzoomed, 375), 0.5),
+    'the rendered wave is the same height zoomed or not',
   )
 }
 

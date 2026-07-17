@@ -109,15 +109,17 @@ assert.ok(
 // to drive restDepth past the wave's own box. ──
 assert.ok(!out.includes('NaN'), 'no NaN leaked into the baked SVG')
 
-// ── The foam's waterline clip must sit INSIDE its wave's box. THIS is the invariant that
-// breaks without waveScale: FOAM_CLIP_DEPTH is 150 canvas units, tuned against a ~480-unit
-// wave, and on desktop the shortest wave is now ~116 units tall — an unscaled clip line
-// would fall BELOW the wave's own box, cut nothing, and let the foam show through the
-// wave's band gaps while it is supposed to be submerged.
+// ── The foam's waterline clip must sit INSIDE its wave's box, and must track waveScale.
+// FOAM_CLIP_DEPTH is 150 canvas units, tuned against a ~480-unit wave; at any SMALLER wave
+// an unscaled clip line falls BELOW the wave's own box, cuts nothing, and lets the foam
+// show through the wave's band gaps while it is supposed to be submerged.
 //
-// Read the depth back OUT of the emitted markup. Asserting `150 * waveScale < minTh`
-// instead would be arithmetic over the layout that never touches `out`: it stays true even
-// if the implementation ignores waveScale entirely and emits a raw 150.
+// At today's 5x sizes the waves are large enough that a raw 150 would happen to fit, so
+// "it fits" no longer discriminates — the proportionality does. Read the depth back OUT of
+// the emitted markup and pin it to 150 · waveScale: asserting `150 * waveScale < minTh`
+// instead would be arithmetic over the layout that never touches `out`, and stays true even
+// if the implementation ignores waveScale entirely. The scale-sensitivity of the constant
+// is proven separately, on a deliberately small wave, at the end of this block.
 {
   // Every foam rides an instance whose shape is OCEAN_WAVE_IDS[k % 6], so its wave's own
   // height (and therefore its box) is known per k. Recover clipDepth from the emitted
@@ -144,9 +146,17 @@ assert.ok(!out.includes('NaN'), 'no NaN leaked into the baked SVG')
     )
   }
 
-  // And prove the guard has teeth: the UNSCALED constant would break the very same waves.
-  const minTh = desktopLayout.heightRefW * Math.min(...ASPECTS)
-  assert.ok(150 > minTh, 'sanity: an unscaled 150 really would fall outside the shortest wave')
+  // And prove the guard has teeth. Not on desktopLayout — at the current 5x sizes its
+  // shortest wave is comfortably taller than 150, so an unscaled constant would fit there
+  // by luck and the check would assert nothing. Use a small wave (a short viewport is the
+  // honest way to get one), where scaling is the only thing keeping the clip in the box.
+  const small = computeWaveQueue({
+    viewportWidth: 1920, viewportHeight: 120, containerWidth: 1920, vScaleY: 1,
+    contentHeight: 40000, baseHeightPx: 1000, verticalOffset: 0, aspects: ASPECTS,
+  })
+  const smallMinTh = small.heightRefW * Math.min(...ASPECTS)
+  assert.ok(150 > smallMinTh, 'sanity: an unscaled 150 falls outside a small wave')
+  assert.ok(150 * small.waveScale < smallMinTh, 'scaled, it fits — which is the point')
 }
 
 // ── The old baked-in type-1 sea groups are gone, replaced by the queue. ──
@@ -154,7 +164,9 @@ for (const id of OCEAN_WAVE_IDS) {
   assert.ok(!out.includes(`<g id="b2-${id}"`), `old baked-in group ${id} removed`)
 }
 
-// ── A short queue (the floor) still produces a legal SVG at the art-height floor. ──
+// ── The N_MIN queue still produces a legal SVG. At the current 5x wave sizes even three
+// waves clear the art-height floor, so this no longer exercises the floor — a small wave
+// (short viewport) is now the only way to reach it, and it is asserted below. ──
 {
   const shortLayout = computeWaveQueue({
     viewportWidth: 1920, viewportHeight: 900, containerWidth: 1920, vScaleY: 1,
@@ -162,8 +174,22 @@ for (const id of OCEAN_WAVE_IDS) {
   })
   const shortOut = injectWaveSurfAnimation(beachSvg, { layout: shortLayout, shapes })
   assert.equal((shortOut.match(/class="beach-wave"/g) ?? []).length, 3, 'floor: 3 waves')
-  assert.ok(shortOut.includes('viewBox="0 0 1027 3614"'), 'floor: viewBox at the art height')
+  assert.ok(shortOut.includes(`viewBox="0 0 1027 ${shortLayout.beachViewH}"`), 'floor: viewBox follows the layout')
+  assert.ok(shortLayout.beachViewH >= BEACH_ART_H, 'floor: never below the art height')
   assert.ok(!shortOut.includes('NaN'), 'floor: no NaN')
+}
+
+// ── A queue that asks for LESS than the art still emits the art's full height: the
+// injector must never write a viewBox that crops the beach. ──
+{
+  const tinyLayout = computeWaveQueue({
+    viewportWidth: 1920, viewportHeight: 120, containerWidth: 1920, vScaleY: 1,
+    contentHeight: 1000, baseHeightPx: 5000, verticalOffset: 0, aspects: ASPECTS,
+  })
+  assert.equal(tinyLayout.beachViewH, BEACH_ART_H, 'precondition: this layout is at the floor')
+  const tinyOut = injectWaveSurfAnimation(beachSvg, { layout: tinyLayout, shapes })
+  assert.ok(tinyOut.includes(`viewBox="0 0 1027 ${BEACH_ART_H}"`), 'floor: emits the full art height')
+  assert.ok(!tinyOut.includes('NaN'), 'floor: no NaN')
 }
 
 // ── injectStaticSea (balanced/lite tiers + reduced motion): takes a plain height, paints

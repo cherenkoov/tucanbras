@@ -52,10 +52,21 @@ import { VIEWBOX_W, SEA_BASE_TOP, type WaveQueueLayout } from './waveQueueLayout
 const WAVE_WIDTH_SCALE = 2.4 // tuned in the wave-lab (edge-safe for drift ≤ ~700)
 // Horizontal drift AMPLITUDE (canvas units) — a wave goes to +drift by the MIDDLE of its rise,
 // then CROSSES to −drift by the top (пол пути в одну сторону, пол пути в противоположную). Start
-// side alternates per instance so neighbours mirror. Spread over the long slow rise, so it
-// reads as a gentle diagonal S, not a slide. |drift| is the max on-screen offset, so it must
-// stay ≤ the width overspill or an edge enters frame (widen the wave to allow more).
-const QUEUE_DRIFT = 370 // tuned in the wave-lab
+// side alternates per instance so neighbours mirror. It must read as a gentle diagonal S, not
+// a slide — and THAT is an ANGLE, so drift has to follow `travel`, not sit at a constant.
+//
+// A fixed 370 was tuned against the old fixed travel of 1150, i.e. 370 sideways per 575 of
+// rise per half-cycle = 0.64. Once travel became n × step, the same 370 inverted the
+// invariant on wide screens: at 1920 (travel 217) it would be 3.4 sideways per 1 up — the
+// wave would slide across rather than roll in. Expressed as a fraction of travel, the angle
+// is identical at every width, and 0.32 reproduces exactly the tuned 0.64 half-cycle slope
+// (0.32 × 1150 = 368 ≈ the old 370).
+const DRIFT_RATIO = 0.32
+// Edge safety, unchanged in spirit: |drift| is the max on-screen offset, so it must stay
+// within the width overspill or a wave edge enters frame. Derived from widthScale rather
+// than assumed, and it only ever CLAMPS — on every measured width the angle-derived drift
+// is already well inside it (mobile travel 964 → 308, vs a 719 ceiling at widthScale 2.4).
+const driftCeiling = (widthScale: number) => ((widthScale - 1) * VIEWBOX_W) / 2
 
 // ── Sea base + the terminal sea tile ─────────────────────────────────────────────
 // The old sea art is REMOVED from main 2.svg and replaced by the queue, which is only a set of
@@ -371,7 +382,9 @@ export interface WaveSurfOptions {
   /** geometry of the conveyor: count, wave height, track, duration, viewBox height.
    *  Comes from computeWaveQueue — see waveQueueLayout.ts. */
   layout: WaveQueueLayout
-  /** one-way horizontal drift amplitude per wave (canvas units); defaults to QUEUE_DRIFT */
+  /** one-way horizontal drift amplitude per wave (canvas units). Defaults to
+   *  DRIFT_RATIO × layout.travel, clamped to the edge-safe ceiling — an override here is
+   *  an absolute value and bypasses the angle, so it is for the wave-lab, not production. */
   drift?: number
   /** wave width as a multiple of the viewBox (overspill); defaults to WAVE_WIDTH_SCALE.
    *  Must be >= 1 + 2·drift/1027 or the drift will pull a wave edge into frame. */
@@ -417,8 +430,13 @@ export function injectWaveSurfAnimation(beachSvg: string, options: WaveSurfOptio
     return injectStaticSea(beachSvg, layout.beachViewH)
   }
 
-  const drift = options.drift ?? QUEUE_DRIFT
   const widthScale = options.widthScale ?? WAVE_WIDTH_SCALE
+  // Angle first, edge-safety second: the drift is a fraction of the rise so the diagonal
+  // reads the same at every width, then clamped so it can never pull a wave edge into frame.
+  const drift = Math.min(
+    options.drift ?? layout.travel * DRIFT_RATIO,
+    driftCeiling(widthScale),
+  )
   let out = beachSvg
 
   // Extend the beach DOWN so the conveyor that runs below the art stops being clipped —

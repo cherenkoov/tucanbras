@@ -190,6 +190,19 @@ const BEACH_LOWER_PX = 300
 // real wave art. Retract main2 by 100px on wide screens to pull the waves back into view.
 const BEACH_LOWER_PX_WIDE = BEACH_LOWER_PX - 100
 const BEACH_LOWER_WIDE_BREAKPOINT = 1024
+// Same retraction, taken further at ≥1920 — the problem this fixes GROWS with width.
+// The beach's px-per-canvas-unit scales with the container width, so the SAME pixel gap
+// between the beach's top and the page bottom buys FEWER canvas units the wider the
+// screen: the 5650px of beach visible at 1920 is only 3022 canvas units, where 1440's
+// 5445px is 3883. The sea starts at canvas 3180, so past ~1700px the waterline slides
+// below the fold and the surf shrinks to a sliver at the shore — measured 199px of wave
+// band at 1920 vs 1126px at 1440. Raising main2 another 300px buys back 3022 → 3183
+// canvas units, which puts the waterline back on screen and doubles the visible band.
+// (2560 is NOT solved by this: its page bottom lands at canvas 1867, over a thousand
+// units above where the waves even begin, so no raise of this magnitude reaches them.
+// That is pre-existing — the old geometry started its waves at 2720, also below 1867.)
+const BEACH_LOWER_PX_XWIDE = BEACH_LOWER_PX_WIDE - 300
+const BEACH_LOWER_XWIDE_BREAKPOINT = 1920
 
 // Seat the statue on the crest. What we can position is the scene BOX (its bottom edge),
 // but what must land on the rock is the PEDESTAL — and the two are not the same line: the
@@ -609,9 +622,13 @@ export default function BackgroundCanvas() {
     // relative to the current margin so it converges in one step and self-corrects on
     // resize (negative = up). The extra offset lowers the beach into its overlap
     // reserve so more real sea/beach art shows below the fold before the terminal fill.
-    // Desktop (≥1024px) uses a smaller offset (BEACH_LOWER_PX_WIDE) than mobile/tablet.
-    const beachLowerPx = window.innerWidth >= BEACH_LOWER_WIDE_BREAKPOINT
-      ? BEACH_LOWER_PX_WIDE
+    // Three tiers, each retracting further than the last: the wider the viewport, the
+    // fewer canvas units the same on-screen gap buys, so the sea sinks below the fold
+    // (see the constants). ≥1920 raises most, ≥1024 some, mobile/tablet not at all.
+    const vw = window.innerWidth
+    const beachLowerPx =
+      vw >= BEACH_LOWER_XWIDE_BREAKPOINT ? BEACH_LOWER_PX_XWIDE
+      : vw >= BEACH_LOWER_WIDE_BREAKPOINT ? BEACH_LOWER_PX_WIDE
       : BEACH_LOWER_PX
     beach.style.marginTop = `${current + (bushMidY - beachTop) / vScale + beachLowerPx}px`
 

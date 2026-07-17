@@ -82,6 +82,29 @@ assert.ok(
   'duration = layout.durSeconds',
 )
 
+// ── The RISE distance is layout.travel. Nothing else pins it: `dur` is read straight off
+// the layout, so hardcoding the old q = 1150 back into buildQueueInstance passes every
+// other assertion here AND the whole suite — while waves would rise 1150 units from spawn
+// 3433 to 2283, i.e. ~700 units past the shore and up into the sand, at 61 u/s instead of
+// the intended 23. Visible garbage, zero test signal. So read the emitted transform. ──
+{
+  // The rise is `values="0 0;<dx> <-travel/2>;<ndx> <-travel>"` on each instance's first
+  // animateTransform. Recover the final y and compare it to the layout's travel.
+  const rises = [...out.matchAll(/values="0 0;[-\d.]+ [-\d.]+;[-\d.]+ (-[\d.]+)"/g)]
+  assert.equal(rises.length, desktopLayout.n, 'one rise transform per wave instance')
+  for (const m of rises) {
+    assert.ok(
+      Math.abs(-Number(m[1]) - desktopLayout.travel) < 0.2,
+      `rise distance ${-Number(m[1])} = layout.travel (${desktopLayout.travel.toFixed(1)}), not a constant`,
+    )
+  }
+  // The waves must stop AT the shore (3000 in the art), never overshoot into the sand.
+  assert.ok(
+    Math.abs(desktopLayout.spawnCy - desktopLayout.travel - 3000) < 0.001,
+    'a full rise lands exactly on the shore line',
+  )
+}
+
 // ── No NaN anywhere: the foam math divides by wave heights, and a shrunk wave used
 // to drive restDepth past the wave's own box. ──
 assert.ok(!out.includes('NaN'), 'no NaN leaked into the baked SVG')

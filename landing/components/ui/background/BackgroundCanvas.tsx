@@ -7,6 +7,7 @@ import { useTrainAnimation } from './useTrainAnimation'
 import { useCarAnimation } from './useCarAnimation'
 import { injectBeachCarAnimation } from './beachCars'
 import { injectWaveSurfAnimation, injectStaticSea } from './beachWaves'
+import { computeWaveQueue, BEACH_ART_H, type WaveQueueLayout } from './waveQueueLayout'
 import { loadOceanWaveShapes, type OceanWaveShape } from './oceanWaves'
 import { useWaveDepthOrder } from './useWaveDepthOrder'
 import { prepareBeachSvg, BEACH_GROUND_COLOR, BEACH_PREFIX } from './prepareBeachSvg'
@@ -158,10 +159,16 @@ const WAVES_BOTTOM_OFFSET_PX = 120
 // All four are visually tunable on a real device (spec §5).
 // maxZoom 2.0: narrow/tall mobile pages (375/414) clamp here — a larger crop budget
 // makes the illustration taller so less of the gap is left to the parallax + fill.
+// maxZoomWide 1.0: wide screens must NOT spend the crop budget. The sea band is capped
+// now (see waveQueueLayout), which lowers naturalHeight — and an uncapped zoom would
+// simply take that freed space straight back and re-magnify every wave. Measured at 1024:
+// the art has zero surplus, so a shortened sea puts zoomFull at 1.16. Holding zoom at 1
+// costs nothing visually: a production probe measured zoom = 1 and focalTranslateX = 0 at
+// every width already, so the framing below has never actually engaged.
 // focalX is overridden at runtime by the measured Christ-statue column (see the hook),
 // so the crop keeps the statue centred; this value is only the pre-measure fallback.
 const COVERAGE_CONFIG = {
-  maxZoom: 2.0, focalX: 0.45, minP: 0.3,
+  maxZoom: 2.0, maxZoomWide: 1.0, focalX: 0.45, minP: 0.3,
   // Horizontal framing: statue centred on phones, eased to near the right edge on
   // tablets+ (mirroring the hero card). 0.5 = centre, 0.78 ≈ right edge. Ease-in over
   // [520, 768]px so phones stay centred and tablets (≥768) land at the right.
@@ -207,6 +214,8 @@ const STATUE_SEAT_FRACTION =
 export default function BackgroundCanvas() {
   const [mainSvg, setMainSvg] = useState('')
   const [beachSvg, setBeachSvg] = useState('')
+  const [beachRaw, setBeachRaw] = useState('')      // full tier only: prepared beach, cars injected, NO queue
+  const [resizeTick, setResizeTick] = useState(0)   // debounced resize → re-evaluate the layout
   const [waveShapes, setWaveShapes] = useState<Record<string, OceanWaveShape> | null>(null)
   // Beach's ORIGINAL viewBox (pre surf-injection, which rewrites the base svg's one) —
   // the spinner host div reproduces this canvas so the bounded overlays line up.
@@ -233,6 +242,7 @@ export default function BackgroundCanvas() {
   const containerRef = useRef<HTMLDivElement>(null)
   const christRef = useRef<HTMLDivElement>(null)
   const beachRef = useRef<HTMLDivElement>(null)
+  const bakedLayout = useRef<WaveQueueLayout | null>(null)
   const brownRef = useRef<HTMLDivElement>(null)
   const wavesRef = useRef<HTMLDivElement>(null)
   const bigTreeRef = useRef<HTMLDivElement>(null)
@@ -405,7 +415,7 @@ export default function BackgroundCanvas() {
     if (tier === 'lite') {
       fetch('/SVG/background/main%202.svg')
         .then(r => r.text())
-        .then(raw => setBeachSvg(injectStaticSea(prepareBeachSvg(raw))))
+        .then(raw => setBeachSvg(injectStaticSea(prepareBeachSvg(raw), BEACH_ART_H)))
         .catch(err => console.warn('BackgroundCanvas: beach SVG fetch failed', err))
       return
     }
@@ -452,10 +462,9 @@ export default function BackgroundCanvas() {
         s = injectBeachCarAnimation(s)
         if (wantSurf && shapes) {
           setWaveShapes(shapes) // also feeds the terminal sea-fill band
-          // Replace the old sea with the Ocean Waves queue + foam sweep.
-          setBeachSvg(injectWaveSurfAnimation(s, { shapes }))
+          setBeachRaw(s)        // baked once the container can be measured (effect below)
         } else {
-          setBeachSvg(injectStaticSea(s))
+          setBeachSvg(injectStaticSea(s, BEACH_ART_H)) // balanced: no layout to wait for
         }
       })
       .catch(err => console.warn('BackgroundCanvas: beach SVG fetch failed', err))
@@ -665,7 +674,62 @@ export default function BackgroundCanvas() {
   useBeachSpinnerAnimation(beachRef, { enabled: !!beachSvg && sprites })
   // Animated sea for the terminal band below the beach (built once shapes load).
 
-  const coverage = useBackgroundCoverage(containerRef, COVERAGE_CONFIG, { ready: svgReady && !!beachSvg, sceneLift })
+  const coverage = useBackgroundCoverage(containerRef, beachRef, COVERAGE_CONFIG, { ready: svgReady && !!beachSvg, sceneLift })
+
+  // Baking the SMIL into the beach string is not free, so the layout is only
+  // re-evaluated on a settled resize — never per pixel.
+  useEffect(() => {
+    let t: ReturnType<typeof setTimeout> | null = null
+    const onResize = () => {
+      if (t) clearTimeout(t)
+      t = setTimeout(() => setResizeTick(v => v + 1), 200)
+    }
+    window.addEventListener('resize', onResize)
+    return () => {
+      window.removeEventListener('resize', onResize)
+      if (t) clearTimeout(t)
+    }
+  }, [])
+
+  // Bake the wave conveyor into the beach string. Runs on the first load and then only
+  // when the layout has MATERIALLY changed — an integer wave count is a coarse signal by
+  // construction, and the 10% band on the wave height stops the (container width → zoom →
+  // naturalHeight → beachViewH → container width) feedback loop from thrashing. Converges
+  // in one or two passes: the first bake happens before the beach has any height, so
+  // baseHeightPx is still the collage's bottom; the injection changes the container height,
+  // the coverage hook re-measures, and this effect settles.
+  useEffect(() => {
+    if (!beachRaw || !waveShapes) return
+    const aspects = Object.values(waveShapes).map(s => s.h / s.w)
+    if (aspects.length === 0) return
+
+    const main = document.querySelector('main')
+    if (!main) return
+
+    const layout = computeWaveQueue({
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
+      containerWidth: coverage.containerWidth || window.innerWidth,
+      vScaleY: mobileVScale(),
+      contentHeight: main.offsetTop + main.offsetHeight,
+      baseHeightPx: coverage.baseHeightPx,
+      verticalOffset: coverage.verticalOffset,
+      aspects,
+    })
+
+    const prev = bakedLayout.current
+    const settled =
+      prev !== null &&
+      prev.n === layout.n &&
+      Math.abs(layout.thUnits / prev.thUnits - 1) <= 0.10
+    if (settled) return
+
+    bakedLayout.current = layout
+    setBeachSvg(injectWaveSurfAnimation(beachRaw, { layout, shapes: waveShapes }))
+  }, [
+    beachRaw, waveShapes, resizeTick,
+    coverage.containerWidth, coverage.baseHeightPx, coverage.verticalOffset,
+  ])
 
   // Order every queue in the tree — the beach AND the terminal sea-fill band. Re-run when a
   // queue mounts/unmounts (booleans keep the dep stable across unrelated renders).
@@ -783,7 +847,7 @@ export default function BackgroundCanvas() {
       {/* Beach scene (main 2.svg) — in-flow block right below the collage so it extends
           the container height and sits flush under bush 01/02; full width, own viewBox. */}
       {beachSvg && (
-        <div ref={beachRef} style={{ position: 'relative', zIndex: 10, width: '100%' }}>
+        <div ref={beachRef} data-bg-layer="beach" style={{ position: 'relative', zIndex: 10, width: '100%' }}>
           {/* base beach (minus the lifted palms/umbrellas) — establishes the block height;
               curb/curb3/brown/fill queries still resolve against this child */}
           <div dangerouslySetInnerHTML={{ __html: beachSvg }} />

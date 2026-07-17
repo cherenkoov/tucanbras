@@ -224,4 +224,16 @@ const wideConfig = { ...config, maxZoom: 2.0, maxZoomWide: 1.0 }
   assert.equal(r.zoom, 1, 'breakpoint 1024 is wide')
 }
 
+// ONE PIXEL below it is narrow. Pairs with the case above to pin the breakpoint from
+// both sides: the 375 test alone is satisfied by any ceiling between 376 and 1024, so
+// an off-by-one (`>= WIDE_BREAKPOINT - 1`) would pass everything else here.
+{
+  const r = computeCoverage({
+    naturalHeight: 5000, contentHeight: 9600,
+    viewportHeight: 900, viewportWidth: 1023,
+    motionEnabled: true, config: wideConfig,
+  })
+  assert.equal(r.zoom, 1.92, '1023 is narrow: zoomFull passes through, uncapped by maxZoomWide')
+}
+
 console.log('verifyBackgroundCoverage: all assertions passed')

@@ -9,9 +9,17 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
-ALTER TABLE "TeacherAnketas"
-  ADD COLUMN IF NOT EXISTS status "enum_TeacherAnketas_status" NOT NULL DEFAULT 'draft';
-
--- Все анкеты, существовавшие до модерации, считаются одобренными:
--- именно они сейчас показываются на лендинге и в выборе преподавателя.
-UPDATE "TeacherAnketas" SET status = 'approved';
+-- Добавление колонки и backfill — только при ПЕРВОМ прогоне (колонки ещё нет).
+-- Повторный запуск файла ничего не делает и не трогает реальные draft/pending.
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'TeacherAnketas' AND column_name = 'status'
+  ) THEN
+    ALTER TABLE "TeacherAnketas"
+      ADD COLUMN status "enum_TeacherAnketas_status" NOT NULL DEFAULT 'draft';
+    -- Все анкеты, существовавшие до модерации, считаются одобренными:
+    -- именно они сейчас показываются на лендинге и в выборе преподавателя.
+    UPDATE "TeacherAnketas" SET status = 'approved';
+  END IF;
+END $$;

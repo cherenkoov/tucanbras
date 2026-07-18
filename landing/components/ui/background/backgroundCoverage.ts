@@ -2,8 +2,15 @@
 // No DOM access — fully unit-testable (see scripts/verifyBackgroundCoverage.ts).
 // Mirrors the spec 2026-06-28-background-coverage-cover-zoom-parallax §3.3 + §3.4.
 
+import { WIDE_BREAKPOINT } from './waveQueueLayout'
+
 export interface CoverageConfig {
-  maxZoom: number   // crop ceiling, e.g. 1.6
+  maxZoom: number   // crop ceiling below WIDE_BREAKPOINT, e.g. 2.0
+  // Crop ceiling AT/ABOVE WIDE_BREAKPOINT. Separate because the two widths fill empty
+  // space by different means: mobile leans on cover-zoom, desktop must lean on parallax.
+  // Without this, shortening the sea just hands the space back to the zoom, which
+  // magnifies every wave again — the exact bug this is fixing.
+  maxZoomWide: number
   focalX: number    // art column kept centred when cropping, e.g. 0.45
   minP: number      // parallax floor, e.g. 0.3
   // Horizontal framing curve: where in the viewport the focal column sits, as a
@@ -48,7 +55,7 @@ export function computeCoverage(input: CoverageInput): CoverageResult {
     motionEnabled, config, verticalOffset = 0,
   } = input
   const {
-    maxZoom, focalX, minP,
+    maxZoom, maxZoomWide, focalX, minP,
     focalAnchorNarrow, focalAnchorWide, focalAnchorStart, focalAnchorEnd,
   } = config
 
@@ -57,8 +64,17 @@ export function computeCoverage(input: CoverageInput): CoverageResult {
     return { zoom: 1, parallaxFactor: 1, focalTranslateX: 0, fillHeight: 0, bgHeight: 0 }
   }
 
+  // Wide screens get their own, tighter crop ceiling. The two width classes close empty
+  // space by different means: narrow ones lean on cover-zoom, wide ones must lean on the
+  // deficit-driven parallax below. Without the split, shortening the sea band lowers
+  // naturalHeight, zoomFull climbs past 1, and the zoom simply takes the freed space back
+  // — magnifying every wave again, which is the bug being fixed. Measured: at 1024 the art
+  // has zero surplus today (bgHeight == contentHeight), so a shortened sea puts zoomFull
+  // at 1.16 there. Capping is a no-op for the statue's framing, because focalTranslateX
+  // already measures 0 at every width on a production build.
+  const zoomCeiling = viewportWidth >= WIDE_BREAKPOINT ? maxZoomWide : maxZoom
   const zoomFull = contentHeight / naturalHeight
-  const zoom = clamp(1, zoomFull, maxZoom)
+  const zoom = clamp(1, zoomFull, zoomCeiling)
   const bgHeight = naturalHeight * zoom
 
   // Horizontal framing: place the focal column at `focalAnchor · vw`, eased from
@@ -107,7 +123,23 @@ export function computeCoverage(input: CoverageInput): CoverageResult {
   // Terminal band closes whatever parallax (floored at minP) or the reduced-motion /
   // non-scrolling static case leaves below the content bottom. With p = 1 this reduces
   // to max(0, H_content − H_bg + verticalOffset).
-  const fillHeight = Math.max(0, viewportHeight + parallaxFactor * S - bgHeight + verticalOffset)
+  const fillLagged = viewportHeight + parallaxFactor * S - bgHeight + verticalOffset
+
+  // NARROW-TIER SAFETY FLOOR. The formula above assumes the parallax translate descends
+  // the art by exactly (1−p)·S. On the narrow tier that assumption is measurably false:
+  // the container also carries the phones-only scaleY (mobileVScale 1.2), and the actual
+  // descent falls ~1300px short of the model on a tall page (600×900 measured: art reaches
+  // doc-y 13379, not the content bottom 14737, while this formula computed fillLagged = 0).
+  // The result was a bare cream gap at the page bottom — the very thing the fill exists to
+  // prevent. Rather than model the scaleY interaction (which Task 1 flagged as unreliable
+  // across the narrow range), floor the fill with the STATIC (no-lag) deficit there: the
+  // band is then always present and rides DOWN with whatever parallax actually applies.
+  // Over-covering below the fold is harmless — the whole background subtree is
+  // position:absolute (it never drives document height) and the band is a solid colour
+  // sampled from the art's bottom edge. Wide screens keep the exact lagged behaviour.
+  const fillStatic = contentHeight - bgHeight + verticalOffset // == the p → 1 deficit
+  const isNarrow = viewportWidth < WIDE_BREAKPOINT
+  const fillHeight = Math.max(0, isNarrow ? Math.max(fillLagged, fillStatic) : fillLagged)
 
   return { zoom, parallaxFactor, focalTranslateX, fillHeight, bgHeight }
 }

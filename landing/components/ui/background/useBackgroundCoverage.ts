@@ -1,8 +1,19 @@
 import { useEffect, useState, useCallback } from 'react'
 import { computeCoverage, type CoverageConfig, type CoverageResult } from './backgroundCoverage'
 
-const INITIAL: CoverageResult = {
+export interface CoverageMeasurements {
+  /** container's rendered width (px) — includes the cover-zoom */
+  containerWidth: number
+  /** the beach's offset within the container (px) — everything ABOVE the beach.
+   *  0 until the beach SVG is injected; the layout converges on the next pass. */
+  baseHeightPx: number
+  /** net UPWARD translate on the container = sceneLift − BG_SHIFT */
+  verticalOffset: number
+}
+
+const INITIAL: CoverageResult & CoverageMeasurements = {
   zoom: 1, parallaxFactor: 1, focalTranslateX: 0, fillHeight: 0, bgHeight: 0,
+  containerWidth: 0, baseHeightPx: 0, verticalOffset: 0,
 }
 
 function prefersReducedMotion(): boolean {
@@ -12,11 +23,12 @@ function prefersReducedMotion(): boolean {
 
 export function useBackgroundCoverage(
   containerRef: React.RefObject<HTMLDivElement | null>,
+  beachRef: React.RefObject<HTMLDivElement | null>,
   config: CoverageConfig,
   deps: { ready: boolean; sceneLift: number },
-): CoverageResult {
+): CoverageResult & CoverageMeasurements {
   const { ready, sceneLift } = deps
-  const [result, setResult] = useState<CoverageResult>(INITIAL)
+  const [result, setResult] = useState<CoverageResult & CoverageMeasurements>(INITIAL)
 
   const measure = useCallback(() => {
     const container = containerRef.current
@@ -55,6 +67,15 @@ export function useBackgroundCoverage(
     const bgShiftPx = Math.min(400, Math.max(0, (1024 - window.innerWidth) * 400 / 649))
     const verticalOffset = sceneLift - bgShiftPx
 
+    // The beach's offset within the container == everything above it. Measured, not
+    // modelled, because the beach carries a negative marginTop that pulls it up into the
+    // collage. Before the beach SVG is injected its rect height is 0 and its top sits at
+    // the collage's bottom — the layout simply converges on the next measurement pass.
+    const beach = beachRef.current
+    const baseHeightPx = beach
+      ? beach.getBoundingClientRect().top - containerRect.top
+      : containerRect.height
+
     const next = computeCoverage({
       naturalHeight,
       contentHeight,
@@ -65,16 +86,26 @@ export function useBackgroundCoverage(
       verticalOffset,
     })
 
+    const merged = {
+      ...next,
+      containerWidth: containerRect.width,
+      baseHeightPx,
+      verticalOffset,
+    }
+
     setResult(prev =>
-      prev.zoom === next.zoom &&
-      prev.parallaxFactor === next.parallaxFactor &&
-      prev.focalTranslateX === next.focalTranslateX &&
-      prev.fillHeight === next.fillHeight &&
-      prev.bgHeight === next.bgHeight
+      prev.zoom === merged.zoom &&
+      prev.parallaxFactor === merged.parallaxFactor &&
+      prev.focalTranslateX === merged.focalTranslateX &&
+      prev.fillHeight === merged.fillHeight &&
+      prev.bgHeight === merged.bgHeight &&
+      prev.containerWidth === merged.containerWidth &&
+      prev.baseHeightPx === merged.baseHeightPx &&
+      prev.verticalOffset === merged.verticalOffset
         ? prev
-        : next,
+        : merged,
     )
-  }, [containerRef, config, sceneLift])
+  }, [containerRef, beachRef, config, sceneLift])
 
   useEffect(() => {
     if (!ready) return

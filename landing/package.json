@@ -10,7 +10,10 @@
     "snapshot": "tsx --env-file=.env.local scripts/snapshot-notion.ts",
     "verify:humans": "tsx scripts/verifyHumanMotion.ts",
     "verify:bg-coverage": "tsx scripts/verifyBackgroundCoverage.ts",
-    "verify:spinners": "tsx scripts/verifyBeachSpinner.ts"
+    "verify:spinners": "tsx scripts/verifyBeachSpinner.ts",
+    "verify:bg-measure": "tsx scripts/measureBackground.ts",
+    "verify:wave-queue": "tsx scripts/verifyWaveQueue.ts",
+    "verify:beach-waves": "tsx scripts/verifyBeachWaves.ts"
   },
   "dependencies": {
     "@notionhq/client": "^5.17.0",

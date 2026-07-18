@@ -894,7 +894,6 @@ git commit -m "feat(landing): словарь переводов тегов ан�
 ```ts
 import pool from './db'
 import { resolveLanguage, type Language } from './languages'
-import { normalizeImageUrl } from './driveImage'
 import { translateTags } from './tagTranslations'
 import type { Locale } from '@/types'
 
@@ -948,7 +947,7 @@ export async function getTutors(locale: Locale = 'en'): Promise<Tutor[]> {
   return rows.map(row => ({
     id:              row.id,
     fullName:        pick(row.fullName, row.fullName_en, row.fullName_pt, locale) ?? row.fullName,
-    imageUrl:        normalizeImageUrl(row.imageUrl ?? (row.image ? `${botBaseUrl}/static/${row.image}` : null)),
+    imageUrl:        row.imageUrl ?? (row.image ? `${botBaseUrl}/static/${row.image}` : null),
     languages:       (row.languages ?? []).map(resolveLanguage),
     quote:           pick(row.quote, row.quote_en, row.quote_pt, locale),
     specializations: translateTags(row.specializations, locale),

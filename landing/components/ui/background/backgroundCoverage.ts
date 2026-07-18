@@ -123,7 +123,23 @@ export function computeCoverage(input: CoverageInput): CoverageResult {
   // Terminal band closes whatever parallax (floored at minP) or the reduced-motion /
   // non-scrolling static case leaves below the content bottom. With p = 1 this reduces
   // to max(0, H_content − H_bg + verticalOffset).
-  const fillHeight = Math.max(0, viewportHeight + parallaxFactor * S - bgHeight + verticalOffset)
+  const fillLagged = viewportHeight + parallaxFactor * S - bgHeight + verticalOffset
+
+  // NARROW-TIER SAFETY FLOOR. The formula above assumes the parallax translate descends
+  // the art by exactly (1−p)·S. On the narrow tier that assumption is measurably false:
+  // the container also carries the phones-only scaleY (mobileVScale 1.2), and the actual
+  // descent falls ~1300px short of the model on a tall page (600×900 measured: art reaches
+  // doc-y 13379, not the content bottom 14737, while this formula computed fillLagged = 0).
+  // The result was a bare cream gap at the page bottom — the very thing the fill exists to
+  // prevent. Rather than model the scaleY interaction (which Task 1 flagged as unreliable
+  // across the narrow range), floor the fill with the STATIC (no-lag) deficit there: the
+  // band is then always present and rides DOWN with whatever parallax actually applies.
+  // Over-covering below the fold is harmless — the whole background subtree is
+  // position:absolute (it never drives document height) and the band is a solid colour
+  // sampled from the art's bottom edge. Wide screens keep the exact lagged behaviour.
+  const fillStatic = contentHeight - bgHeight + verticalOffset // == the p → 1 deficit
+  const isNarrow = viewportWidth < WIDE_BREAKPOINT
+  const fillHeight = Math.max(0, isNarrow ? Math.max(fillLagged, fillStatic) : fillLagged)
 
   return { zoom, parallaxFactor, focalTranslateX, fillHeight, bgHeight }
 }

@@ -88,8 +88,11 @@ git commit -m "feat(db): статус модерации анкеты учите
 В `"scripts"` добавить строку:
 
 ```json
-"test": "node --test test/"
+"test": "node --test"
 ```
+
+(Без аргументов — встроенное рекурсивное обнаружение тестов. Форма
+`node --test test/` не работает на Node 22/Windows: «Cannot find module …\test».)
 
 - [ ] **Step 2: Написать падающий тест**
 

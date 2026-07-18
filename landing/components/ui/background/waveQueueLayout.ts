@@ -32,8 +32,8 @@ export const SEA_BASE_TOP = 3180    // top edge of the painted water
 // had". Waves stand well above the viewport; the sea band and beachViewH grow with them
 // (travel = n · step · thUnits), which is what puts the surf back in frame on the wide
 // screens where it had slid below the fold.
-export const WAVE_H_VH_WIDE = 1.50    // >= WIDE_BREAKPOINT
-export const WAVE_H_VH_NARROW = 1.15  // < WIDE_BREAKPOINT
+export const WAVE_H_VH_WIDE = 0.75    // >= WIDE_BREAKPOINT
+export const WAVE_H_VH_NARROW = 0.575 // < WIDE_BREAKPOINT
 // Step (gap between waves) as a fraction of wave height. Split like WAVE_H_VH: a single
 // 0.50 preserves phone wave SIZE but silently triples phone SPARSENESS — today's
 // effective ratio is 0.171 (old QUEUE_TRAVEL 1150 / QUEUE_COUNT_DEFAULT 14 = step 82.1
@@ -47,11 +47,11 @@ export const N_MIN = 3
 export const WIDE_BREAKPOINT = 1024
 // Canvas units per second. Duration is derived from this (dur = travel / QUEUE_SPEED), so
 // a shorter track means a shorter cycle rather than slower waves — the speed is the thing
-// held constant. Was 23 (the original tuned 1150 / 50s); dialled to a third of that
-// 2026-07-17 at the owner's request, alongside the 5x height. Note the two compound: the
-// taller wave grows `travel` too, so the cycle lengthens by more than 3x and a wave's
-// arrival cadence slows accordingly.
-export const QUEUE_SPEED = 23 / 3
+// held constant. History: 23 (original tuned 1150/50s) → 23/3 (2026-07-17, 3x slower) →
+// 23/2 (owner sped it back up 1.5x). Cadence between arrivals is step/speed, and step
+// tracks wave height, so height and speed compound — halving the height (this same retune)
+// shortens the gap between waves as much as the speed bump does.
+export const QUEUE_SPEED = 23 / 2
 export const SEA_MARGIN = 60        // headroom below the spawn line, canvas units
 // Mean wave height the FOAM constants were tuned against (the old
 // WAVE_HEIGHT_REF_W · mean aspect = 1027 · 1.5 · 0.3114). Every absolute foam depth in

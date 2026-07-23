@@ -77,6 +77,7 @@ export default function CelpeBrasStack({ titles, cardConfig }: Props) {
                 }}
               >
                 <div
+                  data-adaptive-cover={cardConfig[i].bg}
                   className={`glass flex items-center gap-[32px] w-fit max-w-full overflow-hidden rounded-[44px] px-[32px] py-[32px] hover:scale-[1.04] active:scale-[0.95] ${isActive ? 'is-center' : ''}`}
                   style={{
                     '--glass-tint': cardConfig[i].tint,

@@ -74,15 +74,20 @@ export default async function Home({
   const notionFailed = !notionHeader.nav0
   const snap = (snapshot as Record<string, typeof snapshot.ru>)[locale]
 
-  const headerData    = notionFailed ? snap.header    : notionHeader
-  const heroData      = notionFailed ? snap.hero      : notionHero
-  const aboutData     = notionFailed ? snap.about     : notionAbout
-  const comparisonData = notionFailed ? snap.comparison : notionComparison
-  const tutorsData    = notionFailed ? snap.tutors    : notionTutors
-  const celpeBrasData = notionFailed ? snap.celpeBras : notionCelpeBras
-  const plansData     = notionFailed ? snap.plans     : notionPlans
-  const footerData    = notionFailed ? snap.footer    : notionFooter
-  const modalStrings  = notionFailed ? snap.modal     : notionModal
+  // Per-section fallback. A PARTIAL Notion response (header OK, but some other row empty or
+  // missing) sails past the coarse notionFailed flag and blanks that section — that is exactly
+  // how CELPE-BRAS lost its heading/hint (2026-07-19). So each section independently falls back
+  // to the snapshot when its own primary field is empty. The snapshot is the source of truth we
+  // are migrating to; live Notion only wins when it actually returned content for that section.
+  const headerData    = notionFailed ? snap.header : notionHeader
+  const heroData      = notionFailed || !notionHero.heading1      ? snap.hero       : notionHero
+  const aboutData     = notionFailed || !notionAbout.message1     ? snap.about      : notionAbout
+  const comparisonData = notionFailed || !notionComparison.heading ? snap.comparison : notionComparison
+  const tutorsData    = notionFailed || !notionTutors.heading1    ? snap.tutors     : notionTutors
+  const celpeBrasData = notionFailed || !notionCelpeBras.heading  ? snap.celpeBras  : notionCelpeBras
+  const plansData     = notionFailed || notionPlans.plans.length === 0 ? snap.plans : notionPlans
+  const footerData    = notionFailed ? snap.footer : notionFooter
+  const modalStrings  = notionFailed || !notionModal.title        ? snap.modal      : notionModal
 
   const displayTutors = tutors.length > 0 ? tutors : getStubTutors(locale)
 

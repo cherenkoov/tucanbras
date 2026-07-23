@@ -12,6 +12,8 @@
     "verify:bg-coverage": "tsx scripts/verifyBackgroundCoverage.ts",
     "verify:spinners": "tsx scripts/verifyBeachSpinner.ts",
     "verify:bg-measure": "tsx scripts/measureBackground.ts",
+    "verify:staticfill": "tsx scripts/verifyStaticFill.ts",
+    "gen:front-fill": "tsx scripts/generateFrontFill.ts",
     "verify:wave-queue": "tsx scripts/verifyWaveQueue.ts",
     "verify:beach-waves": "tsx scripts/verifyBeachWaves.ts"
   },

@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# throwaway verification screenshot output + scratch probes
+/verify-staticfill*/
+scripts/_*.ts

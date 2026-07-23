@@ -92,6 +92,7 @@ function TutorCard({
       {/* Card body — content defines height; glass cover sits behind it */}
       <div
         data-glass-center
+        data-adaptive-cover="#8fd096"
         className="group relative z-10 px-[12px] pb-[24px]"
         style={{ paddingTop: 'calc(var(--edge-h) + 16px)' }}
       >
@@ -336,11 +337,17 @@ export default function Tutors({ data, tutors, locale, modalStrings }: TutorsSec
       <div className="flex flex-col gap-[64px] lg:gap-[80px] max-w-[1720px] mx-auto w-full">
 
         {/* ══ Headings row ══ */}
+        {/* staticFill: at phone widths these sit in the collage↔beach raise band where
+            the LIVE extracted sprites (roads/bushes, slid + swaying) no longer match
+            the baked fill art, so the layered static fill lands on the wrong duotone
+            side. The backdrop ground truth reads ink here at every verified width
+            (390/1440); the desktop static path also resolves ink on its own. */}
         <div className="flex flex-col lg:flex-row gap-[24px] lg:gap-[48px] items-start w-full">
           <AdaptiveText
             as="h2"
             className="font-heading font-bold flex-1"
             style={{ fontSize: 'clamp(32px, 4vw, 64px)', lineHeight: '1.1' }}
+            staticFill="ink"
           >
             {data.heading1}
           </AdaptiveText>
@@ -348,6 +355,7 @@ export default function Tutors({ data, tutors, locale, modalStrings }: TutorsSec
             as="h2"
             className="font-heading font-bold flex-1 text-right"
             style={{ fontSize: 'clamp(32px, 4vw, 64px)', lineHeight: '1.1' }}
+            staticFill="ink"
           >
             {data.heading2}
           </AdaptiveText>

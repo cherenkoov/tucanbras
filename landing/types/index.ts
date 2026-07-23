@@ -112,6 +112,7 @@ export interface CelpeBrasData {
 
 export interface CelpeBrasProps {
   data: CelpeBrasData;
+  locale: Locale;
 }
 
 // ─── 7. Plans ────────────────────────────────────────────────────────────────

@@ -123,7 +123,7 @@ export default async function Home({
           <Tutors data={tutorsData} tutors={tutors} locale={locale} modalStrings={modalStrings} />
           {/* WaveSection moved into BackgroundCanvas (behind the beach) — no longer a section */}
           {/* 6 */}
-          <CelpeBras data={celpeBrasData} />
+          <CelpeBras data={celpeBrasData} locale={locale} />
           {/* 7 */}
           <Plans data={plansData} />
           {/* 8 */}

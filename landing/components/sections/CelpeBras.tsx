@@ -1,7 +1,27 @@
 import type { CSSProperties } from 'react'
+import Image from 'next/image'
 import { CelpeBrasProps } from '@/types'
+import type { Locale } from '@/types'
 import CelpeBrasStack from '@/components/sections/CelpeBrasStack'
 import AdaptiveText from '@/components/ui/AdaptiveText'
+
+// ─── Passport intro (asset + localized quote — NOT from Notion) ──────────────
+const PASSPORT_IMG = '/PNG/celpe/brazil-passport.png'
+
+const PASSPORT: Record<Locale, { quote: string; alt: string }> = {
+  ru: {
+    quote: 'Официальный экзамен, подтверждающий знание языка и открывающий путь к бразильскому гражданству.',
+    alt: 'Обложка паспорта гражданина Бразилии',
+  },
+  en: {
+    quote: 'The official exam that certifies your language proficiency and opens the path to Brazilian citizenship.',
+    alt: 'Cover of a Brazilian passport',
+  },
+  pt: {
+    quote: 'O exame oficial que comprova o conhecimento do idioma e abre o caminho para a cidadania brasileira.',
+    alt: 'Capa do passaporte brasileiro',
+  },
+}
 
 // ─── Static card config (icon + bg/tint color — not from CMS) ────────────────
 // tint = frosted (glass) colour, bg = solid colour shown on hover
@@ -45,7 +65,7 @@ function FeatureCard({ title, icon, bg, tint, text }: { title: string; icon: str
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function CelpeBras({ data }: CelpeBrasProps) {
+export default function CelpeBras({ data, locale }: CelpeBrasProps) {
   const [c0, c1, c2, c3, c4] = data.cards
 
   return (
@@ -60,6 +80,39 @@ export default function CelpeBras({ data }: CelpeBrasProps) {
         >
           {data.heading}
         </AdaptiveText>
+
+        {/* ══ Passport + intro quote ══ */}
+        {/* Один контейнер: mobile stack (цитата → паспорт) → lg row (паспорт слева / цитата справа).
+            order-своп меняет визуальный порядок без дублирования DOM/картинки. items-center даёт
+            вертикальный центр цитаты относительно высоты паспорта на десктопе. */}
+        <div className="flex flex-col items-center gap-[40px] lg:flex-row lg:gap-[clamp(40px,5vw,96px)] w-full">
+
+          {/* Паспорт: ширина-driven на мобайле, высота-driven на десктопе; углы в тон карточкам */}
+          <div
+            className="relative order-2 lg:order-1 shrink-0 overflow-hidden rounded-[44px] aspect-[550/776] w-[clamp(200px,62vw,300px)] lg:w-auto lg:h-[clamp(300px,24vw,460px)]"
+            style={{ boxShadow: '0px 12px 32px rgba(0,0,0,0.22)' }}
+          >
+            <Image
+              src={PASSPORT_IMG}
+              alt={PASSPORT[locale].alt}
+              fill
+              sizes="(min-width: 1024px) 340px, 62vw"
+              className="object-cover pointer-events-none"
+            />
+          </div>
+
+          {/* Цитата: flex-1 справа на десктопе; text-center + mx-auto + max-width → центр по ширине div */}
+          <div className="order-1 lg:order-2 lg:flex-1 w-full">
+            <AdaptiveText
+              as="p"
+              className="font-accent font-bold text-center mx-auto leading-[1.35] px-[16px] lg:px-0 max-w-[22em] lg:max-w-[clamp(360px,40vw,760px)] text-[clamp(19px,4.5vw,30px)] lg:text-[clamp(24px,2.6vw,44px)]"
+              style={{ letterSpacing: '0.02em' }}
+            >
+              &ldquo;{PASSPORT[locale].quote}&rdquo;
+            </AdaptiveText>
+          </div>
+
+        </div>
 
         {/* ══ Feature grid — mobile: stacking scroll, desktop: grid ══ */}
 

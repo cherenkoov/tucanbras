@@ -1,5 +1,6 @@
 import pool from './db'
 import { resolveLanguage, type Language } from './languages'
+import { translateTags } from './tagTranslations'
 import type { Locale } from '@/types'
 
 export interface Tutor {
@@ -24,11 +25,7 @@ type TutorRow = {
   quote_en: string | null
   quote_pt: string | null
   specializations: string[] | null
-  specializations_en: string[] | null
-  specializations_pt: string[] | null
   interests: string[] | null
-  interests_en: string[] | null
-  interests_pt: string[] | null
 }
 
 function pick(ru: string | null, en: string | null, pt: string | null, locale: Locale): string | null {
@@ -37,21 +34,17 @@ function pick(ru: string | null, en: string | null, pt: string | null, locale: L
   return ru
 }
 
-function pickArr(ru: string[] | null, en: string[] | null, pt: string[] | null, locale: Locale): string[] {
-  if (locale === 'en') return en?.length ? en : (ru ?? [])
-  if (locale === 'pt') return pt?.length ? pt : (ru ?? [])
-  return ru ?? []
-}
-
 export async function getTutors(locale: Locale = 'en'): Promise<Tutor[]> {
+  // Только одобренные анкеты (Фаза 1 модерации). Переводы свободного текста
+  // лежат в _en/_pt колонках (заполняет админ), теги переводятся словарём.
   const { rows } = await pool.query<TutorRow>(`
     SELECT
       id, "fullName", "fullName_en", "fullName_pt",
       image, "imageUrl", languages,
       quote, quote_en, quote_pt,
-      specializations, specializations_en, specializations_pt,
-      interests, interests_en, interests_pt
+      specializations, interests
     FROM "TeacherAnketas"
+    WHERE status = 'approved'
     ORDER BY id ASC
   `)
 
@@ -63,7 +56,7 @@ export async function getTutors(locale: Locale = 'en'): Promise<Tutor[]> {
     imageUrl:        row.imageUrl ?? (row.image ? `${botBaseUrl}/static/${row.image}` : null),
     languages:       (row.languages ?? []).map(resolveLanguage),
     quote:           pick(row.quote, row.quote_en, row.quote_pt, locale),
-    specializations: pickArr(row.specializations, row.specializations_en, row.specializations_pt, locale),
-    interests:       pickArr(row.interests, row.interests_en, row.interests_pt, locale),
+    specializations: translateTags(row.specializations, locale),
+    interests:       translateTags(row.interests, locale),
   }))
 }

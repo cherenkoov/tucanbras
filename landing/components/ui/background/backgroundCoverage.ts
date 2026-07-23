@@ -105,6 +105,7 @@ export function computeCoverage(input: CoverageInput): CoverageResult {
   // was missing, which left a gap at the page bottom on widths where the zoomed art
   // only barely exceeded the content height.
   const S = contentHeight - viewportHeight // total scroll distance
+  const isNarrow = viewportWidth < WIDE_BREAKPOINT
 
   // Parallax engages on the COVERAGE DEFICIT alone — the moment the (up-shifted) art
   // stops reaching the content bottom — not on hitting the zoom cap. `pNeeded < 1`
@@ -115,6 +116,16 @@ export function computeCoverage(input: CoverageInput): CoverageResult {
   //   • deficit beyond the minP floor → p = minP and the terminal fill covers the rest.
   // The lag magnitude auto-scales with need, so this one rule subsumes the old
   // cap-gated branch AND the static desktop fill, with no fixed space-filling guess.
+  // Parallax now engages on EVERY width, narrow included. Owner's call (2026-07-19): the
+  // depth parallax is the signature effect and must stay on phones. It was briefly disabled
+  // because a canvas sliding (1−p)·scroll under the adaptive text made the touch static-fill
+  // mis-sample on iOS — sparse rAF during momentum, device-verified: the art drifted ~0.9px
+  // per scrolled px under the headings, flipping their duotone side. That is now MITIGATED,
+  // not avoided, by a much larger narrow crop budget (maxZoom, device-tunable via ?bgzoom):
+  // a taller H_bg shrinks the coverage deficit, which pushes p toward 1 and so shrinks the
+  // residual drift the static fill has to track — trading cropped content for trackability.
+  // The narrow-tier fill floor below still guarantees bottom coverage against the unreliable
+  // phones-only scaleY descent, and rides DOWN with whatever parallax actually applies.
   let parallaxFactor = 1
   if (motionEnabled && S > 0) {
     const pNeeded = (bgHeight - viewportHeight - verticalOffset) / S
@@ -138,7 +149,6 @@ export function computeCoverage(input: CoverageInput): CoverageResult {
   // position:absolute (it never drives document height) and the band is a solid colour
   // sampled from the art's bottom edge. Wide screens keep the exact lagged behaviour.
   const fillStatic = contentHeight - bgHeight + verticalOffset // == the p → 1 deficit
-  const isNarrow = viewportWidth < WIDE_BREAKPOINT
   const fillHeight = Math.max(0, isNarrow ? Math.max(fillLagged, fillStatic) : fillLagged)
 
   return { zoom, parallaxFactor, focalTranslateX, fillHeight, bgHeight }

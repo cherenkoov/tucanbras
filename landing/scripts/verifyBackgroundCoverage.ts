@@ -39,14 +39,11 @@ const approx = (a: number, b: number, eps = 1e-6) => Math.abs(a - b) <= eps
   assert.equal(r.focalTranslateX, 0, 'mid: rightward anchor clamps to 0')
 }
 
-// ── Mobile, motion ON: cap hit, parallax engages, AND the narrow-tier static fill floor ──
+// ── Mobile, motion ON: cap hit, parallax ENGAGES (owner's call 2026-07-19 — the depth
+// parallax is kept on phones; iOS drift is mitigated by a larger crop, not by disabling
+// it). The narrow-tier static-fill floor still carries the whole deficit for bottom cover.
 // natural 2300, content 9200, vp 800 → zoomFull = 4 → clamp 1.6 → H_bg = 3680.
-// S = 9200 − 800 = 8400. pNeeded = (3680 − 800)/8400 = 0.342857… ∈ [0.3, 1].
-// The parallax still engages (it lags the art down), but on the narrow tier the fill is
-// ALSO floored at the static deficit — the mobileVScale makes the parallax under-reach in
-// the real DOM, so the fill must be present as insurance rather than trusting the lag to
-// close the gap alone. It rides down WITH the parallax; over-covering below the fold is
-// harmless. (Measured: without this, 600×900 left a ~1360px bare cream gap.)
+// S = 8400; pNeeded = (3680 − 800)/8400 = 0.342857 (> minP 0.3) → p = 0.342857.
 {
   const r = computeCoverage({
     naturalHeight: 2300, contentHeight: 9200,
@@ -55,8 +52,9 @@ const approx = (a: number, b: number, eps = 1e-6) => Math.abs(a - b) <= eps
   })
   assert.equal(r.zoom, 1.6, 'mobile: zoom clamps to cap')
   assert.ok(approx(r.bgHeight, 3680), 'mobile: H_bg = natural·cap')
-  assert.ok(approx(r.parallaxFactor, (3680 - 800) / 8400), 'mobile: p = pNeeded (parallax still engages)')
-  assert.ok(approx(r.fillHeight, 9200 - 3680), 'mobile: narrow-tier fill floored at the static deficit')
+  assert.ok(approx(r.parallaxFactor, (3680 - 800) / 8400), 'mobile: narrow tier now runs parallax')
+  assert.ok(r.parallaxFactor < 1, 'mobile: parallax actually moves')
+  assert.ok(approx(r.fillHeight, 9200 - 3680), 'mobile: static floor covers the full deficit')
   assert.ok(approx(r.focalTranslateX, 375 / 2 - 0.45 * 375 * 1.6), 'mobile: focal formula')
 }
 
@@ -74,21 +72,18 @@ const approx = (a: number, b: number, eps = 1e-6) => Math.abs(a - b) <= eps
   assert.ok(approx(narrow.fillHeight, 9200 - 3680), 'narrow: same deficit gets the static floor')
 }
 
-// ── Extreme height, motion ON: pNeeded < minP → p floored. The parallax still floors at
-// minP, but on the narrow tier the fill floor is the STATIC deficit (larger than the
-// lagged remainder), since the real descent can't be trusted — see the mobile case. ──
-// natural 2300, content 30000, vp 800 → cap 1.6 → H_bg 3680. S = 29200.
-// pNeeded = (3680 − 800)/29200 = 0.0986… < 0.3 → p = 0.3.
-// lagged remainder = (800 + 0.3·29200) − 3680 = 5880; static deficit = 30000 − 3680 =
-// 26320; narrow floor takes the larger.
+// ── Extreme height, motion ON, narrow: parallax floors at minP, and the static fill
+// floor still closes the whole deficit (the floor ≥ the lagged remainder here). ──
+// natural 2300, content 30000, vp 800 → cap 1.6 → H_bg 3680; deficit = 26320.
+// S = 29200; pNeeded = (3680 − 800)/29200 = 0.0986 (< minP 0.3) → p floored to 0.3.
 {
   const r = computeCoverage({
     naturalHeight: 2300, contentHeight: 30000,
     viewportHeight: 800, viewportWidth: 375,
     motionEnabled: true, config,
   })
-  assert.equal(r.parallaxFactor, 0.3, 'extreme: p floored to minP')
-  assert.ok(approx(r.fillHeight, 30000 - 3680), 'extreme: narrow static floor covers the full deficit')
+  assert.equal(r.parallaxFactor, 0.3, 'extreme: narrow parallax floors at minP')
+  assert.ok(approx(r.fillHeight, 30000 - 3680), 'extreme: static floor still covers the full deficit')
 }
 
 // ── Reduced motion / weak device: p = 1, static terminal fill = content − H_bg ──

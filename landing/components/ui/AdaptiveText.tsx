@@ -44,6 +44,9 @@ interface AdaptiveTextProps {
   className?: string
   style?: CSSProperties
   children: ReactNode
+  // Escape hatch: force this text to one duotone side in static mode (touch/reduced-
+  // motion) when the layered fill can't resolve its spot. Desktop backdrop ignores it.
+  staticFill?: 'ink' | 'cream'
 }
 
 // Text over the moving collage whose colour adapts to the background behind it
@@ -51,13 +54,13 @@ interface AdaptiveTextProps {
 // moving sprites (backdrop-filter); multi-line text, mobile, and reduced-motion use the
 // cheaper static-fill. The element renders as real text (layout/SEO/a11y) and the
 // solid-ink fallback if neither technique can run. See useAdaptiveText for the logic.
-export default function AdaptiveText({ as: Tag = 'p', className, style, children }: AdaptiveTextProps) {
+export default function AdaptiveText({ as: Tag = 'p', className, style, children, staticFill }: AdaptiveTextProps) {
   const maskId = `adaptive-mask-${useId().replace(/:/g, '')}`
   const textRef = useRef<HTMLElement>(null)
   const overlayRef = useRef<HTMLSpanElement>(null)
   const maskRef = useRef<SVGTextElement>(null)
 
-  useAdaptiveText({ textRef, overlayRef, maskRef, maskId })
+  useAdaptiveText({ textRef, overlayRef, maskRef, maskId, staticFill })
 
   return (
     <>
@@ -81,7 +84,10 @@ export default function AdaptiveText({ as: Tag = 'p', className, style, children
         <span
           ref={overlayRef}
           aria-hidden="true"
-          style={{ position: 'absolute', inset: 0, pointerEvents: 'none', display: 'none' }}
+          // Explicit longhands, NOT `inset:0`: the hook grows this box past the element to
+          // stop iOS clipping the backdrop-filter at the glyph tops, and on real iOS Safari
+          // an `inset` shorthand was winning over the hook's top/bottom override.
+          style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, pointerEvents: 'none', display: 'none' }}
         />
       </Tag>
     </>

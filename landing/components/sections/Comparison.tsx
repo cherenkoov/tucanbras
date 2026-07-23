@@ -47,6 +47,7 @@ export default function Comparison({ data }: ComparisonProps) {
           {/* ── Tucan block ── */}
           <div
             data-glass-center
+            data-adaptive-cover="#7cb082"
             className="glass flex flex-col gap-[36px] flex-1 min-w-[300px] lg:max-w-[727px] rounded-[48px] p-[36px] overflow-hidden"
             style={{
               '--glass-tint': 'rgba(124,176,130,0.72)',
@@ -83,17 +84,23 @@ export default function Comparison({ data }: ComparisonProps) {
 
           {/* ── VS symbol (adaptive duotone over the moving background) ── */}
           <div className="flex items-center justify-center shrink-0 py-4 lg:py-0">
+            {/* staticFill: the VS sits in the sway band of the animated bush layers —
+                the static fill can't track their motion (it samples the rest pose,
+                where this spot is dark roofs) and flips to cream over the live yellow
+                bush. Its neighbourhood is the yellow bush belt at every breakpoint. */}
             <AdaptiveIcon
               src={IMG_COMPARISON_SYMBOL}
               alt="VS"
               className="pointer-events-none select-none"
               style={{ width: 'clamp(40px, 5vw, 80px)' }}
+              staticFill="ink"
             />
           </div>
 
           {/* ── Others block ── */}
           <div
             data-glass-center
+            data-adaptive-cover="#cccab7"
             className="glass flex flex-col gap-[36px] flex-1 min-w-[300px] lg:max-w-[727px] rounded-[48px] p-[36px] overflow-hidden"
             style={{
               '--glass-tint': 'rgba(204,202,183,0.72)',

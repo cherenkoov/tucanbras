@@ -7,7 +7,7 @@ import { useTrainAnimation } from './useTrainAnimation'
 import { useCarAnimation } from './useCarAnimation'
 import { injectBeachCarAnimation } from './beachCars'
 import { injectWaveSurfAnimation, injectStaticSea } from './beachWaves'
-import { computeWaveQueue, BEACH_ART_H, type WaveQueueLayout } from './waveQueueLayout'
+import { computeWaveQueue, BEACH_ART_H, WIDE_BREAKPOINT, type WaveQueueLayout } from './waveQueueLayout'
 import { loadOceanWaveShapes, type OceanWaveShape } from './oceanWaves'
 import { useWaveDepthOrder } from './useWaveDepthOrder'
 import { prepareBeachSvg, BEACH_GROUND_COLOR, BEACH_PREFIX } from './prepareBeachSvg'
@@ -117,6 +117,13 @@ const mobileVScale = () =>
     ? MOBILE_VSTRETCH
     : 1
 
+// Narrow tier (< WIDE_BREAKPOINT) runs the aggressive cover-crop (maxZoom up to 8), which
+// pushes the cable car (Cabine) and the walking figures fully off-screen. Their animations
+// are then pure waste — gate them off there. Owner-requested 2026-07-19; reactive via
+// resizeTick in the component.
+const isNarrowCrop = () =>
+  typeof window !== 'undefined' && window.innerWidth < WIDE_BREAKPOINT
+
 // Background tiers. Sprite layers are BOUNDED (viewBox = sprite box, see spriteBoxes.ts)
 // so extraction is affordable everywhere — the page-sized-surface problem that crashed
 // the iPhone 12 mini tab (≈1.5 GB of IOSurface backing at DPR 3) is gone by construction.
@@ -145,6 +152,16 @@ const backgroundTier = (): BackgroundTier => {
 // still dies with the whole background gone, the background is exonerated.
 const isBgDisabled = () =>
   typeof window !== 'undefined' && new URLSearchParams(location.search).has('nobg')
+
+// ?bgzoom=N overrides the narrow crop ceiling (COVERAGE_CONFIG.maxZoom) at runtime, so the
+// parallax-drift ↔ cropped-content trade-off can be swept on a real phone without a rebuild.
+const narrowZoomOverride = (): number | null => {
+  if (typeof window === 'undefined') return null
+  const raw = new URLSearchParams(location.search).get('bgzoom')
+  if (raw == null) return null
+  const v = parseFloat(raw)
+  return Number.isFinite(v) && v >= 1 ? v : null
+}
 
 // How long the beach bake waits for its inputs to settle. See the bake effect.
 const BAKE_DEBOUNCE_MS = 200
@@ -187,8 +204,11 @@ const WAVES_BOTTOM_OFFSET_PX = 120
 
 // ── Cover-zoom + coverage-parallax (spec 2026-06-28) ────────────────────────
 // All four are visually tunable on a real device (spec §5).
-// maxZoom 2.0: narrow/tall mobile pages (375/414) clamp here — a larger crop budget
-// makes the illustration taller so less of the gap is left to the parallax + fill.
+// maxZoom 8.0: narrow/tall mobile pages (375/414) clamp here — owner's chosen framing
+// (2026-07-19, device-approved). Originally raised to shrink the coverage deficit / parallax
+// drift for the touch static-fill; that reason is now moot (adaptive text samples the live
+// backdrop directly — the built-in-function duotone in useAdaptiveText), so this value is
+// purely the mobile crop look. Sweep it live on a device with ?bgzoom=N.
 // maxZoomWide 1.0: wide screens must NOT spend the crop budget. The sea band is capped
 // now (see waveQueueLayout), which lowers naturalHeight — and an uncapped zoom would
 // simply take that freed space straight back and re-magnify every wave. Measured at 1024:
@@ -198,7 +218,7 @@ const WAVES_BOTTOM_OFFSET_PX = 120
 // focalX is overridden at runtime by the measured Christ-statue column (see the hook),
 // so the crop keeps the statue centred; this value is only the pre-measure fallback.
 const COVERAGE_CONFIG = {
-  maxZoom: 2.0, maxZoomWide: 1.0, focalX: 0.45, minP: 0.3,
+  maxZoom: 8.0, maxZoomWide: 1.0, focalX: 0.45, minP: 0.3,
   // Horizontal framing: statue centred on phones, eased to near the right edge on
   // tablets+ (mirroring the hero card). 0.5 = centre, 0.78 ≈ right edge. Ease-in over
   // [520, 768]px so phones stay centred and tablets (≥768) land at the right.
@@ -714,16 +734,27 @@ export default function BackgroundCanvas() {
   const hasCollageSprites =
     !!(cityLayer || roadsLayer || house4Layer || house5Layer || house6Layer ||
       bush01Layer || bush02Layer || bigTreeLayer) || humanLayers.some(Boolean)
+  // On the narrow crop the Cabine (useCarAnimation) and the walking figures are cropped
+  // fully off-screen, so their animations are gated off there. Read each render; the
+  // debounced resizeTick state re-renders on resize, so this tracks the breakpoint.
+  const narrowCrop = isNarrowCrop()
   useTrainAnimation(containerRef, { enabled: svgReady && sprites })
-  useCarAnimation(containerRef, { enabled: svgReady && sprites })
+  useCarAnimation(containerRef, { enabled: svgReady && sprites && !narrowCrop })
   useCloudAnimation(containerRef, { enabled: svgReady })
   useBushAnimation(bush01Ref, bush02Ref, { enabled: svgReady && sprites })
   useBigTreeAnimation(bigTreeRef, { enabled: !!bigTreeLayer })
-  useHumanAnimation(containerRef, humanRefs, { enabled: svgReady && sprites, debug: false })
+  useHumanAnimation(containerRef, humanRefs, { enabled: svgReady && sprites && !narrowCrop, debug: false })
   useBeachSpinnerAnimation(beachRef, { enabled: !!beachSvg && sprites })
   // Animated sea for the terminal band below the beach (built once shapes load).
 
-  const coverage = useBackgroundCoverage(containerRef, beachRef, COVERAGE_CONFIG, { ready: svgReady && !!beachSvg, sceneLift })
+  // Effective coverage config: honour a ?bgzoom=N override of the narrow crop ceiling.
+  // Memoised on [] so the URL is read once and the object stays reference-stable (the
+  // hook re-measures whenever `config` changes identity).
+  const coverageConfig = useMemo(() => {
+    const z = narrowZoomOverride()
+    return z != null ? { ...COVERAGE_CONFIG, maxZoom: z } : COVERAGE_CONFIG
+  }, [])
+  const coverage = useBackgroundCoverage(containerRef, beachRef, coverageConfig, { ready: svgReady && !!beachSvg, sceneLift })
 
   // A resize tick for the HEIGHT-only path. The width path does not need it: it arrives
   // through coverage.containerWidth, which the hook re-measures on its own resize listener.
@@ -900,6 +931,11 @@ export default function BackgroundCanvas() {
         <div
           ref={wavesRef}
           aria-hidden="true"
+          // Adaptive static-fill: the light sand waves show through the beach art's
+          // transparent sea gap — without this cover the glyph fill assumes the brown
+          // ground (#77533E) and lands on the wrong duotone side. See useAdaptiveText.
+          data-adaptive-cover="#ECDBB5"
+          data-adaptive-cover-z="9"
           style={{ position: 'absolute', left: 0, width: '100%', zIndex: 9 }}
         >
           <WavesAnimated fillParent />
@@ -1110,6 +1146,7 @@ export default function BackgroundCanvas() {
       {coverage.fillHeight > 0 && (
         <div
           aria-hidden="true"
+          data-adaptive-terminal={fillColor}
           style={{
             position: 'absolute',
             top: '100%',

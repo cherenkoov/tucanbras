@@ -18,6 +18,7 @@ function FeatureCard({ title, icon, bg, tint, text }: { title: string; icon: str
   return (
     <div
       data-glass-center
+      data-adaptive-cover={bg}
       className="glass relative flex flex-1 items-center gap-[48px] min-w-[300px] overflow-hidden rounded-[44px] px-[32px] py-[32px] hover:scale-[1.04] active:scale-[0.95]"
       style={{
         minHeight: '164px',

@@ -1,0 +1,83 @@
+<svg width="920" height="1110" viewBox="0 0 920 1110" xmlns="http://www.w3.org/2000/svg" font-family="ui-sans-serif, Segoe UI, Helvetica, Arial, sans-serif">
+  <rect width="920" height="1110" fill="#2A110F"/>
+
+  <!-- header -->
+  <text x="40" y="58" fill="#F3D099" font-size="30" font-weight="700">Vectorized · Golden-Hour Palette</text>
+  <text x="40" y="84" fill="#C0A276" font-size="15">Flat-color / posterized landscape — warm earthy tones, no gradients</text>
+  <line x1="40" y1="100" x2="880" y2="100" stroke="#471E17" stroke-width="2"/>
+
+  <!-- GROUP 1 : Shadows / contour -->
+  <text x="40" y="146" fill="#F3D099" font-size="18" font-weight="600">Shadows / contour</text>
+  <g font-family="ui-monospace, Consolas, monospace" font-size="14">
+    <rect x="40"  y="160" width="140" height="110" rx="10" fill="#471E17"/>
+    <text x="110" y="296" fill="#ECDBB5" text-anchor="middle">#471E17</text>
+    <rect x="215" y="160" width="140" height="110" rx="10" fill="#3D1817"/>
+    <text x="285" y="296" fill="#ECDBB5" text-anchor="middle">#3D1817</text>
+    <rect x="390" y="160" width="140" height="110" rx="10" fill="#2A110F"/>
+    <text x="460" y="296" fill="#ECDBB5" text-anchor="middle">#2A110F</text>
+    <rect x="565" y="160" width="140" height="110" rx="10" fill="#200D0D"/>
+    <text x="635" y="296" fill="#ECDBB5" text-anchor="middle">#200D0D</text>
+    <rect x="740" y="160" width="140" height="110" rx="10" fill="#070503"/>
+    <text x="810" y="296" fill="#ECDBB5" text-anchor="middle">#070503</text>
+  </g>
+
+  <!-- GROUP 2 : Highlights / cream -->
+  <text x="40" y="341" fill="#F3D099" font-size="18" font-weight="600">Highlights / cream</text>
+  <g font-family="ui-monospace, Consolas, monospace" font-size="14">
+    <rect x="40"  y="355" width="140" height="110" rx="10" fill="#F3D099"/>
+    <text x="110" y="491" fill="#ECDBB5" text-anchor="middle">#F3D099</text>
+    <rect x="215" y="355" width="140" height="110" rx="10" fill="#ECDBB5"/>
+    <text x="285" y="491" fill="#ECDBB5" text-anchor="middle">#ECDBB5</text>
+    <rect x="390" y="355" width="140" height="110" rx="10" fill="#E5CF9D"/>
+    <text x="460" y="491" fill="#ECDBB5" text-anchor="middle">#E5CF9D</text>
+    <rect x="565" y="355" width="140" height="110" rx="10" fill="#EDD19C"/>
+    <text x="635" y="491" fill="#ECDBB5" text-anchor="middle">#EDD19C</text>
+    <rect x="740" y="355" width="140" height="110" rx="10" fill="#F7E5B4"/>
+    <text x="810" y="491" fill="#ECDBB5" text-anchor="middle">#F7E5B4</text>
+  </g>
+
+  <!-- GROUP 3 : Mid browns / ochre -->
+  <text x="40" y="536" fill="#F3D099" font-size="18" font-weight="600">Mid browns / ochre</text>
+  <g font-family="ui-monospace, Consolas, monospace" font-size="14">
+    <rect x="40"  y="550" width="140" height="110" rx="10" fill="#B39068"/>
+    <text x="110" y="686" fill="#ECDBB5" text-anchor="middle">#B39068</text>
+    <rect x="215" y="550" width="140" height="110" rx="10" fill="#C0A276"/>
+    <text x="285" y="686" fill="#ECDBB5" text-anchor="middle">#C0A276</text>
+    <rect x="390" y="550" width="140" height="110" rx="10" fill="#A27E5C"/>
+    <text x="460" y="686" fill="#ECDBB5" text-anchor="middle">#A27E5C</text>
+    <rect x="565" y="550" width="140" height="110" rx="10" fill="#956C4D"/>
+    <text x="635" y="686" fill="#ECDBB5" text-anchor="middle">#956C4D</text>
+    <rect x="740" y="550" width="140" height="110" rx="10" fill="#77533E"/>
+    <text x="810" y="686" fill="#ECDBB5" text-anchor="middle">#77533E</text>
+  </g>
+
+  <!-- GROUP 4 : Terracotta accents -->
+  <text x="40" y="731" fill="#F3D099" font-size="18" font-weight="600">Terracotta accents</text>
+  <g font-family="ui-monospace, Consolas, monospace" font-size="14">
+    <rect x="40"  y="745" width="140" height="110" rx="10" fill="#F39A5C"/>
+    <text x="110" y="881" fill="#ECDBB5" text-anchor="middle">#F39A5C</text>
+    <rect x="215" y="745" width="140" height="110" rx="10" fill="#EE9152"/>
+    <text x="285" y="881" fill="#ECDBB5" text-anchor="middle">#EE9152</text>
+    <rect x="390" y="745" width="140" height="110" rx="10" fill="#E38D57"/>
+    <text x="460" y="881" fill="#ECDBB5" text-anchor="middle">#E38D57</text>
+    <rect x="565" y="745" width="140" height="110" rx="10" fill="#C16536"/>
+    <text x="635" y="881" fill="#ECDBB5" text-anchor="middle">#C16536</text>
+    <rect x="740" y="745" width="140" height="110" rx="10" fill="#944D2F"/>
+    <text x="810" y="881" fill="#ECDBB5" text-anchor="middle">#944D2F</text>
+  </g>
+
+  <!-- GROUP 5 : Olive / mustard foliage -->
+  <text x="40" y="926" fill="#F3D099" font-size="18" font-weight="600">Olive / mustard foliage</text>
+  <g font-family="ui-monospace, Consolas, monospace" font-size="14">
+    <rect x="40"  y="940" width="140" height="110" rx="10" fill="#D2B84A"/>
+    <text x="110" y="1076" fill="#ECDBB5" text-anchor="middle">#D2B84A</text>
+    <rect x="215" y="940" width="140" height="110" rx="10" fill="#C5B147"/>
+    <text x="285" y="1076" fill="#ECDBB5" text-anchor="middle">#C5B147</text>
+    <rect x="390" y="940" width="140" height="110" rx="10" fill="#B8A555"/>
+    <text x="460" y="1076" fill="#ECDBB5" text-anchor="middle">#B8A555</text>
+    <rect x="565" y="940" width="140" height="110" rx="10" fill="#9D9A54"/>
+    <text x="635" y="1076" fill="#ECDBB5" text-anchor="middle">#9D9A54</text>
+    <rect x="740" y="940" width="140" height="110" rx="10" fill="#5B6143"/>
+    <text x="810" y="1076" fill="#ECDBB5" text-anchor="middle">#5B6143</text>
+  </g>
+</svg>

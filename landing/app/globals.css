@@ -165,6 +165,18 @@ body {
   font-family: var(--font-sans);
 }
 
+/* ── Hide the browser page scrollbar (scrolling still works) ──────────────── */
+html,
+body {
+  scrollbar-width: none;       /* Firefox */
+  -ms-overflow-style: none;    /* IE / legacy Edge */
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;               /* Chrome / Safari / new Edge */
+}
+
 /* ── Blur landing content when mobile menu is open ───────────────────────── */
 main {
   transition: filter 0.3s ease;
@@ -174,6 +186,10 @@ body.menu-open main {
   filter: blur(6px);
   pointer-events: none;
   user-select: none;
+}
+
+body.menu-open .background-canvas {
+  filter: blur(6px);
 }
 
 /* ── Free-lesson modal animation ─────────────────────────────────────────── */
@@ -234,6 +250,147 @@ input:-webkit-autofill:active {
   border-radius: 4px;
 }
 
+
+
+/* Debug kill-switch (?noanim=1 → ScrollDebug ставит html.noanim): убирает все
+   mix-blend-mode — у декоративных SVG (гибискусы, папоротник) десятки blend-групп,
+   которые дороги для мобильного композитора. Только для бисекции крашей. */
+html.noanim * {
+  mix-blend-mode: normal !important;
+}
+
+/* ── Reusable interaction effects ────────────────────────────────────────── */
+
+/*
+  Effect 1 — Glass → solid on hover.
+  Frosted translucent surface that becomes fully opaque & crisp on hover.
+  Colour is parameterised per-use via --glass-tint (frosted) / --glass-solid
+  (hover); defaults to the cream surface, matching the About blocks.
+
+  The blur is DESKTOP-ONLY and only background-color transitions: a
+  backdrop-filter needs a backdrop buffer the size of the element × DPR (on
+  phones the About frame is a single ~2700px-tall glass surface), and
+  animating the radius re-filters that buffer every frame — together this was
+  crashing mobile tabs (compositor OOM). Touch devices keep the translucent
+  tint with no blur.
+*/
+.glass {
+  background-color: var(--glass-tint, rgba(255, 252, 229, 0.72));
+  transition: background-color 600ms ease;
+}
+
+@media (hover: hover) {
+  .glass {
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+  }
+
+  .glass:hover {
+    -webkit-backdrop-filter: blur(0);
+    backdrop-filter: blur(0);
+  }
+}
+
+.glass:hover {
+  background-color: var(--glass-solid, #fffce5);
+}
+
+/*
+  Touch devices have no :hover — GlassCenterActivation toggles `.is-center`
+  when the surface scrolls into the middle third of the viewport (the 1:3
+  activation band) instead.
+
+  NO transition on touch: animating background-color repaints the WHOLE card
+  every frame for 600ms, and the About cards are 1400–2700px tall — at DPR 3
+  each repainting card transiently costs a ~50–100MB IOSurface. Scrolling
+  About toggles several in sequence, which exhausted the iOS tab's surface
+  budget (magenta tiles → paint void → jetsam kill on iPhone 12 mini). The
+  colour change lands instantly instead.
+*/
+@media (hover: none) {
+  .glass { transition: none; }
+
+  .glass.is-center {
+    background-color: var(--glass-solid, #fffce5);
+  }
+}
+
+/* Effect 2 — Button press: lift on hover, press in on click. */
+.btn-press {
+  transition: transform 120ms ease-out;
+}
+
+.btn-press:hover  { transform: scale(1.04); }
+.btn-press:active { transform: scale(0.95); }
+
+/* Hero CTA — subtler scale (1.04 reads as too much on a button this large).
+   On hover the 1.01 scale pushes each side out by 0.5% of the button width but
+   barely moves the bottom (0.5% of the much smaller height), so the side gap to
+   the blue cover closes more than the bottom one. Drop the button down by that
+   same 0.5%-of-width (0.5cqw against the wrapper marked `@container`) so the gap
+   to the cover stays even on the sides and the bottom.
+
+   Keep the corners concentric with the container during that grow. At rest the
+   button radius is built on the nested formula R_inner = R_outer − gap = 38 − 12
+   = 26px. On hover the side gap shrinks by 0.5cqw (the same 0.5%-of-width the
+   scale pushes out), so concentricity wants the *visual* radius to grow to
+   26px + 0.5cqw. Pre-scale that by /1.01 so the 1.01 scale lands it back exactly:
+   1.01 × (26 + 0.5cqw)/1.01 = 26 + 0.5cqw. */
+.btn-press-hero {
+  transition: transform 120ms ease-out, border-radius 120ms ease-out;
+}
+
+.btn-press-hero:hover  {
+  transform: scale(1.01) translateY(0.5cqw);
+  border-radius: calc((26px + 0.5cqw) / 1.01);
+}
+.btn-press-hero:active { transform: scale(0.97); }
+
+/* CTA pill — stays a stadium at rest; on hover the corners tighten (radius shrinks
+   to 26px, the card-system radius) so the button reads as a rounded rectangle.
+   On a full pill, shrinking the radius is visible where growing it (btn-press-hero)
+   would not be — the rest radius is already pinned at half the height. Pairs with
+   the standard press scale.
+
+   Like .btn-press-hero: the 1.04 scale pushes each side out by 2% of the button
+   width but only 2% of the much smaller height at the bottom, so the side gap to
+   the card closes more than the bottom one. Drop the button down by the net of the
+   two (2% of width minus 2% of the button's own height) so the gap stays even on
+   the sides and the bottom. Needs the wrapper marked `@container` for cqw. */
+.btn-press-tighten {
+  transition: transform 120ms ease-out, border-radius 120ms ease-out;
+}
+.btn-press-tighten:hover  { transform: scale(1.04) translateY(calc(2cqw - 2%)); border-radius: 26px; }
+.btn-press-tighten:active { transform: scale(0.95); }
+
+/* Header desktop plate fill — frosted (translucent) → solid when the bar is hovered. */
+.header-plate {
+  fill-opacity: 0.72;
+  transition: fill-opacity 600ms ease;
+}
+
+.group:hover .header-plate {
+  fill-opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glass,
+  .btn-press,
+  .btn-press-hero,
+  .btn-press-tighten,
+  .header-plate { transition: none; }
+  .btn-press:hover,
+  .btn-press:active,
+  .btn-press-hero:hover,
+  .btn-press-hero:active,
+  .btn-press-tighten:hover,
+  .btn-press-tighten:active { transform: none; }
+  /* No scale → the button never grows, so the gap stays 12px and the radius
+     stays at its concentric rest value (26px). Don't apply the hover bump. */
+  .btn-press-hero:hover { border-radius: 26px; }
+  /* Keep the pill — don't tighten the corners on hover. */
+  .btn-press-tighten:hover { border-radius: 66px; }
+}
 
 
 /* ── Header logotype responsive text ─────────────────────────────────────── */

@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import type { HeroProps } from "@/types";
 import FreeLessonButton from '@/components/ui/FreeLessonButton'
 
@@ -7,13 +8,15 @@ export default function Hero({ data }: HeroProps) {
 
       <div className="max-w-[1720px] mx-auto w-full">
 
-      {/* Container — width fits content, glassmorphism */}
+      {/* Container — width fits content, glass → solid blue on hover */}
       <div
-        className="flex w-fit max-[500px]:w-full flex-col gap-0 rounded-feat p-s300 backdrop-blur-[4px]"
+        data-glass-center
+        className="glass flex w-fit max-[500px]:w-full flex-col gap-0 rounded-feat p-s300"
         style={{
-          backgroundColor: '#2e67b266',
           boxShadow: 'var(--shadow-hero)',
-        }}
+          '--glass-tint': '#2e67b266',
+          '--glass-solid': '#2e67b2',
+        } as CSSProperties}
       >
 
         {/* Heading — H3: Involve Medium 72px */}
@@ -28,11 +31,12 @@ export default function Hero({ data }: HeroProps) {
           <span className="block whitespace-nowrap max-[335px]:whitespace-normal">{data.heading2}</span>
         </h1>
 
-        {/* CTA button */}
-        <div className="mt-[24px]">
+        {/* CTA button — wrapper is an @container so the button's hover translate
+            can reference its own width (0.5cqw) for an even gap to the cover. */}
+        <div className="mt-[24px] @container">
           <FreeLessonButton
             ctaText={data.ctaText}
-            className="inline-flex w-full items-center justify-center rounded-[26px] font-bold text-ink bg-yellow whitespace-nowrap cursor-pointer"
+            className="btn-press-hero inline-flex w-full items-center justify-center rounded-[26px] font-bold text-ink bg-yellow whitespace-nowrap cursor-pointer"
             style={{
               fontSize: 'clamp(20px, 2.5vw, 48px)',
               lineHeight: '1',

@@ -16,7 +16,7 @@ export default function RootLayout({
       <head>
         <link
           rel="preload"
-          href="/SVG/background/background [Vectorized].svg"
+          href="/SVG/background/background-collage.svg"
           as="fetch"
           crossOrigin="anonymous"
         />

@@ -19,6 +19,8 @@ export default function ScrollRotate({
     const el = ref.current
     if (!el) return
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    // Debug kill-switch (?noanim=1): no scroll-driven JS animations at all.
+    if (new URLSearchParams(location.search).has('noanim')) return
     const update = () => {
       const rotation = (window.scrollY / window.innerHeight) * degreesPerScreen
       el.style.transform = `rotate(${rotation}deg)`

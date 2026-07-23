@@ -150,8 +150,8 @@ function NavPill({ label, href, bg, text }: {
         lineHeight: '32px',
         paddingTop: '8px',
         paddingBottom: '8px',
-        paddingLeft: 'clamp(8px, 0.83vw, 16px)',
-        paddingRight: 'clamp(8px, 0.83vw, 16px)',
+        paddingLeft: '16px',
+        paddingRight: '16px',
       }}
     >
       {label}
@@ -163,7 +163,7 @@ function NavPill({ label, href, bg, text }: {
 
 export default function Header({ navLinks }: HeaderProps) {
   const [menuOpen,       setMenuOpen]       = useState(false)
-  const [collapsedCount, setCollapsedCount] = useState(0)   // 0 = all pills, 1 = last hidden, 2 = last two hidden
+  const [collapsedCount, setCollapsedCount] = useState(0)   // 0 = all pills visible, N = last N pills collapsed into ⋮ (up to navLinks.length)
   const [dotsOpen,       setDotsOpen]       = useState(false)
 
   const brandRef        = useRef<HTMLAnchorElement>(null)
@@ -201,7 +201,7 @@ export default function Header({ navLinks }: HeaderProps) {
           ? navRect.right - fullNavWidthRef.current - thresholdX
           : actualGap
 
-        if (prev < 2 && actualGap <= COLLAPSE_GAP) {
+        if (prev < navLinks.length && actualGap <= COLLAPSE_GAP) {
           if (prev === 0) fullNavWidthRef.current = navRect.width
           return prev + 1
         }
@@ -215,7 +215,10 @@ export default function Header({ navLinks }: HeaderProps) {
     check()
     window.addEventListener('resize', check)
     return () => window.removeEventListener('resize', check)
-  }, [])
+    // Re-runs after every collapse/expand step so a single mount at a narrow
+    // width (no resize event fires) cascades through all needed steps instead
+    // of stopping after collapsing just one pill.
+  }, [navLinks.length, collapsedCount])
 
   // Close ⋮ dropdown on outside click
   useEffect(() => {
@@ -234,13 +237,23 @@ export default function Header({ navLinks }: HeaderProps) {
     <header id="header" className="relative z-50 w-full overflow-visible">
 
       {/* ── Main bar ── */}
-      <div ref={containerRef} className="relative h-[85px] lg:h-[96px] max-w-[1720px] mx-auto overflow-visible">
+      <div ref={containerRef} className="group relative h-[85px] lg:h-[96px] max-w-[1720px] mx-auto overflow-visible">
 
-        {/* Background plate — mobile: простой прямоугольник с radius-card */}
+        {/* Background plate — mobile: простой прямоугольник с radius-card (glass → solid по ховеру бара).
+            Без backdrop-blur: на телефонах блюр-буферы (размер элемента × DPR) роняли вкладку. */}
         <div
           aria-hidden
-          className="lg:hidden absolute inset-0 pointer-events-none bg-cream rounded-card"
+          className="lg:hidden absolute inset-0 pointer-events-none rounded-card bg-[rgba(255,252,229,0.72)] group-hover:bg-cream transition-colors duration-[600ms]"
           style={{ boxShadow: 'var(--shadow-card)' }}
+        />
+
+        {/* Frosted backdrop — desktop: matte blur clipped to the plate silhouette, clears on hover.
+            Blur не транзишенится (снимается мгновенно): анимация радиуса перефильтровывает
+            весь backdrop-буфер каждый кадр. */}
+        <div
+          aria-hidden
+          className="hidden lg:block absolute inset-0 pointer-events-none backdrop-blur-[4px] group-hover:backdrop-blur-none"
+          style={{ clipPath: 'url(#header-plate-clip)', WebkitClipPath: 'url(#header-plate-clip)' }}
         />
 
         {/* Background plate — desktop: inline SVG с кастомной формой */}
@@ -270,9 +283,16 @@ export default function Header({ navLinks }: HeaderProps) {
               <feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.25 0"/>
               <feBlend mode="normal" in2="shape" result="effect2_innerShadow"/>
             </filter>
+
+            {/* Same silhouette as the plate, normalised to 0..1 so it scales with
+                the box (matches preserveAspectRatio="none"). Used to clip the
+                frosted backdrop below to the custom shape. */}
+            <clipPath id="header-plate-clip" clipPathUnits="objectBoundingBox">
+              <path transform="scale(0.000578703704, 0.008333333333)" d="M4 30C4 14.536 16.536 2 32 2L756.869 2.00001L804.893 2.00002L1696 2.00001C1711.46 2.00001 1724 14.536 1724 30V59.4483C1724 74.9123 1711.46 87.4483 1696 87.4483H984.43C947.439 89.1205 967.761 105.772 941.058 118.084C938.054 119.469 934.712 120 931.405 120L32 120C16.536 120 4 107.464 4 92L4 30Z"/>
+            </clipPath>
           </defs>
           <g opacity="0.99" filter="url(#header-bg-filter)">
-            <path d="M4 30C4 14.536 16.536 2 32 2L756.869 2.00001L804.893 2.00002L1696 2.00001C1711.46 2.00001 1724 14.536 1724 30V59.4483C1724 74.9123 1711.46 87.4483 1696 87.4483H984.43C947.439 89.1205 967.761 105.772 941.058 118.084C938.054 119.469 934.712 120 931.405 120L32 120C16.536 120 4 107.464 4 92L4 30Z" fill="#FFFCE5"/>
+            <path className="header-plate" d="M4 30C4 14.536 16.536 2 32 2L756.869 2.00001L804.893 2.00002L1696 2.00001C1711.46 2.00001 1724 14.536 1724 30V59.4483C1724 74.9123 1711.46 87.4483 1696 87.4483H984.43C947.439 89.1205 967.761 105.772 941.058 118.084C938.054 119.469 934.712 120 931.405 120L32 120C16.536 120 4 107.464 4 92L4 30Z" fill="#FFFCE5"/>
           </g>
         </svg>
 
@@ -313,7 +333,7 @@ export default function Header({ navLinks }: HeaderProps) {
               />
             ))}
 
-            {/* ⋮ button — shown when 1 or 2 pills are collapsed */}
+            {/* ⋮ button — shown when at least 1 pill is collapsed */}
             {collapsedCount > 0 && (
               <div ref={dotsRef} className="relative shrink-0">
                 <button
@@ -326,8 +346,8 @@ export default function Header({ navLinks }: HeaderProps) {
                     lineHeight:   '32px',
                     paddingTop:   '8px',
                     paddingBottom:'8px',
-                    paddingLeft:  'clamp(8px, 0.83vw, 16px)',
-                    paddingRight: 'clamp(8px, 0.83vw, 16px)',
+                    paddingLeft:  '12px',
+                    paddingRight: '12px',
                   }}
                   aria-haspopup="true"
                   aria-expanded={dotsOpen}
@@ -362,7 +382,7 @@ export default function Header({ navLinks }: HeaderProps) {
 
                 <div
                   role="menu"
-                  className="absolute right-0 top-full mt-4 flex flex-col gap-2 z-[60]"
+                  className="absolute right-0 top-full mt-4 flex flex-col items-end gap-2 z-[60]"
                   style={{ pointerEvents: dotsOpen ? 'auto' : 'none' }}
                 >
                   {navLinks.slice(navLinks.length - collapsedCount).map((link, i) => (
@@ -380,8 +400,8 @@ export default function Header({ navLinks }: HeaderProps) {
                         lineHeight:      '32px',
                         paddingTop:      '8px',
                         paddingBottom:   '8px',
-                        paddingLeft:     'clamp(8px, 0.83vw, 16px)',
-                        paddingRight:    'clamp(8px, 0.83vw, 16px)',
+                        paddingLeft:     '16px',
+                        paddingRight:    '16px',
                         opacity:         dotsOpen ? 1 : 0,
                         transform:       dotsOpen ? 'translateY(0)' : 'translateY(-10px)',
                         transition:      'opacity 200ms ease, transform 200ms ease',

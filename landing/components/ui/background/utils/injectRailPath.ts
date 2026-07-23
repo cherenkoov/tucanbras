@@ -51,47 +51,49 @@ export function injectRailPath(svgString: string): string {
   // back to an identity matrix, mapping path coordinates to screen pixels instead of SVG
   // units, and the animated element flies to the wrong position.
   // visibility="hidden" keeps them invisible while still participating in layout.
-  const animPaths =
-    `<path id="rail-path" d="${TRAIN_PATH_D}" fill="none" visibility="hidden"/>` +
-    `<path id="cabine-anim-path" d="${CABINE_PATH_FWD}" fill="none" visibility="hidden"/>` +
-    `<path id="cabine-anim-path-rev" d="${CABINE_PATH_REV}" fill="none" visibility="hidden"/>`
+  // ONE template literal on purpose — NOT a `tpl` + `tpl` chain. Turbopack's prod
+  // minifier (Next 16.2.10) mis-folds fully-constant template-literal concatenations:
+  // each non-final operand loses its static tail after the last ${}, which corrupted
+  // exactly this markup (rail-path's d= swallowed both cabine <path> elements).
+  // The newlines are harmless whitespace between SVG elements.
+  const animPaths = `
+    <path id="rail-path" d="${TRAIN_PATH_D}" fill="none" visibility="hidden"/>
+    <path id="cabine-anim-path" d="${CABINE_PATH_FWD}" fill="none" visibility="hidden"/>
+    <path id="cabine-anim-path-rev" d="${CABINE_PATH_REV}" fill="none" visibility="hidden"/>`
 
   patched = patched.replace('</svg>', animPaths + '</svg>')
 
   // 2. (bush 01 already exists natively in the SVG — no rename needed)
-
-  // 3. Inject cloud animation CSS into SVG <defs> + move clouds to end
-  const cloudCSS = `
-.cloud-anim-left{opacity:0;transform:translateX(-160px)}
-.cloud-anim-right{opacity:0;transform:translateX(160px)}
-.cloud-anim-left.cloud-visible,.cloud-anim-right.cloud-visible{opacity:1;transform:translateX(0)}
-`
-  const styleEl = `<style>${cloudCSS}</style>`
-  patched = patched.replace('<defs>', `<defs>${styleEl}`)
-
-  const CLOUD_INIT_CLASS: Record<string, string> = {
-    'Cloud 06':   'cloud-anim-left',
-    'Cloud 07':   'cloud-anim-left',
-    'Cloud 05':   'cloud-anim-left',
-    'Cloud 08':   'cloud-anim-left',
-    'Cloud 03':   'cloud-anim-right',
-    'Cloud 02':   'cloud-anim-right',
-    'Cloud 01':   'cloud-anim-right',
-  }
-
-  const cloudGroups: string[] = []
-  patched = patched.replace(/<g id="Cloud[^"]*">[\s\S]*?<\/g>/g, (match) => {
-    const idMatch = match.match(/id="(Cloud[^"]*)"/)
-    if (idMatch) {
-      const id = idMatch[1]
-      const initClass = CLOUD_INIT_CLASS[id] ?? 'cloud-anim-left'
-      cloudGroups.push(match.replace(`id="${id}"`, `id="${id}" class="${initClass}"`))
-    } else {
-      cloudGroups.push(match)
-    }
-    return ''
-  })
-  patched = patched.replace('</svg>', cloudGroups.join('') + '</svg>')
+  // 3. Cloud reveal is set up separately by injectCloudAnimation() on the
+  //    extracted clouds layer — clouds no longer live in this SVG.
 
   return patched
+}
+
+// CSS + initial classes that drive the cloud slide-in reveal. Lives in whatever
+// SVG holds the cloud groups; useCloudAnimation toggles `.cloud-visible` to play it.
+const CLOUD_CSS =
+  '.cloud-anim-left{opacity:0;transform:translateX(-160px)}' +
+  '.cloud-anim-right{opacity:0;transform:translateX(160px)}' +
+  '.cloud-anim-left.cloud-visible,.cloud-anim-right.cloud-visible{opacity:1;transform:translateX(0)}'
+
+const CLOUD_INIT_CLASS: Record<string, string> = {
+  'Cloud 06': 'cloud-anim-left',
+  'Cloud 07': 'cloud-anim-left',
+  'Cloud 05': 'cloud-anim-left',
+  'Cloud 08': 'cloud-anim-left',
+  'Cloud 03': 'cloud-anim-right',
+  'Cloud 02': 'cloud-anim-right',
+  'Cloud 01': 'cloud-anim-right',
+}
+
+// Inject the cloud-reveal <style> + initial slide-in classes into the clouds-only
+// SVG produced by wrapSvg(). No "move to end" needed — the layer is clouds only.
+export function injectCloudAnimation(svgString: string): string {
+  let out = svgString.replace(/(<svg[^>]*>)/, `$1<style>${CLOUD_CSS}</style>`)
+  out = out.replace(/<g id="(Cloud[^"]*)"/g, (_m, id: string) => {
+    const initClass = CLOUD_INIT_CLASS[id] ?? 'cloud-anim-left'
+    return `<g id="${id}" class="${initClass}"`
+  })
+  return out
 }

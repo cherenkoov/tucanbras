@@ -22,6 +22,13 @@ const RAIL_PATH =
 const RAIL_DX = -15  // negative = left
 const RAIL_DY = -10  // negative = up
 
+// Vertical span of RAIL_PATH (its y range, after RAIL_DY) in SVG user units. The play/pause
+// sentinel is sized to THIS band so it tracks the rails, not a fixed % of the container. The
+// old top:25%/height:35% sentinel missed the rails once bgzoom stretched the container, so
+// the train only ran while off-screen (device 2026-07-19: "поезд не едет").
+const RAIL_Y_MIN = 559
+const RAIL_Y_MAX = 1167
+
 const KEYFRAME_ID = 'train-overlay-kf'
 
 function scalePath(d: string, s: number): string {
@@ -66,27 +73,33 @@ export function useTrainAnimation(
     svg.innerHTML = TRAIN_SVG_INNER
 
     svg.style.cssText =
-      'position:absolute;top:0;left:0;pointer-events:none;z-index:6;' +
+      'position:absolute;top:0;left:0;pointer-events:none;z-index:12;' +
       'animation:train-along 8s linear infinite paused;' +
       'visibility:hidden;'
     svg.style.setProperty('offset-anchor', '50% 48%')
     svg.style.setProperty('offset-rotate', 'auto -143deg')
     el.appendChild(svg)
 
+    const sentinel = document.createElement('div')
+    sentinel.style.cssText = 'position:absolute;left:0;width:100%;pointer-events:none;'
+    el.appendChild(sentinel)
+
     function applyScale() {
       const s = el.offsetWidth / SVG_W
       svg.style.width  = `${(TRAIN.w * s).toFixed(1)}px`
       svg.style.height = `${(TRAIN.h * s).toFixed(1)}px`
       svg.style.setProperty('offset-path', `path('${scalePath(offsetPath(RAIL_PATH, RAIL_DX, RAIL_DY), s)}')`)
+      // Track the rails' vertical band in the SAME container-local px space the train moves
+      // in (both are children carrying the container transform), so the sentinel follows the
+      // rails at any bgzoom instead of a fixed container fraction.
+      const pad = TRAIN.h * s * 0.6
+      sentinel.style.top = `${(RAIL_Y_MIN * s - pad).toFixed(1)}px`
+      sentinel.style.height = `${((RAIL_Y_MAX - RAIL_Y_MIN) * s + 2 * pad).toFixed(1)}px`
     }
     applyScale()
 
     const ro = new ResizeObserver(() => applyScale())
     ro.observe(el)
-
-    const sentinel = document.createElement('div')
-    sentinel.style.cssText = 'position:absolute;top:25%;left:0;width:100%;height:35%;pointer-events:none;'
-    el.appendChild(sentinel)
 
     let revealed = false
     const observer = new IntersectionObserver(

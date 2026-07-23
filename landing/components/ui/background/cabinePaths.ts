@@ -1,5 +1,5 @@
 // SVG inner content for the cable-car gondola overlay.
-// Extracted from background [Vectorized] 2.svg — bounding box: x:203 y:641 w:50 h:77
+// Extracted from background-collage.svg — bounding box: x:203 y:641 w:50 h:77
 // (roll top at y≈641 is the cable-attachment anchor point)
 export const CABINE_SVG_INNER = `
 <g>

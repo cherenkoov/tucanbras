@@ -82,20 +82,43 @@ export function PlanSection({ plan, index }: { plan: PlanCard; index: number }) 
 
   return (
     <div
-      className={`relative px-[32px] py-[64px] w-full overflow-hidden rounded-[28px] lg:overflow-visible lg:rounded-none ${isLast ? '' : 'mb-[-48px]'}`}
+      data-glass-center
+      className={`group relative px-[32px] py-[64px] w-full overflow-hidden rounded-[28px] lg:overflow-visible lg:rounded-none ${isLast ? '' : 'mb-[-48px]'}`}
     >
-      {/* Mobile SVG background (custom notch shape); transparent notch reveals card below */}
+      {/*
+        Frost layer — DESKTOP-ONLY backdrop-blur clipped to the plate silhouette
+        via the SVG mask. Kept SEPARATE from the colored layer because element
+        `opacity` on a backdrop-filter element breaks the mask clip and leaks a
+        square halo at the corners; this layer carries no opacity, only the
+        blur + mask. The mobile twin is removed on purpose: phone compositors
+        pay element-size × DPR buffers per backdrop-filter and were crashing.
+        Blur не транзишенится (снимается мгновенно) — анимация радиуса
+        перефильтровывает весь backdrop-буфер каждый кадр.
+      */}
       <div
-        className="lg:hidden absolute inset-0"
+        aria-hidden
+        className="hidden lg:block absolute inset-0 pointer-events-none backdrop-blur-[4px] group-hover:backdrop-blur-none group-[.is-center]:backdrop-blur-none"
+        style={{
+          WebkitMaskImage: `url(${BG[index]})`,
+          WebkitMaskSize: '100% 100%',
+          WebkitMaskRepeat: 'no-repeat',
+          maskImage: `url(${BG[index]})`,
+          maskSize: '100% 100%',
+          maskRepeat: 'no-repeat',
+        }}
+      />
+      {/* Mobile SVG colored plate (custom notch shape); transparent notch reveals card below — translucent, solid on hover */}
+      <div
+        className="lg:hidden absolute inset-0 opacity-80 group-hover:opacity-100 group-[.is-center]:opacity-100 transition-opacity duration-[600ms]"
         style={{
           backgroundImage: `url(${MOBILE_BG[index]})`,
           backgroundSize: '100% 100%',
           backgroundRepeat: 'no-repeat',
         }}
       />
-      {/* Desktop SVG background (custom notch shape + preserveAspectRatio="none"); transparent notch reveals card below */}
+      {/* Desktop SVG colored plate (custom notch shape + preserveAspectRatio="none"); translucent, solid on hover */}
       <div
-        className="hidden lg:block absolute inset-0"
+        className="hidden lg:block absolute inset-0 opacity-80 group-hover:opacity-100 group-[.is-center]:opacity-100 transition-opacity duration-[600ms]"
         style={{
           backgroundImage: `url(${BG[index]})`,
           backgroundSize: '100% 100%',
@@ -113,7 +136,7 @@ export function PlanSection({ plan, index }: { plan: PlanCard; index: number }) 
             {plan.name}
           </p>
 
-          <div className={`flex items-baseline lg:flex-col ${priceColor}`}>
+          <div className={`text-center lg:text-left lg:flex items-baseline lg:flex-col ${priceColor}`}>
             <span className="font-heading font-bold" style={{ fontSize: 'clamp(40px, 5vw, 80px)', lineHeight: '1.1' }}>
               {plan.priceAmount}
             </span>
@@ -146,7 +169,7 @@ export function PlanSection({ plan, index }: { plan: PlanCard; index: number }) 
           <button
             type="button"
             onClick={handleCtaClick}
-            className="flex items-center justify-center w-full overflow-hidden rounded-[28px] cursor-pointer"
+            className="btn-press flex items-center justify-center w-full overflow-hidden rounded-[28px] cursor-pointer"
             style={{
               backgroundColor: cfg.accent,
               paddingTop: '32px',

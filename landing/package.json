@@ -7,12 +7,20 @@
     "build": "next build",
     "start": "next start --hostname 0.0.0.0",
     "lint": "eslint",
-    "snapshot": "tsx --env-file=.env.local scripts/snapshot-notion.ts"
+    "snapshot": "tsx --env-file=.env.local scripts/snapshot-notion.ts",
+    "verify:humans": "tsx scripts/verifyHumanMotion.ts",
+    "verify:bg-coverage": "tsx scripts/verifyBackgroundCoverage.ts",
+    "verify:spinners": "tsx scripts/verifyBeachSpinner.ts",
+    "verify:bg-measure": "tsx scripts/measureBackground.ts",
+    "verify:staticfill": "tsx scripts/verifyStaticFill.ts",
+    "gen:front-fill": "tsx scripts/generateFrontFill.ts",
+    "verify:wave-queue": "tsx scripts/verifyWaveQueue.ts",
+    "verify:beach-waves": "tsx scripts/verifyBeachWaves.ts"
   },
   "dependencies": {
     "@notionhq/client": "^5.17.0",
     "gsap": "^3.15.0",
-    "next": "16.2.2",
+    "next": "^16.2.10",
     "pg": "^8.20.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
@@ -28,7 +36,9 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.2",
+    "playwright": "^1.61.1",
     "tailwindcss": "^4",
+    "tsx": "^4.22.4",
     "typescript": "^5"
   }
 }

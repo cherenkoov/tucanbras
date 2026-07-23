@@ -2,38 +2,14 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import TutorAvatar from '@/components/ui/TutorAvatar'
+import HoneypotField from '@/components/ui/HoneypotField'
 import type { TutorRef, FreeLessonModalStrings } from '@/types'
 
 export type { TutorRef }
 
 // ─── Tutor Avatar ─────────────────────────────────────────────────────────────
 
-function TutorAvatar({ tutor, size = 36 }: { tutor: TutorRef; size?: number }) {
-  const initials = tutor.fullName
-    .split(' ')
-    .slice(0, 2)
-    .map(w => w[0])
-    .join('')
-
-  if (tutor.imageUrl) {
-    return (
-      <img
-        src={tutor.imageUrl}
-        alt={tutor.fullName}
-        className="rounded-full object-cover object-top shrink-0"
-        style={{ width: size, height: size }}
-      />
-    )
-  }
-  return (
-    <div
-      className="rounded-full bg-green flex items-center justify-center shrink-0 font-sans font-bold text-ink"
-      style={{ width: size, height: size, fontSize: size * 0.38 }}
-    >
-      {initials}
-    </div>
-  )
-}
 
 // ─── Tutor Selector ───────────────────────────────────────────────────────────
 
@@ -79,7 +55,7 @@ function TutorSelector({
       <button
         type="button"
         onClick={handleOpen}
-        className="flex items-center gap-[12px] w-full border-2 border-[#323031] rounded-[66px] px-[18px] py-[18px] transition-colors hover:border-[#5b595a]"
+        className="btn-press flex items-center gap-[12px] w-full border-2 border-[#323031] rounded-[66px] px-[18px] py-[18px]"
       >
         {selected ? (
           <>
@@ -167,6 +143,7 @@ export default function FreeLessonModal({
   const [name,          setName]          = useState('')
   const [telegram,      setTelegram]      = useState('')
   const [email,         setEmail]         = useState('')
+  const [website,       setWebsite]       = useState('') // honeypot — humans never see the field
   const [nameErr,       setNameErr]       = useState(false)
   const [contactErr,    setContactErr]    = useState(false)
   const [emailErr,      setEmailErr]      = useState(false)
@@ -195,7 +172,7 @@ export default function FreeLessonModal({
   useEffect(() => {
     if (!open) {
       const t = setTimeout(() => {
-        setName(''); setTelegram(''); setEmail('')
+        setName(''); setTelegram(''); setEmail(''); setWebsite('')
         setNameErr(false); setContactErr(false); setEmailErr(false); setStatus('idle')
       }, 300)
       return () => clearTimeout(t)
@@ -231,6 +208,7 @@ export default function FreeLessonModal({
           email:    em,
           tutor_id: selectedTutor?.id ?? null,
           locale,
+          website,
         }),
       })
       if (!res.ok) throw new Error('non-ok')
@@ -289,6 +267,8 @@ export default function FreeLessonModal({
         ) : (
           <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-[16px]">
 
+            <HoneypotField value={website} onChange={setWebsite} />
+
             {/* Tutor selector (shown when there are tutors to choose from) */}
             {allTutors.length > 0 && (
               <TutorSelector
@@ -302,7 +282,7 @@ export default function FreeLessonModal({
 
             {/* Name */}
             <label
-              className="border-2 rounded-[66px] p-[18px] block transition-colors"
+              className="btn-press border-2 rounded-[66px] p-[18px] block"
               style={{ borderColor: nameErr ? '#f26434' : '#323031' }}
             >
               <input
@@ -326,7 +306,7 @@ export default function FreeLessonModal({
 
             {/* Telegram */}
             <label
-              className="border-2 rounded-[66px] p-[18px] block transition-colors"
+              className="btn-press border-2 rounded-[66px] p-[18px] block"
               style={{ borderColor: contactErr ? '#f26434' : '#323031' }}
             >
               <input
@@ -343,7 +323,7 @@ export default function FreeLessonModal({
 
             {/* Email */}
             <label
-              className="border-2 rounded-[66px] p-[18px] block transition-colors"
+              className="btn-press border-2 rounded-[66px] p-[18px] block"
               style={{ borderColor: (contactErr || emailErr) ? '#f26434' : '#323031' }}
             >
               <input
@@ -380,7 +360,7 @@ export default function FreeLessonModal({
               ref={submitRef}
               type="submit"
               disabled={status === 'loading'}
-              className="flex items-center justify-center w-full rounded-[66px] px-[36px] disabled:opacity-60 transition-opacity"
+              className="btn-press flex items-center justify-center w-full rounded-[66px] px-[36px] disabled:opacity-60"
               style={{
                 backgroundColor: '#323031',
                 paddingTop: '28px',

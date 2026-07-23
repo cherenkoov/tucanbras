@@ -1,5 +1,5 @@
 // SVG inner content for the train overlay.
-// Extracted from background [Vectorized] 2.svg — bounding box: x:321 y:868 w:118 h:128
+// Extracted from background-collage.svg — bounding box: x:321 y:868 w:118 h:128
 // Bottom-center (x≈380, y≈991) is the rail anchor point
 export const TRAIN_SVG_INNER = `
 <path d="M389.571 882.436L389.573 882.435C395.222 879.079 400.069 876.199 403.42 874.106C425.627 873.325 432.055 876.448 434.357 898.107L432.808 928.498L352.808 990.998L330.308 975.998C330.513 973.941 333.11 971.012 331.916 970.855C330.208 970.631 327.905 970.329 327.405 964.158C326.378 951.489 327.456 936.174 328.941 923.758C336.379 914.041 368.536 894.935 389.571 882.436Z" fill="#200D0D"/>

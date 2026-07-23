@@ -1,5 +1,6 @@
-// Root "/" is caught by middleware (middleware.ts) → redirects to /ru
-// This file exists only as a fallback; middleware handles the actual redirect.
+// Root "/" is caught by proxy.ts → redirects to a locale picked from
+// Accept-Language (ru → /ru, pt → /pt, otherwise /en).
+// This file exists only as a fallback; proxy.ts handles the actual redirect.
 export default function RootPage() {
   return null
 }

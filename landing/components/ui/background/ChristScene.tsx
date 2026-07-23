@@ -8,6 +8,29 @@ import { useScrollAnimation } from '@/hooks/useScrollAnimation'
 const W = 580
 const H = 660
 
+// Geometry BackgroundCanvas needs to seat the statue on the peak. Exported (not copied)
+// so the seating can never drift out of sync with the art below: the scene box has a
+// TRANSPARENT GAP under the pedestal (the pedestal ends at PEDESTAL_TOP+PEDESTAL_H = 643
+// of 660), so anchoring the scene BOX to the crest would float the statue by that gap.
+// The gap scales with the box (which is sized off the viewport, on a different curve than
+// the mountain), so it must be compensated — see STATUE_SEAT_FRACTION in BackgroundCanvas.
+export const CHRIST_SCENE = {
+  W,
+  H,
+  // width: clamp(MIN_W, VW vw, MAX_W) — keep in sync with the wrapper style below.
+  MIN_W: 234,
+  VW: 27,
+  MAX_W: 522,
+  PEDESTAL_TOP: 493,
+  PEDESTAL_H: 150,
+} as const
+
+/** Rendered height of the scene box at a given viewport width (CSS px, pre-scaleY). */
+export function christBoxHeight(viewportW: number): number {
+  const w = Math.min(Math.max(CHRIST_SCENE.MIN_W, (CHRIST_SCENE.VW / 100) * viewportW), CHRIST_SCENE.MAX_W)
+  return w * (CHRIST_SCENE.H / CHRIST_SCENE.W)
+}
+
 // ─── Stars: [left%, top%, duration_s, delay_s, size_px] ─────────────────────
 // Positions from Figma metadata (group offset x=79.42, y=7.96 already applied,
 // then converted to % of 580×660 scene canvas).
@@ -61,7 +84,7 @@ export default function ChristScene() {
     <div
       ref={wrapperRef}
       style={{
-        width: `clamp(234px, 27vw, 522px)`,
+        width: `clamp(${CHRIST_SCENE.MIN_W}px, ${CHRIST_SCENE.VW}vw, ${CHRIST_SCENE.MAX_W}px)`,
         aspectRatio: `${W} / ${H}`,
         position: 'relative',
         overflow: 'visible',
@@ -140,9 +163,9 @@ export default function ChristScene() {
           style={{
             position: 'absolute',
             left: 202,
-            top: 493,
+            top: CHRIST_SCENE.PEDESTAL_TOP,
             width: 185,
-            height: 150,
+            height: CHRIST_SCENE.PEDESTAL_H,
           }}
         />
       </div>

@@ -88,17 +88,17 @@ export default function CelpeBras({ data, locale }: CelpeBrasProps) {
             дублирования DOM/картинки. items-center — вертикальный центр относительно высоты паспорта. */}
         <div className="flex flex-col items-center gap-[40px] w-full lg:grid lg:grid-cols-2 lg:items-center lg:gap-[20px]">
 
-          {/* Паспорт: заполняет левую колонку (= ширина карточки) на десктопе; ширина-driven на
-              мобайле; высота по AR; углы в тон карточкам */}
+          {/* Паспорт: колонка = ширина карточки, но фото height-driven с капом (у́же колонки),
+              отцентрировано в колонке; ширина-driven на мобайле; углы в тон карточкам */}
           <div
-            className="relative order-2 lg:order-1 shrink-0 overflow-hidden rounded-[44px] aspect-[550/776] w-[clamp(200px,62vw,300px)] lg:w-full"
+            className="relative order-2 lg:order-1 lg:justify-self-center shrink-0 overflow-hidden rounded-[44px] aspect-[550/776] w-[clamp(200px,62vw,300px)] lg:w-auto lg:h-[clamp(320px,30vw,520px)]"
             style={{ boxShadow: '0px 12px 32px rgba(0,0,0,0.22)' }}
           >
             <Image
               src={PASSPORT_IMG}
               alt={PASSPORT[locale].alt}
               fill
-              sizes="(min-width: 1024px) 50vw, 62vw"
+              sizes="(min-width: 1024px) 380px, 62vw"
               className="object-cover pointer-events-none"
             />
           </div>

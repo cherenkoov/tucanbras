@@ -1,11 +1,13 @@
 -- 008: статус модерации анкеты учителя (Фаза 1 отказа от Notion)
--- ВЫПОЛНИТЬ НА VPS ДО деплоя бота с новой моделью:
--- бот на старте делает sync({alter}) и добавил бы колонку с дефолтом 'draft',
--- из-за чего до ручного UPDATE лендинг и выбор преподавателя опустели бы.
--- Тип и колонка названы так, как их создал бы Sequelize.
+-- Реальная таблица бота — "TeacherAnketa" (ЕД.ч., владелец схемы — Sequelize),
+-- НЕ "TeacherAnketas". На проде (2026-07-24) колонку status фактически добавил
+-- sync({alter, drop:false}) бота, а существующие анкеты помечены approved вручную.
+-- Этот файл — идемпотентный бэкстоп/документация: на уже мигрированной БД он
+-- no-op (колонка есть → блок пропускается); для чистой БД добавит колонку и
+-- пометит существующих approved. Тип/имя — как их создаёт Sequelize.
 
 DO $$ BEGIN
-  CREATE TYPE "enum_TeacherAnketas_status" AS ENUM ('draft', 'pending', 'approved');
+  CREATE TYPE "enum_TeacherAnketa_status" AS ENUM ('draft', 'pending', 'approved');
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
@@ -14,12 +16,12 @@ END $$;
 DO $$ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.columns
-    WHERE table_name = 'TeacherAnketas' AND column_name = 'status'
+    WHERE table_name = 'TeacherAnketa' AND column_name = 'status'
   ) THEN
-    ALTER TABLE "TeacherAnketas"
-      ADD COLUMN status "enum_TeacherAnketas_status" NOT NULL DEFAULT 'draft';
+    ALTER TABLE "TeacherAnketa"
+      ADD COLUMN status "enum_TeacherAnketa_status" NOT NULL DEFAULT 'draft';
     -- Все анкеты, существовавшие до модерации, считаются одобренными:
     -- именно они сейчас показываются на лендинге и в выборе преподавателя.
-    UPDATE "TeacherAnketas" SET status = 'approved';
+    UPDATE "TeacherAnketa" SET status = 'approved';
   END IF;
 END $$;

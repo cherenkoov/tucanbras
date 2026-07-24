@@ -44,7 +44,7 @@ export async function getTutors(locale: Locale = 'en'): Promise<Tutor[]> {
       image, "imageUrl", languages,
       quote, quote_en, quote_pt,
       specializations, interests
-    FROM "TeacherAnketas"
+    FROM "TeacherAnketa"
     WHERE status = 'approved'
     ORDER BY id ASC
   `)

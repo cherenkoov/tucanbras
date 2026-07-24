@@ -82,33 +82,33 @@ export default function CelpeBras({ data, locale }: CelpeBrasProps) {
         </AdaptiveText>
 
         {/* ══ Passport + intro quote ══ */}
-        {/* Один контейнер: mobile stack (цитата → паспорт) → lg row (паспорт слева / цитата справа).
-            order-своп меняет визуальный порядок без дублирования DOM/картинки. На десктопе —
-            3-колоночная сетка в тон 2-колоночной сетке фич: паспорт 1 колонка, цитата 2 (1:2).
-            items-center даёт вертикальный центр цитаты относительно высоты паспорта. */}
-        <div className="flex flex-col items-center gap-[40px] w-full lg:grid lg:grid-cols-3 lg:gap-[clamp(40px,5vw,96px)]">
+        {/* Один контейнер: mobile stack (цитата → паспорт) → lg 2-колоночная сетка В ТОН сетке фич
+            (grid-cols-2, gap 20px как в рядах карточек): паспорт = ширина карточки (левая колонка),
+            цитата = ширина карточки (правая колонка). order-своп меняет визуальный порядок без
+            дублирования DOM/картинки. items-center — вертикальный центр относительно высоты паспорта. */}
+        <div className="flex flex-col items-center gap-[40px] w-full lg:grid lg:grid-cols-2 lg:items-center lg:gap-[20px]">
 
-          {/* Паспорт: 1 колонка из 3 (1/3) на десктопе, прижат влево; ширина-driven на мобайле,
-              высота-driven на десктопе; углы в тон карточкам */}
+          {/* Паспорт: заполняет левую колонку (= ширина карточки) на десктопе; ширина-driven на
+              мобайле; высота по AR; углы в тон карточкам */}
           <div
-            className="relative order-2 lg:order-1 lg:col-span-1 lg:justify-self-start shrink-0 overflow-hidden rounded-[44px] aspect-[550/776] w-[clamp(200px,62vw,300px)] lg:w-auto lg:h-[clamp(300px,24vw,460px)]"
+            className="relative order-2 lg:order-1 shrink-0 overflow-hidden rounded-[44px] aspect-[550/776] w-[clamp(200px,62vw,300px)] lg:w-full"
             style={{ boxShadow: '0px 12px 32px rgba(0,0,0,0.22)' }}
           >
             <Image
               src={PASSPORT_IMG}
               alt={PASSPORT[locale].alt}
               fill
-              sizes="(min-width: 1024px) 340px, 62vw"
+              sizes="(min-width: 1024px) 50vw, 62vw"
               className="object-cover pointer-events-none"
             />
           </div>
 
-          {/* Цитата: 2 колонки из 3 (2/3) на десктопе; text-center + mx-auto + max-width → центр по ширине.
-              letter-spacing через инверсный clamp: чем уже вьюпорт, тем шире межбуквенное расстояние. */}
-          <div className="order-1 lg:order-2 lg:col-span-2 w-full">
+          {/* Цитата: правая колонка (= ширина карточки), внутренний отступ (lg:px-32 как у карточек),
+              уменьшенный кегль. letter-spacing инверсный clamp: чем уже вьюпорт, тем шире разрядка. */}
+          <div className="order-1 lg:order-2 w-full lg:px-[32px]">
             <AdaptiveText
               as="p"
-              className="font-accent font-bold text-center mx-auto leading-[1.35] px-[16px] lg:px-0 max-w-[22em] lg:max-w-[clamp(360px,40vw,760px)] text-[clamp(17px,4vw,26px)] lg:text-[clamp(20px,1.9vw,34px)]"
+              className="font-accent font-bold text-center mx-auto leading-[1.35] px-[16px] lg:px-0 max-w-[22em] lg:max-w-none text-[clamp(17px,4vw,26px)] lg:text-[clamp(15px,1.3vw,23px)]"
               style={{ letterSpacing: 'clamp(0.3px, calc(2.8px - 0.13vw), 2.4px)' }}
             >
               &ldquo;{PASSPORT[locale].quote}&rdquo;

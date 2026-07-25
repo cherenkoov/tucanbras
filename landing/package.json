@@ -15,7 +15,8 @@
     "verify:staticfill": "tsx scripts/verifyStaticFill.ts",
     "gen:front-fill": "tsx scripts/generateFrontFill.ts",
     "verify:wave-queue": "tsx scripts/verifyWaveQueue.ts",
-    "verify:beach-waves": "tsx scripts/verifyBeachWaves.ts"
+    "verify:beach-waves": "tsx scripts/verifyBeachWaves.ts",
+    "verify:carousel-scroll": "tsx scripts/verifyCarouselScroll.ts"
   },
   "dependencies": {
     "@notionhq/client": "^5.17.0",

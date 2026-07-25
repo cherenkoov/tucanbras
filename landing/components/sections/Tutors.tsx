@@ -29,8 +29,16 @@ function TutorCard({
     <button
       type="button"
       onClick={onSelect}
+      data-tutor-card
       className="relative flex flex-col w-full max-w-[410px] mx-auto cursor-pointer select-none active:opacity-80 lg:active:opacity-100 transition-opacity bg-transparent border-0 p-0 text-left"
-      style={{ touchAction: 'pan-x', '--edge-h': 'calc(min(78vw, 370px) * 0.192)' } as CSSProperties}
+      // touch-action `manipulation`, НЕ `pan-x`: карточка — это то, во что реально
+      // попадает палец, а `pan-x` разрешает начатому здесь касанию ТОЛЬКО
+      // горизонтальный пан. Вертикальный свайп при этом не «проваливается» к
+      // предку — страница не скроллится вообще, и юзер заперт в секции.
+      // `manipulation` оставляет оба направления и pinch-zoom, убирая лишь
+      // задержку double-tap-zoom (ради неё pan-x и ставили). Регрессия ловится
+      // `npm run verify:carousel-scroll`.
+      style={{ touchAction: 'manipulation', '--edge-h': 'calc(min(78vw, 370px) * 0.192)' } as CSSProperties}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onMouseMove={e => {
@@ -261,8 +269,13 @@ function TutorCarousel({
       <div
         ref={ref}
         onScroll={onScroll}
+        data-tutor-carousel
         className="flex items-center overflow-x-auto overflow-y-hidden snap-x snap-mandatory gap-[12px] py-[20px] -my-[20px] pl-6 lg:pl-[100px] pr-6 lg:pr-[100px]"
-        style={{ scrollbarWidth: 'none', touchAction: 'pan-x' }}
+        // Без touch-action: браузер сам лочит ось по началу жеста — горизонталь уходит
+        // в этот скроллер, вертикаль чейнится странице (вертикального overflow здесь нет).
+        // `pan-x` тут уже стоял, ломал вертикальный скролл на iOS и был снят в a9e0b44 —
+        // не возвращать.
+        style={{ scrollbarWidth: 'none' }}
       >
         {tutors.map(tutor => (
           <div

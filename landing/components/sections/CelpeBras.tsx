@@ -69,7 +69,7 @@ export default function CelpeBras({ data, locale }: CelpeBrasProps) {
   const [c0, c1, c2, c3, c4] = data.cards
 
   return (
-    <section id="celpe-bras" className="w-full scroll-mt-[136px] lg:scroll-mt-[147px]">
+    <section id="celpe-bras" className="w-full scroll-mt-[136px] lg:scroll-mt-[164px]">
       <div className="flex flex-col gap-[64px] max-w-[1720px] mx-auto w-full">
 
         {/* ══ Heading ══ */}
@@ -174,7 +174,7 @@ export default function CelpeBras({ data, locale }: CelpeBrasProps) {
           {/* CTA button */}
           <a
             href="#footer"
-            className="btn-press flex items-center justify-center rounded-[66px] px-[44px] w-full lg:w-auto lg:min-w-[400px]"
+            className="btn-press flex items-center justify-center rounded-[44px] px-[36px] w-full lg:w-auto lg:min-w-[400px]"
             style={{
               backgroundColor: '#8fd096',
               paddingTop: '44px',

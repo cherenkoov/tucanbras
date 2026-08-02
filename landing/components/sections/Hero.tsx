@@ -1,10 +1,11 @@
 import type { CSSProperties } from 'react'
 import type { HeroProps } from "@/types";
 import FreeLessonButton from '@/components/ui/FreeLessonButton'
+import { HERO_ANTHURIUM, decorSrc } from '@/components/ui/heroPlants'
 
 export default function Hero({ data }: HeroProps) {
   return (
-    <section id="hero" className="w-full pt-[80px] scroll-mt-[136px] lg:scroll-mt-[147px]">
+    <section id="hero" className="w-full pt-[80px] scroll-mt-[136px] lg:scroll-mt-[164px]">
 
       <div className="max-w-[1720px] mx-auto w-full">
 
@@ -31,12 +32,14 @@ export default function Hero({ data }: HeroProps) {
           <span className="block whitespace-nowrap max-[335px]:whitespace-normal">{data.heading2}</span>
         </h1>
 
-        {/* CTA button — wrapper is an @container so the button's hover translate
-            can reference its own width (0.5cqw) for an even gap to the cover. */}
-        <div className="mt-[24px] @container">
+        {/* CTA button — wrapper is an @container so the button's hover translate can
+            reference its own width (0.5cqw) for an even gap to the cover, and the
+            anthurium measures itself in that same cqw (see heroPlants.ts) so the two
+            scale off one number. `relative` is what the flower hangs off. */}
+        <div className="relative mt-[24px] @container">
           <FreeLessonButton
             ctaText={data.ctaText}
-            className="btn-press-hero inline-flex w-full items-center justify-center rounded-[26px] font-bold text-ink bg-yellow whitespace-nowrap cursor-pointer"
+            className="btn-press-hero peer inline-flex w-full items-center justify-center rounded-[26px] font-bold text-ink bg-yellow whitespace-nowrap cursor-pointer"
             style={{
               fontSize: 'clamp(20px, 2.5vw, 48px)',
               lineHeight: '1',
@@ -46,6 +49,30 @@ export default function Hero({ data }: HeroProps) {
               paddingRight: 'var(--spacing-s400)',
               boxShadow: 'var(--shadow-btn)',
             }}
+          />
+
+          {/* Anthurium — a SIBLING of the button, and later in the DOM so it paints over
+              it. It answers to the button's own hover (`peer-hover`, which Tailwind
+              already gates behind `hover: hover` so a tap cannot leave it stuck), on
+              the header's `.pill-decor` timing: the button snaps to size in 120ms and
+              the greenery drifts in behind it for another 220. */}
+          <img
+            src={decorSrc(HERO_ANTHURIUM.file)}
+            alt=""
+            aria-hidden
+            data-hero-plant="anthurium"
+            /* The offsets place the base of the spadix 5px inside the button's
+               top-right corner; they are `anthuriumOffsets()` in heroPlants.ts,
+               evaluated. Spelled out rather than computed because a `max-[500px]:`
+               variant is the whole reason this lives in classes and Tailwind only
+               generates what it can read literally — `verify:hero-plants` measures
+               where that point actually lands, so the two halves cannot drift.
+               `max-w-none` defeats preflight's `max-width: 100%`, which otherwise
+               beats the width and lands the flower at the wrong size and offset. */
+            className="pill-decor absolute h-auto max-w-none select-none pointer-events-none
+                       w-[27cqw] right-[calc(5px_-_13.9131cqw)] top-[calc(5px_-_16.2967cqw)]
+                       max-[500px]:w-[24cqw] max-[500px]:right-[calc(5px_-_12.3672cqw)] max-[500px]:top-[calc(5px_-_14.4860cqw)]
+                       motion-safe:peer-hover:translate-x-[-4%] motion-safe:peer-hover:scale-[1.08] motion-safe:peer-hover:rotate-[-5deg]"
           />
         </div>
 

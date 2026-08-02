@@ -105,6 +105,15 @@ const BG_SHIFT = 'clamp(0px, calc((1024px - 100vw) * 400 / 649), 400px)'
 // factor, flip the clamp bounds) or the clouds will drift instead of staying pinned.
 const BG_SHIFT_NEG = 'clamp(-400px, calc((1024px - 100vw) * -400 / 649), 0px)'
 
+// Дополнительный спуск ВСЕГО фона (px), на всех ширинах. Задаётся тем же способом, что и
+// мобильный спуск: вычитается из sceneLift, то есть статуя стартует на столько ниже линии
+// hero. Через sceneLift, а не отдельным translate, потому что от него уже зависят
+// useBackgroundCoverage (нижняя заливка ужимается ровно на столько же — снизу не появится
+// кремовая щель) и counter-transform облаков. Секции при этом НЕ двигаются.
+// Небо — это сама кремовая страница, облака остаются приколоты к её верху (как и при
+// BG_SHIFT), так что сверху просто открывается ещё столько же неба.
+const BG_DROP_PX = 100
+
 // EXPERIMENT: stretch the whole background vertically on phones only, so more art
 // covers the tall phone viewport. Origin 'top' keeps the statue/hero anchor in place —
 // the added height is added below, not split above+below. Below MOBILE_VSTRETCH_BREAKPOINT
@@ -619,7 +628,8 @@ export default function BackgroundCanvas() {
     return () => ro.disconnect()
   }, [svgReady, updatePeakPos])
 
-  // Lift the WHOLE scene up so the statue's head starts on the hero's top line.
+  // Lift the WHOLE scene up so the statue's head starts on the hero's top line —
+  // minus BG_DROP_PX, which parks the head (and with it весь фон) that many px lower.
   // Closed-form + parallax-safe: the container's untransformed top is the page top (0),
   // so at scroll 0 the head sits at (BG_SHIFT − lift) + headWithinContainer. The head
   // offset within the container and the hero's document-top are both transform- and
@@ -637,7 +647,7 @@ export default function BackgroundCanvas() {
     const bgShiftPx = Math.min(400, Math.max(0, (1024 - vw) * 400 / 649)) // === BG_SHIFT
     const headWithinContainer = christRect.top - containerRect.top
     const heroTopDoc = heroRect.top + window.scrollY
-    const lift = bgShiftPx + headWithinContainer - heroTopDoc
+    const lift = bgShiftPx + headWithinContainer - heroTopDoc - BG_DROP_PX
     setSceneLift(prev => (Math.abs(prev - lift) < 0.5 ? prev : lift))
   }, [])
 

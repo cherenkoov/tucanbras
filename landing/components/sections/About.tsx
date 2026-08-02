@@ -15,7 +15,7 @@ const IMG_FLOWER           = '/SVG/about/flower.svg'
 
 export default function About({ data }: AboutProps) {
   return (
-    <section id="about" className="w-full scroll-mt-[136px] lg:scroll-mt-[147px]">
+    <section id="about" className="w-full scroll-mt-[136px] lg:scroll-mt-[164px]">
       <div
         data-glass-center
         className="glass flex flex-col gap-[12px] overflow-visible min-[740px]:overflow-hidden rounded-[38px] p-[12px] max-w-[1720px] mx-auto w-full"

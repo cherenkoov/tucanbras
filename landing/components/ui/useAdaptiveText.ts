@@ -67,12 +67,25 @@ const ART_Z = 10
 // its slice — the transparency composites per-pixel what z-order does live.
 // Regenerate after an art re-export: npm run gen:front-fill.
 const FRONT_FILL_SRC = '/SVG/background/collage-front-fill.svg'
-// The duotone filter's two output colors (see AdaptiveDuotoneFilter) — what the
-// staticFill manual override paints directly.
-const INK = '#323031'
-const CREAM = '#fffce5'
+// The duotone filter's output colors (see AdaptiveDuotoneFilter) — what the staticFill
+// manual override paints directly. Each palette maps a DARK background to one and a LIGHT
+// background to the other. The `green` palette (default) runs green↔green:
+//   GREEN       = --color-green-dark, the LIGHT-background side. Not the brand --color-green:
+//                 that one is 1.75:1 over the collage's pale stretches, this is 3.53:1.
+//   LIGHT_GREEN = --color-green, the DARK-background side (replaced cream).
+// INK / CREAM belong to the legacy `ink` palette, kept as the near-black escape hatch.
+export const INK = '#323031'
+export const GREEN = '#6a906e'
+export const LIGHT_GREEN = '#8fd096'
+export const CREAM = '#fffce5'
 
-const BACKDROP = 'grayscale(1) url(#adaptive-duotone)'
+// The `ink` palette's filter. Named for the built-in gate below, which is the only thing
+// that still cares about it: that chain reproduces THIS palette and no other.
+const INK_FILTER_ID = 'adaptive-duotone'
+// Exported for SHAPE consumers (useAdaptiveDuotone): a solid box whose own border-radius
+// is the mask needs the chain and the probes, but none of the glyph machinery below.
+// Runs the default green palette, same as the text — the shapes are part of that system.
+export const BACKDROP = 'grayscale(1) url(#adaptive-duotone-green)'
 // Built-in-function equivalent of #adaptive-duotone for the LIVE backdrop on WebKit,
 // which parses-then-drops url(#) reference filters inside backdrop-filter (the reason the
 // static path exists). Reproduces the same map WITHOUT an SVG filter, so iOS renders it:
@@ -84,7 +97,7 @@ const BACKDROP = 'grayscale(1) url(#adaptive-duotone)'
 // iPhone (2026-07-19) as the touch DEFAULT, replacing the old static composite-reconstruction
 // (now only a fallback) and removing the reason for the extreme mobile crop (it existed only
 // to shrink static-fill drift).
-const BACKDROP_BUILTIN = 'grayscale(1) brightness(0.714) contrast(50) invert(1)'
+export const BACKDROP_BUILTIN = 'grayscale(1) brightness(0.714) contrast(50) invert(1)'
 const FIND_TIMEOUT_FRAMES = 300
 const SVGNS = 'http://www.w3.org/2000/svg'
 
@@ -94,7 +107,7 @@ const SVGNS = 'http://www.w3.org/2000/svg'
 // than painting transparent (invisible) glyphs. Note this only detects parse-level
 // rejection: an engine may accept the value and still render the chain partially
 // (grayscale-only ⇒ gray letters) — not detectable from JS, verify on real devices.
-function supportsBackdrop(): boolean {
+export function supportsBackdrop(): boolean {
   const probe = document.createElement('span')
   probe.style.setProperty('backdrop-filter', BACKDROP)
   probe.style.setProperty('-webkit-backdrop-filter', BACKDROP)
@@ -108,7 +121,7 @@ function supportsBackdrop(): boolean {
 // engines including iOS Safari, which rejects only url(#) reference filters (the reason the
 // static path existed). Gates the touch default below so an engine without any backdrop-
 // filter support still falls back to static-fill rather than invisible glyphs.
-function supportsBuiltinBackdrop(): boolean {
+export function supportsBuiltinBackdrop(): boolean {
   if (typeof CSS === 'undefined' || !CSS.supports) return false
   return CSS.supports('backdrop-filter', 'grayscale(1)') ||
     CSS.supports('-webkit-backdrop-filter', 'grayscale(1)')
@@ -172,6 +185,9 @@ export function useAdaptiveText({
   imageSrc,
   imageRef,
   staticFill,
+  filterId = INK_FILTER_ID,
+  lightColor = INK,
+  darkColor = CREAM,
 }: {
   textRef: RefObject<HTMLElement | null>
   overlayRef: RefObject<HTMLSpanElement | null>
@@ -185,6 +201,12 @@ export function useAdaptiveText({
   // the layered fill can't resolve a spot. The backdrop path (per-pixel ground truth)
   // ignores it.
   staticFill?: 'ink' | 'cream'
+  // Which #adaptive-duotone* filter to run (AdaptiveText's `duotone` palette).
+  filterId?: string
+  // That palette's two sides, so the staticFill override paints exactly what the filter
+  // would have resolved to instead of the hardcoded ink/cream pair.
+  lightColor?: string
+  darkColor?: string
 }): void {
   useEffect(() => {
     // Debug levers: ?noadaptive=1 keeps the solid-ink fallback (bisecting a mobile
@@ -215,7 +237,11 @@ export function useAdaptiveText({
     // touch (image-mask + backdrop renders nothing on real iOS — the VS vanished).
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const touch = window.matchMedia('(hover: none)').matches
-    const useBuiltin = touch && supportsBuiltinBackdrop()
+    // The built-in chain can only land on near-white / near-black, so it cannot
+    // express a palette other than the default. Those fall through to the static
+    // path, whose plain `filter: url(#)` WebKit DOES render — it is only inside
+    // backdrop-filter that it drops the reference.
+    const useBuiltin = touch && supportsBuiltinBackdrop() && filterId === INK_FILTER_ID
     const canBackdrop = !reduced && !forceStatic && (
       useBuiltin ? !imageSrc : supportsBackdrop() && !touch
     )
@@ -223,7 +249,7 @@ export function useAdaptiveText({
     // Manual override (staticFill prop): paint the requested duotone side directly and
     // skip the whole fill machinery — no observers, no per-frame work.
     if (staticFill && !canBackdrop) {
-      const color = staticFill === 'ink' ? INK : CREAM
+      const color = staticFill === 'ink' ? lightColor : darkColor
       if (imageSrc) {
         text.style.setProperty('mask', imageMask)
         text.style.setProperty('-webkit-mask', imageMask)
@@ -344,7 +370,7 @@ export function useAdaptiveText({
           text.style.setProperty('background-clip', 'text')
           text.style.color = 'transparent'
         }
-        text.style.filter = 'url(#adaptive-duotone)'
+        text.style.filter = `url(#${filterId})`
         mode = 'static'
         lastKey = ''
       }
@@ -473,7 +499,7 @@ export function useAdaptiveText({
         overlay.style.display = ''
         // Built-in-function chain on touch/WebKit (drops the url reference); url(#) chain
         // on desktop engines that render it exactly.
-        const chain = useBuiltin ? BACKDROP_BUILTIN : BACKDROP
+        const chain = useBuiltin ? BACKDROP_BUILTIN : `grayscale(1) url(#${filterId})`
         overlay.style.setProperty('backdrop-filter', chain)
         overlay.style.setProperty('-webkit-backdrop-filter', chain)
         if (imageSrc) {
@@ -564,7 +590,7 @@ export function useAdaptiveText({
       if (rafId === null) rafId = requestAnimationFrame(follow)
     }
     const onScroll = () => {
-      if (near) kickFollow()
+      if (near && mode === 'static') kickFollow()
     }
 
     const attach = () => {
@@ -587,13 +613,24 @@ export function useAdaptiveText({
       window.addEventListener('scroll', onScroll, { passive: true })
     }
 
+    // Observe BEFORE the first successful apply, not after it. An element that is
+    // display:none at mount measures 0×0, so decide() fails for it — and while attach()
+    // waited on success, the media query that later REVEALS such an element had nothing
+    // listening, so it stayed on its flat fallback for the rest of the page's life. That
+    // is the header logotype: four breakpoint spellings, only the one visible at mount
+    // ever adapted (verified — resize past a breakpoint after boot()'s budget expires and
+    // the revealed spelling is flat green). Attaching up front is safe: every callback
+    // no-ops while mode === 'none'.
+    attach()
+
     // Apply as soon as possible. Backdrop needs no art source; static waits for one.
+    // NB the budget is 300 FRAMES, not 5s — this page runs at ~20fps, so it is ~15s, and
+    // a test that resizes sooner than that will see the bug above already "fixed".
     let frames = 0
     const boot = () => {
       if (cancelled) return
-      if (decide()) attach()
-      else if (++frames < FIND_TIMEOUT_FRAMES) requestAnimationFrame(boot)
-      // else: give up — element keeps its solid-ink fallback.
+      if (!decide() && ++frames < FIND_TIMEOUT_FRAMES) requestAnimationFrame(boot)
+      // else: applied, or gave up on the poll — the observers above keep watching either way.
     }
     boot()
 
@@ -605,5 +642,5 @@ export function useAdaptiveText({
       ro?.disconnect()
       clearAll()
     }
-  }, [textRef, overlayRef, maskRef, maskId, imageSrc, imageRef, staticFill])
+  }, [textRef, overlayRef, maskRef, maskId, imageSrc, imageRef, staticFill, filterId, lightColor, darkColor])
 }

@@ -29,7 +29,7 @@ function XMark() {
 
 export default function Comparison({ data }: ComparisonProps) {
   return (
-    <section id="comparison" className="w-full scroll-mt-[136px] lg:scroll-mt-[147px]">
+    <section id="comparison" className="w-full scroll-mt-[136px] lg:scroll-mt-[164px]">
       <div className="flex flex-col gap-[64px] lg:gap-[100px] items-center max-w-[1720px] mx-auto w-full">
 
         {/* ══ Heading (adaptive duotone over the moving background) ══ */}

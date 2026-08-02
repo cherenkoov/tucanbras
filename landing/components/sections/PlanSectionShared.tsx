@@ -1,6 +1,8 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { scrollToElement } from '@/components/ui/AnchorScrollHandler'
+import { uiLabels } from '@/lib/uiLabels'
 import type { PlanCard } from '@/types'
 
 export const BG = [
@@ -63,11 +65,26 @@ function FeatureRow({ text, textCream, mobileTextCream, accent }: {
   )
 }
 
-export function PlanSection({ plan, index }: { plan: PlanCard; index: number }) {
+export function PlanSection({ plan, index, locale }: { plan: PlanCard; index: number; locale: string }) {
   const cfg    = CONFIG[index]
   const isLast = index === 3
+  const L      = uiLabels(locale)
+
+  // Выбор живёт в глобальном `plan-selected` (его же слушает FooterForm), а не в
+  // локальном стейте: одна и та же карточка рендерится дважды (десктоп + мобильный
+  // стек), и выбор в футере тоже должен гасить надпись на остальных карточках.
+  const [selected, setSelected] = useState(false)
+
+  useEffect(() => {
+    const onPlanSelected = (e: Event) => {
+      setSelected((e as CustomEvent<string>).detail === plan.name)
+    }
+    window.addEventListener('plan-selected', onPlanSelected)
+    return () => window.removeEventListener('plan-selected', onPlanSelected)
+  }, [plan.name])
 
   const handleCtaClick = () => {
+    // Диспатч синхронный — слушатель выше поднимет `selected` до скролла к футеру.
     window.dispatchEvent(new CustomEvent('plan-selected', { detail: plan.name }))
     const footer = document.getElementById('footer')
     if (footer) scrollToElement(footer)
@@ -169,6 +186,7 @@ export function PlanSection({ plan, index }: { plan: PlanCard; index: number }) 
           <button
             type="button"
             onClick={handleCtaClick}
+            aria-pressed={selected}
             className="btn-press flex items-center justify-center w-full overflow-hidden rounded-[28px] cursor-pointer"
             style={{
               backgroundColor: cfg.accent,
@@ -183,7 +201,7 @@ export function PlanSection({ plan, index }: { plan: PlanCard; index: number }) 
               className="font-sans font-bold text-center"
               style={{ fontSize: 'clamp(24px, 2.5vw, 48px)', lineHeight: '32px', color: cfg.btnText ?? 'var(--color-cream)' }}
             >
-              {plan.ctaText}
+              {selected ? L.planSelected : plan.ctaText}
             </span>
           </button>
         </div>

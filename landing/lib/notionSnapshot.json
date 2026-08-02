@@ -2,7 +2,7 @@
   "ru": {
     "header": {
       "nav0": "О тукане",
-      "nav1": "Репетиторы",
+      "nav1": "Туторы",
       "nav2": "CELPE-BRAS",
       "nav3": "Тарифы"
     },
@@ -183,7 +183,7 @@
           ]
         },
         {
-          "title": "Репетиторам",
+          "title": "Туторам",
           "items": [
             {
               "question": "Как устроено расписание?",
@@ -520,7 +520,7 @@
   "pt": {
     "header": {
       "nav0": "Sobre nós",
-      "nav1": "Professores",
+      "nav1": "Tutores",
       "nav2": "CELPE-BRAS",
       "nav3": "Planos"
     },
@@ -676,7 +676,7 @@
       ],
       "faqGroups": [
         {
-          "title": "Para professores",
+          "title": "Para tutores",
           "items": [
             {
               "question": "Como funciona a agenda?",

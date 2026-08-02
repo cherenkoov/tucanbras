@@ -18,13 +18,14 @@ export interface NavLink {
 
 export interface HeaderData {
   nav0: string; // "О тукане"
-  nav1: string; // "Репетиторы"
+  nav1: string; // "Туторы"
   nav2: string; // "CELPE-BRAS"
   nav3: string; // "Тарифы"
 }
 
 export interface HeaderProps {
   navLinks: NavLink[];
+  locale: Locale;
 }
 
 // ─── 2. Hero ─────────────────────────────────────────────────────────────────
@@ -134,6 +135,7 @@ export interface PlansData {
 
 export interface PlansProps {
   data: PlansData;
+  locale: Locale;
 }
 
 // ─── 8. Footer ───────────────────────────────────────────────────────────────

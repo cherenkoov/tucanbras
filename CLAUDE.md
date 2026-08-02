@@ -52,6 +52,7 @@ TucanBRAS/
 | `NOTION_TEACHERS_DB_ID` | tucan-bot, landing | ID базы учителей в Notion |
 | `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` | landing | уведомления о лидах: бот-отправитель и чат-получатель |
 | `BOT_BASE_URL` | landing | база для фото учителей (`/static/...`), обычно `https://api.tucanbras.com` |
+| `NEXT_PUBLIC_ONBOARDING_URL` | landing | база URL онбординга приложения; кнопка «Continue» в футере ведёт сюда с `?tutor&plan&locale` (build-time inline, `NEXT_PUBLIC_`) |
 
 **Важно:** `.env` файлы не коммитятся в git. Секреты живут в `.env` на VPS.
 

@@ -5,9 +5,9 @@ import AdaptiveText from '@/components/ui/AdaptiveText'
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function Plans({ data }: PlansProps) {
+export default function Plans({ data, locale }: PlansProps) {
   return (
-    <section id="plans" className="w-full scroll-mt-[136px] lg:scroll-mt-[147px]">
+    <section id="plans" className="w-full scroll-mt-[136px] lg:scroll-mt-[164px]">
       <div className="flex flex-col gap-[60px] max-w-[1720px] mx-auto w-full lg:overflow-hidden rounded-[28px]"
         style={{}}
       >
@@ -34,13 +34,13 @@ export default function Plans({ data }: PlansProps) {
 
         {/* Mobile */}
         <div className="lg:hidden px-[0px]">
-          <PlansStack plans={data.plans} />
+          <PlansStack plans={data.plans} locale={locale} />
         </div>
 
         {/* Desktop */}
         <div className="hidden lg:flex flex-col items-start w-full pb-[48px]">
           {data.plans.map((plan, i) => (
-            <PlanSection key={plan.name} plan={plan} index={i} />
+            <PlanSection key={plan.name} plan={plan} index={i} locale={locale} />
           ))}
         </div>
 

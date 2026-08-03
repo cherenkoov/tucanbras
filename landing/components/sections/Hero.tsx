@@ -61,7 +61,7 @@ export default function Hero({ data }: HeroProps) {
             alt=""
             aria-hidden
             data-hero-plant="anthurium"
-            /* The offsets place the base of the spadix 5px inside the button's
+            /* The offsets place the base of the spadix 20px inside the button's
                top-right corner; they are `anthuriumOffsets()` in heroPlants.ts,
                evaluated. Spelled out rather than computed because a `max-[500px]:`
                variant is the whole reason this lives in classes and Tailwind only
@@ -70,8 +70,8 @@ export default function Hero({ data }: HeroProps) {
                `max-w-none` defeats preflight's `max-width: 100%`, which otherwise
                beats the width and lands the flower at the wrong size and offset. */
             className="pill-decor absolute h-auto max-w-none select-none pointer-events-none
-                       w-[27cqw] right-[calc(5px_-_13.9131cqw)] top-[calc(5px_-_16.2967cqw)]
-                       max-[500px]:w-[24cqw] max-[500px]:right-[calc(5px_-_12.3672cqw)] max-[500px]:top-[calc(5px_-_14.4860cqw)]
+                       w-[25cqw] right-[calc(20px_-_12.8825cqw)] top-[calc(20px_-_15.0896cqw)]
+                       max-[500px]:w-[24cqw] max-[500px]:right-[calc(20px_-_12.3672cqw)] max-[500px]:top-[calc(20px_-_14.4860cqw)]
                        motion-safe:peer-hover:translate-x-[-4%] motion-safe:peer-hover:scale-[1.08] motion-safe:peer-hover:rotate-[-5deg]"
           />
         </div>

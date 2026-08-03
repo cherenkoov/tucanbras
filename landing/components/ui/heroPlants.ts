@@ -70,22 +70,24 @@ export const HERO_ANTHURIUM = {
   /**
    * Set by the heading, not by taste. Anchored at the corner, the flower reaches
    * `anchor.x · w` to the LEFT of it — straight into the end of the H1's second line,
-   * which in Russian ("и летите в Бразилию") is long enough that 34cqw puts the left
-   * lobe over its last letter. 27 is what clears it, with the tighter of the two
-   * limits coming from 1920: the card's padding is a fixed 40px while the flower is
-   * measured in cqw, so the wider the viewport the smaller a share of the card that
-   * padding is and the closer the heading runs to the card's right edge — 83.5% of it
-   * at 1440, 84.0% at 1920. 1920 is the worst case and not an arbitrary one, since
-   * both clamps top out there and the card stops growing with the viewport.
+   * which in Russian ("и летите в Бразилию") is long enough that a big flower puts the
+   * left lobe over its last letter. Swept against the rendered page: at 1920 the pink
+   * landing on that line goes 0.09% at 27cqw → 0.03% at 26 → 0.00% at 25.
    *
-   * The anchor itself is never traded away for this: `inset` is what was asked for, so
-   * the flower changes size around a fixed point rather than sliding off its corner.
+   * The limit comes from 1920 and not from a bigger screen, because the card's padding
+   * is a fixed 40px while the flower is measured in cqw: the wider the viewport, the
+   * smaller a share of the card that padding is and the closer the heading runs to the
+   * card's right edge — 83.5% of it at 1440, 84.0% at 1920. Past 1920 both clamps have
+   * topped out, so the card stops growing with the viewport and nothing is tighter.
+   *
+   * The anchor is never traded away for this: `inset` is what was asked for, so the
+   * flower changes size around a fixed point rather than sliding off its corner.
    */
-  w: 27,
+  w: 25,
   /** the bloom's own stem point, as fractions of the file's box */
   anchor: { x: 0.4847, y: 0.6904 },
   /** how far inside the button's top-right corner that point lands, in px */
-  inset: 5,
+  inset: 20,
   aspect: 167 / 146,
 } as const satisfies HeroPlant & Record<string, unknown>
 
@@ -101,6 +103,15 @@ export const HERO_ANTHURIUM = {
  * overhang could never make one. This is composition.
  */
 export const HERO_ANTHURIUM_SM = { w: 24 } as const
+
+/**
+ * What hovering the CTA does to the flower, on the header's `.pill-decor` timing.
+ * Spelled out here so `verify:hero-plants` can assert the values rather than merely
+ * that something changed: at rest `scale` computes to the keyword `none`, so a check
+ * that only compares before against after calls `none → 1` a movement and passes on a
+ * lean that never engaged.
+ */
+export const HERO_ANTHURIUM_LEAN = { scale: 1.08, rotateDeg: -5 } as const
 
 /**
  * Where the flower's box has to sit for ANCHOR to land INSET px inside the button's

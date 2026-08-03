@@ -21,7 +21,7 @@
 //   npm run verify:hero-plants -- http://host/ru 390x844 touch  → phone layout, and
 //     `hover: none` — where the lean must NOT engage, or a tap would leave it stuck
 import { chromium, type Page } from 'playwright'
-import { HERO_ANTHURIUM, HERO_ANTHURIUM_SM } from '../components/ui/heroPlants'
+import { HERO_ANTHURIUM, HERO_ANTHURIUM_LEAN, HERO_ANTHURIUM_SM } from '../components/ui/heroPlants'
 
 const BASE = process.argv[2] ?? 'http://localhost:3000/ru'
 const vpArg = /^(\d+)x(\d+)$/.exec(process.argv[3] ?? '')
@@ -56,9 +56,19 @@ async function main() {
     deviceScaleFactor: 1,
     ...(TOUCH ? { isMobile: true, hasTouch: true } : {}),
   })
-  // `load`, not `domcontentloaded`: the locale proxy can still redirect after the DOM
-  // is parsed, and an evaluate that straddles that lands on "Execution context was
-  // destroyed" with nothing to say about the plants.
+  // Without credentials Notion fails, page.tsx falls back to the snapshot AND renders
+  // <NotionRetry/>, which calls location.reload() three times. Every Playwright context
+  // starts with an empty sessionStorage, so EVERY run got the full storm: measurements
+  // and screenshots landed at random points inside four page loads, which is where the
+  // "Execution context was destroyed" errors and the nonsense pixel diffs came from —
+  // a green run meant the timing happened to work, not that the page was right.
+  // Pre-seeding the counter makes the run deterministic whether or not Notion answers.
+  // Coupled to STORAGE_KEY/MAX_RETRIES in components/ui/NotionRetry.tsx by name.
+  await page.addInitScript(() => {
+    try { sessionStorage.setItem('notion_retry', '99') } catch { /* storage blocked */ }
+  })
+  // `load`, not `domcontentloaded`: hydration is still landing at DOMContentLoaded and
+  // an evaluate that straddles it has nothing useful to measure.
   await page.goto(BASE, { waitUntil: 'load', timeout: 60_000 })
   await page.waitForSelector('[data-hero-plant="anthurium"]', { timeout: 15_000 })
   // The plants are <img>; a box measured before decode is 0-sized.
@@ -198,14 +208,61 @@ async function main() {
 
   // ── the lean. Reading the computed properties is what catches a class Tailwind never
   // generated: the element renders, nothing errors, and it simply never moves.
+  //
+  // Asserted against the expected VALUES, not against "did anything change". At rest
+  // `scale` computes to the keyword `none`, so a before/after comparison scores
+  // `none → 1` as movement and passes a hover that did not engage at all — which it
+  // did, at 1920, and the guard called it a success.
+  await page.mouse.move(0, 0)
+  await page.waitForTimeout(400)
   const rest = await leanOf(page)
-  await page.locator('#hero button').hover()
-  await page.waitForTimeout(500) // .pill-decor is 340ms
+  // `locator.hover()` runs actionability checks and may scroll the element into view;
+  // when it does, the pointer is left somewhere the button no longer is, `:hover` drops,
+  // and 500ms later the lean has transitioned all the way back to scale 1 / rotate 0deg
+  // — indistinguishable from a lean that never worked. Move to the live centre instead,
+  // then confirm the pointer really is on the button before believing what it reports.
+  const centre = await page.evaluate(() => {
+    const b = document.querySelector<HTMLElement>('#hero button')!.getBoundingClientRect()
+    return { x: b.x + b.width / 2, y: b.y + b.height / 2 }
+  })
+  await page.mouse.move(centre.x, centre.y)
+
+  // Waited for, not slept on. `.pill-decor` is a 340ms transition, but the mouse-move →
+  // hover → recalc chain can start it late enough that a fixed 500ms read lands
+  // mid-flight: scale 1.044, rotate -2.73deg is a lean working correctly and reported as
+  // broken. Polling for the settled value fails just as loudly when it never arrives.
+  let leaning = true
+  if (m.hoverable) {
+    await page.waitForFunction(
+      exp => {
+        const el = document.querySelector('[data-hero-plant="anthurium"]')
+        if (!el) return false
+        const cs = getComputedStyle(el)
+        return Math.abs(Number.parseFloat(cs.scale) - exp.scale) < 0.01
+          && Math.abs(Number.parseFloat(cs.rotate) - exp.rotateDeg) < 0.5
+      },
+      HERO_ANTHURIUM_LEAN,
+      { timeout: 4_000, polling: 100 },
+    ).catch(() => { leaning = false })
+  } else {
+    // Nothing to wait for — the point is that it must NOT move. Give it more than the
+    // transition's own duration to prove it.
+    await page.waitForTimeout(800)
+  }
+
+  const onButton = await page.evaluate(
+    pt => !!document.elementFromPoint(pt.x, pt.y)?.closest('#hero button'),
+    centre,
+  )
+  if (!onButton) failures.push('the pointer slid off the CTA before the lean could be read — the page moved under it')
   const hovered = await leanOf(page)
-  const moved = rest.scale !== hovered.scale || rest.translate !== hovered.translate || rest.rotate !== hovered.rotate
-  if (m.hoverable && !moved) {
-    failures.push(`hovering the CTA does not move the anthurium (scale ${rest.scale}, translate ${rest.translate}, rotate ${rest.rotate}) — check the peer-hover classes are literal`)
-  } else if (!m.hoverable && moved) {
+  if (!m.hoverable) {
+    leaning = Math.abs(Number.parseFloat(hovered.scale) - HERO_ANTHURIUM_LEAN.scale) < 0.01
+  }
+  if (m.hoverable && !leaning) {
+    failures.push(`hovering the CTA leaves the anthurium at scale ${hovered.scale} / rotate ${hovered.rotate}, `
+      + `expected ${HERO_ANTHURIUM_LEAN.scale} / ${HERO_ANTHURIUM_LEAN.rotateDeg}deg — check the peer-hover classes are literal`)
+  } else if (!m.hoverable && (leaning || rest.scale !== hovered.scale)) {
     failures.push('the lean engages on a `hover: none` device — a tap would leave it stuck')
   } else {
     ok.push(m.hoverable ? `lean engages: scale ${hovered.scale}, rotate ${hovered.rotate}` : 'lean stays off where hover is unavailable')

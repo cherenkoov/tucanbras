@@ -153,7 +153,16 @@ export function PlanSection({ plan, index, locale }: { plan: PlanCard; index: nu
             {plan.name}
           </p>
 
-          <div className={`text-center lg:text-left lg:flex items-baseline lg:flex-col ${priceColor}`}>
+          {/*
+            Цена идёт в тон колонке: у карточек с featuresFirst колонка уезжает
+            вправо (flex-row-reverse), и цена/период должны прижиматься к правому
+            краю. text-* тут недостаточно — на lg это flex-колонка, спаны сжаты по
+            контенту, поэтому выравнивает именно items-*.
+            Flex и на мобилке (там ряд, wrap как у прежних инлайн-спанов) — иначе
+            gap между ценой и периодом не к чему применить.
+            my-[16px] — отступы до имени плана сверху и подзаголовка снизу.
+          */}
+          <div className={`flex flex-wrap justify-center items-baseline gap-[4px] my-[16px] text-center lg:flex-col lg:flex-nowrap ${cfg.featuresFirst ? 'lg:text-right lg:items-end' : 'lg:text-left lg:items-start'} ${priceColor}`}>
             <span className="font-heading font-bold" style={{ fontSize: 'clamp(40px, 5vw, 80px)', lineHeight: '1.1' }}>
               {plan.priceAmount}
             </span>

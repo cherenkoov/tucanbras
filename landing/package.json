@@ -23,7 +23,8 @@
     "verify:header-hover": "tsx scripts/verifyHeaderHover.ts",
     "verify:header-tap": "tsx scripts/verifyHeaderTap.ts",
     "verify:tutor-dots": "tsx scripts/verifyTutorDots.ts",
-    "verify:hero-plants": "tsx scripts/verifyHeroPlants.ts"
+    "verify:hero-plants": "tsx scripts/verifyHeroPlants.ts",
+    "verify:celpe-cta": "tsx scripts/verifyCelpeCta.ts"
   },
   "dependencies": {
     "@notionhq/client": "^5.17.0",

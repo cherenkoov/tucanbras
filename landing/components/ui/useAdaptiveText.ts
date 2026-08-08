@@ -631,10 +631,27 @@ export function useAdaptiveText({
     // NB the budget is 300 FRAMES, not 5s — this page runs at ~20fps, so it is ~15s, and
     // a test that resizes sooner than that will see the bug above already "fixed".
     let frames = 0
+    let pollId: number | null = null
     const boot = () => {
       if (cancelled) return
-      if (!decide() && ++frames < FIND_TIMEOUT_FRAMES) requestAnimationFrame(boot)
-      // else: applied, or gave up on the poll — the observers above keep watching either way.
+      if (decide()) return
+      if (++frames < FIND_TIMEOUT_FRAMES) { requestAnimationFrame(boot); return }
+      // Budget exhausted and still no art source (e.g. the collage SVG is still being
+      // fetched on a slow mobile connection — measured live on prod: the header logotype
+      // stayed flat var(--color-blue) minutes after load, never recovering). The comment
+      // above assumes "the observers keep watching", but BackgroundCanvas's Placeholder
+      // pre-reserves the art's final box via aspect-ratio BEFORE the real SVG is fetched
+      // in, so swapping the placeholder for the real content changes no element's size —
+      // neither documentElement's height nor the art SVG's own box — and ResizeObserver
+      // never fires. Nothing else calls decide() again, so the text was stuck forever.
+      // Fall back to a slow poll (cheap: a couple getBoundingClientRect reads) until the
+      // art actually lands.
+      pollId = window.setInterval(() => {
+        if (cancelled || decide()) {
+          if (pollId !== null) window.clearInterval(pollId)
+          pollId = null
+        }
+      }, 500)
     }
     boot()
 
@@ -642,6 +659,7 @@ export function useAdaptiveText({
       cancelled = true
       window.removeEventListener('scroll', onScroll)
       if (rafId !== null) cancelAnimationFrame(rafId)
+      if (pollId !== null) window.clearInterval(pollId)
       io?.disconnect()
       ro?.disconnect()
       clearAll()

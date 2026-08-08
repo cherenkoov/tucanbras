@@ -74,9 +74,13 @@ scripts/.figma-ref/
 
 Create `landing/scripts/fitFeaturePlants.mjs`:
 
-**Do not try to pin the scale or the position analytically from the node.** An earlier version of this task did, by requiring the rotated ink box to fill the instance's outer box, and it is wrong: these drawings are thin diagonal slivers, and the bounding box of a sliver does not transform like a rotated rectangle. Turning `Flower 2 - CELPE-BRAS.svg` from its steep rest angle toward the horizontal takes its ink box from 900 × 1514 to 1492 × 1015 — the box genuinely gets shorter, so matching box proportions selects the wrong angle. Measured, not assumed.
+**Match the rotated ink to the instance's INNER frame, not to its outer box.** Each flower sits in Figma as a rotated instance, and the node reports two boxes: the instance's own frame (`325 × 547` for Train — the art's box) and the outer box the rotation sweeps out (`550.616 × 636.046`). The art's ink fills the frame; it does not fill the swept box. Two earlier versions of this task got this wrong in opposite directions — one matched the swept box (which selects an angle ~2° off and a width ~30% too large), the other gave up and let angle, scale and position all float against the reference (which aliases: at IoU 0.968 a bigger leaf shifted sideways reproduces the same crop, and the scale diverged badly enough to exceed sharp's pixel limit).
 
-What the node *does* pin is only the starting guess. The reference render pins everything else, so the fit optimises against it directly: for each candidate angle, the scale and the centre are solved by fixed-point iteration (match the visible ink's area, then its centroid), and the candidate is scored by silhouette IoU against the reference. Angle is the only searched parameter; the other three fall out.
+With the frame as the target the problem is one-parameter and closed-form. Sweep the angle; at each angle the rotated ink box has to be *proportional to the frame*, which selects the angle and hands you the scale; the frame's centre coincides with the outer box's centre, which hands you the position. Nothing floats.
+
+The control proves the formulation before you trust it: `Flower 2 - CELPE-BRAS.svg` is the one file that is not pre-rotated — its ink at 0° measures 900 × 1514, aspect 0.5945, against the frame's 325/547 = 0.5941 — so it must come back at ψ = 0, `rotate` = the design's own 29.21°, and `w` = 325 card units = 206.7 cqh.
+
+The reference renders then have no free parameters left to absorb error, which makes the IoU a real verification rather than an objective to optimise.
 
 ```js
 // Four of the five feature-card plants were exported from instances that already
@@ -102,13 +106,19 @@ const CARD_H = 157.2
 // pixels, small enough that a 360-step sweep stays quick.
 const RASTER = 900
 
-// The instance's axis-aligned box in CARD coordinates, straight from the node.
+// Per plant, from the node, in CARD coordinates:
+//   left/top/w/h — the OUTER box, the axis-aligned box the rotation sweeps out.
+//                  Only its CENTRE is used, and that centre is also the frame's.
+//   fw/fh        — the instance's own FRAME, the box the art actually fills.
+//                  This is what the rotated ink is matched against.
+//   rot          — the rotation the design applies to that instance, in degrees.
+//                  `flipY: true` on Learn is Figma's `-scale-y-100`, applied first.
 const PLANTS = [
-  { key: 'learn',    file: 'Flower 3 - Become.svg',      left: 361.21,  top: -114.41,  w: 425.864, h: 443.369 },
-  { key: 'practice', file: 'Flower 1 - Tutors.svg',      left: 235.00,  top: -254.998, w: 863.240, h: 756.678 },
-  { key: 'train',    file: 'Flower 2 - CELPE-BRAS.svg',  left: 337.19,  top: -233.92,  w: 550.616, h: 636.046 },
-  { key: 'help',     file: 'Flower 1 - Cover.svg',       left: -19.72,  top: -116.72,  w: 880.435, h: 830.630 },
-  { key: 'plan',     file: 'Flower - Plans.svg',         left: 237.72,  top:  -47.03,  w: 476.426, h: 549.326 },
+  { key: 'learn',    file: 'Flower 3 - Become.svg',      left: 361.21,  top: -114.41,  w: 425.864, h: 443.369, fw: 227.004, fh: 389.429, rot: 139.37 },
+  { key: 'practice', file: 'Flower 1 - Tutors.svg',      left: 235.00,  top: -254.998, w: 863.240, h: 756.678, fw: 736.680, fh: 585.977, rot: -15 },
+  { key: 'train',    file: 'Flower 2 - CELPE-BRAS.svg',  left: 337.19,  top: -233.92,  w: 550.616, h: 636.046, fw: 325.000, fh: 547.000, rot: 29.21 },
+  { key: 'help',     file: 'Flower 1 - Cover.svg',       left: -19.72,  top: -116.72,  w: 880.435, h: 830.630, fw: 521.002, fh: 710.383, rot: 55.72 },
+  { key: 'plan',     file: 'Flower - Plans.svg',         left: 237.72,  top:  -47.03,  w: 476.426, h: 549.326, fw: 372.001, fh: 472.606, rot: 165.82 },
 ]
 
 /** Alpha plane of a PNG, plus its dimensions. */
@@ -156,7 +166,7 @@ async function fit(plant) {
   const ry0 = Math.max(0, plant.top)
   const ppu = ref.width / (Math.min(CARD_W, plant.left + plant.w) - rx0)
 
-  // What the reference actually shows: the visible ink's area and centroid, in ref px.
+  // What the reference shows: the visible ink's area and centroid, in reference px.
   let refArea = 0, refCx = 0, refCy = 0
   for (let y = 0; y < ref.height; y++) {
     for (let x = 0; x < ref.width; x++) {
@@ -167,7 +177,9 @@ async function fit(plant) {
   if (!refArea) throw new Error(`${plant.key}: the reference has no ink`)
   refCx /= refArea; refCy /= refArea
 
-  // Rasterise a candidate into the reference's frame and measure it.
+  const frameAspect = plant.fw / plant.fh
+
+  // Compose a fully specified candidate into the reference's frame and measure it.
   const compose = async (flipY, deg, w, cx, cy) => {
     const rot = await rotated(plant.file, flipY, deg)
     const f = (w * ppu) / RASTER // raster px → reference px
@@ -195,44 +207,51 @@ async function fit(plant) {
     return { iou: union ? inter / union : 0, area, cx: area ? mx / area : 0, cy: area ? my / area : 0 }
   }
 
-  // For one angle: solve the scale and the centre by fixed point. Area fixes the
-  // scale (it goes as w²), the centroid fixes the placement, and each correction
-  // changes what the card crops — so they are iterated together, not solved once.
-  const solve = async (flipY, deg) => {
-    let w = plant.w        // seed: the instance's own box, right order of magnitude
+  // ψ is the turn that brings the file's art back to the orientation the design
+  // draws it at rest — the angle at which the ink box IS the instance's frame. The
+  // aspect test is what finds it, and it is the only thing being searched.
+  const candidates = []
+  for (const flipY of [false, true]) {
+    for (let psi = 0; psi < 360; psi += 0.5) {
+      const rot = await rotated(plant.file, flipY, Math.round(psi * 100) / 100)
+      const box = inkBox(rot)
+      const err = Math.abs(box.w / box.h - frameAspect) / frameAspect
+      if (err < 0.02) candidates.push({ flipY, psi, box, rot, err })
+    }
+  }
+  if (!candidates.length) throw new Error(`${plant.key}: no turn makes the ink match the frame`)
+
+  // Each surviving ψ fixes the scale outright: the ink at ψ measures the frame, so
+  // one number converts raster pixels to card units, and the image's own width
+  // follows. Only the centre is left, and the reference is what settles it.
+  const scored = []
+  for (const c of candidates) {
+    const s = plant.fw / c.box.w                  // card units per raster px
+    const w = RASTER * s                          // the image's width, in card units
+    const deg = Math.round(((c.psi + plant.rot) % 360 + 360) % 360 * 100) / 100
     let cx = plant.left + plant.w / 2
     let cy = plant.top + plant.h / 2
-    let last = null
-    for (let i = 0; i < 6; i++) {
-      const m = await compose(flipY, deg, w, cx, cy)
-      last = m
-      if (!m.area) return { iou: 0, deg, flipY, w, cx, cy }
+    let m = null
+    for (let i = 0; i < 4; i++) {
+      m = await compose(c.flipY, deg, w, cx, cy)
+      if (!m.area) break
       cx += (refCx - m.cx) / ppu
       cy += (refCy - m.cy) / ppu
-      w *= Math.sqrt(refArea / m.area)
     }
-    const m = await compose(flipY, deg, w, cx, cy)
-    return { iou: Math.max(m.iou, last.iou), deg, flipY, w, cx, cy }
+    if (!m || !m.area) continue
+    m = await compose(c.flipY, deg, w, cx, cy)
+    scored.push({ iou: m.iou, deg, psi: c.psi, flipY: c.flipY, w, cx, cy })
   }
-
-  const results = []
-  for (const flipY of [false, true]) {
-    for (let deg = 0; deg < 360; deg += 4) results.push(await solve(flipY, deg))
-  }
-  results.sort((a, b) => b.iou - a.iou)
-  let best = results[0]
-  for (const step of [1, 0.25]) {
-    for (let deg = best.deg - step * 4; deg <= best.deg + step * 4; deg += step) {
-      const r = await solve(best.flipY, Math.round(deg * 100) / 100)
-      if (r.iou > best.iou) best = r
-    }
-  }
+  if (!scored.length) throw new Error(`${plant.key}: every candidate composed to nothing`)
+  scored.sort((a, b) => b.iou - a.iou)
+  const best = scored[0]
 
   return {
     key: plant.key,
     file: plant.file,
     iou: best.iou,
-    runnersUp: results.slice(1, 4).map(r => `${r.deg}${r.flipY ? 'F' : ''}@${r.iou.toFixed(3)}`),
+    psi: best.psi,
+    runnersUp: scored.slice(1, 4).map(r => `${r.deg}${r.flipY ? 'F' : ''}@${r.iou.toFixed(3)}`),
     right: +(((CARD_W - best.cx) / CARD_H) * 100).toFixed(3),
     top: +((best.cy / CARD_H) * 100).toFixed(3),
     w: +((best.w / CARD_H) * 100).toFixed(3),
@@ -244,24 +263,34 @@ async function fit(plant) {
 for (const plant of PLANTS) {
   const r = await fit(plant)
   const flag = r.iou >= 0.92 ? '✓' : '✗'
-  console.log(`${flag} ${r.key.padEnd(9)} IoU ${r.iou.toFixed(3)}  next: ${r.runnersUp.join(' ')}\n`
+  console.log(`${flag} ${r.key.padEnd(9)} IoU ${r.iou.toFixed(3)}  psi ${r.psi}  next: ${r.runnersUp.join(' ')}\n`
     + `    { file: '${r.file}', right: ${r.right}, top: ${r.top}, w: ${r.w}, `
     + `rotate: ${r.rotate}${r.flipY ? ', flipY: true' : ''} },`)
 }
 ```
 
-`w` here is the image's width in card units before the final `cqh` conversion, which is why the printed `w` divides by `CARD_H` and not by `RASTER`.
+`plant.rot` is the design's own rotation for that instance, which the sweep adds to ψ to get the angle the CSS applies: Learn `139.37`, Practice `-15`, Train `29.21`, Help `55.72`, Plan `165.82`. Add them to the `PLANTS` rows as `rot`.
+
+`w` is the image's width in card units before the final `cqh` conversion, which is why the printed `w` divides by `CARD_H` and not by `RASTER`.
 
 - [ ] **Step 4: Run the fit**
 
 Run: `node scripts/fitFeaturePlants.mjs`
 
-**`train` is the control.** Its file is the one that is *not* pre-rotated — its ink aspect measures 0.5945 against the design's unrotated 0.5941 — so the design's own 29.21° applies to it directly. It must come back near `rotate: 29.21` with `flipY: false`, and its `w` must land near `206.7` (the instance's 325 card units over the card's 157.2). If it does not, the script is wrong and the other four numbers are worthless — fix the script first.
+**`train` is the control, and it now checks three numbers at once.** Its file is the one that is *not* pre-rotated — its ink aspect measures 0.5945 against the frame's 0.5941 — so all three of its outputs are known independently:
 
-The control also sets the bar. This IoU is an end-to-end silhouette comparison between two different renderers at roughly one pixel per card unit, so a correct fit scores high but not 1.0; `train`'s score is what "correct" looks like for this art at this resolution. Read the five rows against it:
+| output | required | why it is known |
+|---|---|---|
+| `psi` | ≈ `0` | the file already sits at the design's rest orientation |
+| `rotate` | ≈ `29.21` | ψ = 0, so the CSS angle is the design's own |
+| `w` | ≈ `206.7` | the frame is 325 card units over a 157.2 card |
 
-- **≥ 0.92, and within ~0.03 of the control** — good, take the numbers.
-- **materially below the control** — that plant is not fitted. Re-run its refine sweep at a 0.05° step first; if it does not move, the local file is not the drawing the design uses. Stop and re-export the asset from Figma. Do not nudge the number by eye.
+All three must land, not just the angle. A run where `rotate` is right and `w` is 30% out is the aliasing failure this formulation exists to remove, and it means the scale is not coming from the frame. If any of the three misses, the script is wrong and the other four rows are worthless — fix the script first and do not report the other numbers as if they meant anything.
+
+The control also sets the bar for the IoU. This is an end-to-end silhouette comparison between two different renderers at roughly one pixel per card unit, so a correct fit scores high but not 1.0; `train`'s score is what "correct" looks like for this art at this resolution. Read the five rows against it:
+
+- **≥ 0.92, and within ~0.05 of the control** — good, take the numbers.
+- **materially below the control** — that plant is not fitted. Widen the ψ aspect tolerance to 0.04 and re-run that plant first; if the winner does not move, the local file is not the drawing the design uses. Stop and re-export the asset from Figma. Do not nudge the number by eye.
 
 Report all five scores in the task report whatever they are — the controller adjudicates a borderline row, the implementer does not.
 

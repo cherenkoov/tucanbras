@@ -478,8 +478,15 @@ html.noanim * {
 
 
 /* ── Header logotype responsive text ─────────────────────────────────────── */
-
-.logo-xs   { display: inline; }
+/* Font-size is normally the shared clamp(28px, 4.69vw, 90px) set inline on the
+   wrapping span (Header.tsx) — but that formula's own 28px floor only lifts past
+   460px width, so .logo-xs (the ONLY spelling shown below 460px) sits pinned at a
+   flat 28px across its entire visible range: not scaling at all on phones, and at
+   320px (iPhone SE) "TUCAN" measures flush against the burger button with a 0px
+   gap. This override gives it its own clamp scaling 20→28px across 280–460px,
+   landing exactly on the shared formula's 28px floor at 460px (continuous with
+   .logo-mob's own start) instead of starting there. */
+.logo-xs   { display: inline; font-size: clamp(20px, 5vw + 5px, 28px); }
 .logo-mob  { display: none; }
 .logo-sm   { display: none; }
 .logo-full { display: none; }

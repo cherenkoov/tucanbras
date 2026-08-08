@@ -76,16 +76,23 @@ const ROLES: Record<string, Record<string, string>> = {
  * under the bouquet the moment the ⋮ became a pill like the others. So the parts that
  * were painted last are lifted back out, drawn after the decorations.
  *
- * Two layers rather than one because they do not behave alike: the `glyph` is the ⋮
- * itself and never moves, while `dots` — its satellites — shrink as the bouquet
- * blooms (PILL_GLYPH in Header.tsx). Order here is paint order.
+ * The layers do not behave alike, which is the whole reason for splitting them. The ⋮
+ * itself is three leaf-shaped marks, and each is a layer of its own so it can sway on
+ * its own root when the button is clicked (BLADES in components/ui/dotsSway.ts) —
+ * they are one Figma group, so as one file they could only ever move as a rigid body.
+ * `dots` — the satellites around them — shrink instead, as the bouquet blooms
+ * (PILL_GLYPH in Header.tsx). Order here is paint order.
  *
  * Ids exactly as the file spells them — Figma escapes the apostrophe on the way out.
+ * An id may name a group NESTED inside another, `parent / child`: the three marks are
+ * children of `dot's row`, and only that row is a direct child of the wrapper.
  */
 const GLYPH: Record<string, Record<string, string[]>> = {
   '3dots': {
-    glyph: ['dot&#39;s row'],
-    dots:  ['dot&#39;s child 1', 'dot&#39;s child 2', 'dot&#39;s child 3'],
+    'blade-1': ['dot&#39;s row / dot 1'],
+    'blade-2': ['dot&#39;s row / dot 2'],
+    'blade-3': ['dot&#39;s row / dot 3'],
+    dots:      ['dot&#39;s child 1', 'dot&#39;s child 2', 'dot&#39;s child 3'],
   },
 }
 
@@ -223,8 +230,53 @@ function childrenOf(svg: string, at: number) {
   return kids
 }
 
-/** Direct children of the wrapper <g>, in document order. */
-const topLayer = (svg: string) => childrenOf(svg, wrapperStart(svg))
+type Span = { start: number; end: number }
+
+/** `"a / b"` → `['a', 'b']`. A plain id is a path of one. */
+const idPath = (id: string) => id.split('/').map(s => s.trim())
+
+/**
+ * The element an id path names, walked down from the element opening at `at`.
+ * `null` if any step is missing — the caller turns that into the "cannot lift" error,
+ * so a renamed group in a re-exported sheet fails loudly instead of writing a file
+ * with nothing in it.
+ */
+function resolve(svg: string, at: number, path: string[]): Span | null {
+  let node: Span = { start: at, end: 0 }
+  for (const id of path) {
+    const hit = childrenOf(svg, node.start).find(k => k.id === id)
+    if (!hit) return null
+    node = hit
+  }
+  return node
+}
+
+/**
+ * Everything to cut so that only `paths` survive — the inverse of a selection.
+ *
+ * At each level it keeps the elements named by a path and cuts the rest; where a path
+ * continues deeper it descends into that element and repeats, so a nested target loses
+ * its siblings without losing the ancestor that positions it. That ancestor matters:
+ * the marks inside `dot's row` are placed by the row's own transform and clipped by
+ * the sheet's clip-path, and lifting one out of the tree by itself would move it.
+ */
+function isolate(svg: string, at: number, paths: string[][]): Span[] {
+  const wanted = new Map<string, string[][]>()
+  for (const [head, ...rest] of paths) {
+    const deeper = wanted.get(head) ?? []
+    if (rest.length) deeper.push(rest)
+    wanted.set(head, deeper)
+  }
+
+  const cuts: Span[] = []
+  for (const kid of childrenOf(svg, at)) {
+    const deeper = kid.id === null ? undefined : wanted.get(kid.id)
+    if (deeper === undefined) cuts.push(kid)                       // not on any path
+    else if (deeper.length) cuts.push(...isolate(svg, kid.start, deeper))
+    // …otherwise this element IS a target: keep it whole.
+  }
+  return cuts
+}
 
 
 /** Same sheet, seen through `box` instead of the one it declares. */
@@ -285,7 +337,8 @@ function main() {
   for (const [pill, roles] of Object.entries(ROLES)) {
     const file = path.join(PILLS, `${pill}.svg`)
     const svg = fs.readFileSync(file, 'utf8')
-    const kids = topLayer(svg)
+    const wrapAt = wrapperStart(svg)
+    const kids = childrenOf(svg, wrapAt)
 
     const decor = kids.filter(k => k.id && k.id in roles)
     const missing = Object.keys(roles).filter(id => !decor.some(f => f.id === id))
@@ -304,13 +357,19 @@ function main() {
     // Whatever the sheet paints after its decorations goes into layers of its own,
     // drawn after them (GLYPH). Out of the base, or it would show through from
     // underneath as well.
-    const lifted: typeof kids = []
+    // A lifted layer is the whole document with everything BUT its groups cut out, so
+    // it keeps the wrapper transform, the clip-path and the <defs> the art depends on.
+    // What comes out of the base is the resolved target itself — for a nested one that
+    // is the child, not its parent, so a row whose marks are all lifted is left behind
+    // as an empty <g> rather than taking an unlifted sibling with it.
+    const lifted: Span[] = []
     for (const [layer, ids] of Object.entries(GLYPH[pill] ?? {})) {
-      const groups = kids.filter(k => k.id && ids.includes(k.id))
-      if (groups.length !== ids.length) throw new Error(`${pill}: cannot lift ${ids.join(', ')}`)
+      const paths  = ids.map(idPath)
+      const groups = paths.map(p => resolve(svg, wrapAt, p))
+      if (groups.some(g => g === null)) throw new Error(`${pill}: cannot lift ${ids.join(', ')}`)
       fs.writeFileSync(path.join(OUT, `${pill}-${layer}.svg`),
-        without(svg, kids.filter(k => !groups.includes(k))))
-      lifted.push(...groups)
+        without(svg, isolate(svg, wrapAt, paths)))
+      lifted.push(...groups as Span[])
     }
 
     fs.writeFileSync(path.join(OUT, `${pill}-base.svg`),

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import type { CSSProperties } from 'react'
 import type { HeaderProps } from '@/types'
 import { uiLabels, BECOME_TEACHER_ID } from '@/lib/uiLabels'
 import { useActiveSection } from '@/hooks/useActiveSection'
@@ -11,6 +12,8 @@ import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { DECK, ICON_PILL_HOVER, PILL_H, PITCH, TIGHT_PITCH, PRESS_MS } from '@/components/ui/deckMotion'
 import { bloomOnTap, TAP_BLOOM_MS } from '@/components/ui/tapBloom'
 import { DECOR_LAYER } from '@/components/ui/pillArt'
+import { coverGlass, GLASS_TRANSITION } from '@/components/ui/coverGlass'
+import { BLADES, bladeStyle, swayDots } from '@/components/ui/dotsSway'
 import { BAR_H, COVER_DESKTOP, COVER_MOBILE, plantBox, type Plant } from '@/components/ui/coverPlants'
 import { BURGER_FLOWER, BURGER_LINES, burgerFlowerBox, type BurgerLine } from '@/components/ui/burgerArt'
 
@@ -102,14 +105,19 @@ const DOT_SHRINK = 'pill-decor motion-safe:group-hover/pill:scale-[0.853] motion
  * each of those layers does (GLYPH in scripts/generatePillArt.ts). Drawn in order,
  * after every decoration.
  *
- * The ⋮ is the only one. Its two halves part company on hover: the dots themselves
+ * The ⋮ is the only one, and its halves part company on hover: the marks themselves
  * are the button's label and hold still, while their satellites give way to the
  * bouquet coming up behind them.
+ *
+ * The label is three layers, not one, because a click sends a gust through it: each
+ * mark is a leaf rooted at its own tip and leans its own way (`.dot-blade`,
+ * components/ui/dotsSway.ts). As one file they could only rotate rigidly about a
+ * single point. Order here is paint order, and it is the sheet's own.
  */
-const PILL_GLYPH: Record<string, readonly { part: string; motion: string }[]> = {
+const PILL_GLYPH: Record<string, readonly { part: string; motion: string; style?: CSSProperties }[]> = {
   '3dots': [
-    { part: 'glyph', motion: '' },
-    { part: 'dots',  motion: DOT_SHRINK },
+    ...BLADES.map(b => ({ part: b.part, motion: 'dot-blade', style: bladeStyle(b) })),
+    { part: 'dots', motion: DOT_SHRINK },
   ],
 }
 
@@ -259,13 +267,14 @@ function PillArt({ art }: { art: string }) {
           className={`${DECOR_LAYER} ${PILL_DECOR[role]}`}
         />
       ))}
-      {(PILL_GLYPH[name] ?? []).map(({ part, motion }) => (
+      {(PILL_GLYPH[name] ?? []).map(({ part, motion, style }) => (
         <img
           key={part}
           src={`${dir}/parts/${name}-${part}.svg`}
           alt=""
           aria-hidden
           className={`${ART_LAYER} ${motion}`}
+          style={style}
         />
       ))}
     </>
@@ -1036,10 +1045,10 @@ export default function Header({ navLinks, locale }: HeaderProps) {
                   item, so its `display:inline` blockifies and the hook can measure
                   it; the hidden ones report 0×0 and simply no-op until a media
                   query reveals them, which the hook's ResizeObserver picks up. */}
-              <AdaptiveText as="span" duotone="green" className="logo-xs">TUCAN</AdaptiveText>
-              <AdaptiveText as="span" duotone="green" className="logo-mob">TucanBRAS</AdaptiveText>
-              <AdaptiveText as="span" duotone="green" className="logo-sm">Tucan</AdaptiveText>
-              <AdaptiveText as="span" duotone="green" className="logo-full">TucanBRAS</AdaptiveText>
+              <AdaptiveText as="span" className="logo-xs">TUCAN</AdaptiveText>
+              <AdaptiveText as="span" className="logo-mob">TucanBRAS</AdaptiveText>
+              <AdaptiveText as="span" className="logo-sm">Tucan</AdaptiveText>
+              <AdaptiveText as="span" className="logo-full">TucanBRAS</AdaptiveText>
             </span>
           </a>
 
@@ -1071,31 +1080,44 @@ export default function Header({ navLinks, locale }: HeaderProps) {
             <button
               ref={dotsRef}
               type="button"
-              onClick={() => setDotsOpen(v => !v)}
+              // The gust and the toggle, in that order and both synchronous: four
+              // call sites in verify:header-drum click this button and expect the
+              // column to answer on the same tick.
+              onClick={e => { swayDots(e.currentTarget); setDotsOpen(v => !v) }}
               onPointerDown={bloomOnTap}
-              className={`group/pill relative flex items-center justify-center overflow-hidden rounded-btn font-semibold whitespace-nowrap select-none cursor-pointer shrink-0 transition-transform duration-[240ms] ease-out ${ICON_PILL_HOVER}`}
+              // Ground comes from `coverGlass`, not from a flat --color-cream: the
+              // button stands ON the plate and is made of the same glass, so it
+              // frosts and fills in with it. The transition is hand-written because
+              // the class it would otherwise need (`transition-colors`) sets the
+              // same property as `transition-transform` and one of the two would win
+              // outright — see GLASS_TRANSITION. `scale`, not `transform`: that is
+              // the property Tailwind v4's `scale-*` writes.
+              className={`group/pill relative flex items-center justify-center overflow-hidden rounded-btn font-semibold whitespace-nowrap select-none cursor-pointer shrink-0 ${coverGlass(coverHot)} ${ICON_PILL_HOVER}`}
               style={{
-                backgroundColor: 'var(--color-cream)',
                 color:  'var(--color-ink)',
                 width:  `${PILL_H}px`,
                 height: `${PILL_H}px`,
+                transition: `scale ${PRESS_MS}ms ease-out, ${GLASS_TRANSITION}`,
               }}
               aria-haspopup="true"
               aria-expanded={dotsOpen}
               aria-label="Ещё пункты меню"
             >
               {/* Hand-off asset, authored 48×48 for exactly this button, split like
-                  every other pill: the ground and the three dots are the base, the
-                  three plants are decorations and grow on hover with the rest of the
-                  bar. The dots stay put — a glyph that drifts stops being a label.
+                  every other pill: the ground is the base, the three plants are
+                  decorations and grow on hover with the rest of the bar.
 
-                  `gen:pill-art` also trims the window (TRIM there): the bouquet is
-                  round and the button is not, so the asset's own pale ground showed
-                  around it as a border, and the hover only made more of it. */}
+                  The label is three layers of its own, one per mark, and it holds
+                  still under a cursor — a glyph that drifts on hover stops being a
+                  label. A CLICK is the exception: the marks are leaves, and the click
+                  puts a gust through them (PILL_GLYPH above, `.dot-blade`). */}
               <PillArt art="/SVG/header/pills/3dots.svg" />
             </button>
 
-            <LanguageSwitcher variant="pill" dropDirection="down" />
+            {/* `hot` is the plate's state, not the switcher's: the closed pill
+                stands on the plate and firms up with it. Its dealt cards hang below
+                the bar and answer for themselves — see coverGlass. */}
+            <LanguageSwitcher variant="pill" dropDirection="down" hot={coverHot} />
           </nav>
 
           {/* Mobile burger — collapse animation.
@@ -1173,6 +1195,10 @@ export default function Header({ navLinks, locale }: HeaderProps) {
         <LanguageSwitcher
           variant="pill"
           dropDirection="row"
+          // Same plate state as the desktop switcher: on a phone `coverHot` is armed
+          // by a tap on the bar — and the burger IS on the bar, so the column's flags
+          // come out solid with the plate and settle back to glass with it.
+          hot={coverHot}
           className={`transition-all duration-300 ${menuOpen ? 'pointer-events-auto' : 'pointer-events-none'}`}
           style={{
             transitionDelay: menuOpen ? `${PILLS.length * 60}ms` : '0ms',

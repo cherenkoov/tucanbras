@@ -25,17 +25,17 @@ const VIEWPORT = vpArg
 // media query is how the hook picks the touch chain — a viewport alone stays a desktop.
 const TOUCH = process.argv.includes('touch')
 
-// The duotone's two outputs. Desktop runs the green palette (AdaptiveText DUOTONES.green):
-// green-dark over a light scene, light green over a dark one. The touch chain
-// (BACKDROP_BUILTIN) has no palette at all — no sequence of built-in filter functions can
-// tint one side, so it lands on pure black / white and is checked against those instead.
-const GREEN_DARK = [0x6a, 0x90, 0x6e]
+// The duotone's two outputs. Desktop runs the default palette (AdaptiveText DUOTONES.blue,
+// which BACKDROP names): blue over a light scene, light green over a dark one. The touch
+// chain (BACKDROP_BUILTIN) has no palette at all — no sequence of built-in filter functions
+// can tint one side, so it lands on pure black / white and is checked against those instead.
+const BLUE = [0x2e, 0x67, 0xb2]
 const LIGHT_GREEN = [0x8f, 0xd0, 0x96]
 const BLACK = [0x00, 0x00, 0x00]
 const WHITE = [0xff, 0xff, 0xff]
 const SIDES: [string, number[]][] = TOUCH
   ? [['black', BLACK], ['white', WHITE]]
-  : [['green-dark', GREEN_DARK], ['light green', LIGHT_GREEN]]
+  : [['blue', BLUE], ['light green', LIGHT_GREEN]]
 const DUOTONE_TOL = 32
 // A dimmed dot composites `opacity(a)` of the duotone over the real backdrop; at a=0.2
 // that is a faint ghost, so only a few levels of change are expected.
@@ -144,7 +144,7 @@ async function main() {
   // backdrop-filter). Report but do not assert: a 0.2-alpha ink dot over the dark cliff
   // IS all but invisible there — that weakness is the reason the duotone path exists.
   const duotone = !!chain && chain !== 'none'
-  if (!duotone) console.log('no duotone chain — flat green-dark fallback, measuring only')
+  if (!duotone) console.log('no duotone chain — flat blue fallback, measuring only')
 
   dots.forEach((d, i) => {
     const px = withDots[i]
@@ -177,7 +177,7 @@ async function main() {
   }
   console.log(duotone
     ? `\n✓ indicator paints a ${SIDES.map(s => s[0]).join('/')} duotone at every distance`
-    : '\n✓ fallback indicator is flat green-dark (no duotone technique here)')
+    : '\n✓ fallback indicator is flat blue (no duotone technique here)')
 }
 
 main().catch(err => {

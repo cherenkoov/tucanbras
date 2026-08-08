@@ -9,7 +9,7 @@ import { getStubTutors } from '@/lib/tutorStubs'
 import { uiLabels } from '@/lib/uiLabels'
 import AdaptiveText, { AdaptiveDuotoneFilter } from '@/components/ui/AdaptiveText'
 import { useAdaptiveDuotone, dimDuotone } from '@/components/ui/useAdaptiveDuotone'
-import { GREEN } from '@/components/ui/useAdaptiveText'
+import { BLUE } from '@/components/ui/useAdaptiveText'
 
 // ─── Tutor card ──────────────────────────────────────────────────────────────
 
@@ -343,10 +343,10 @@ const DOTS = [
 
 // The indicator adapts to the background like the headings do (AdaptiveText): where the
 // engine can sample the live collage, each dot goes TRANSPARENT and its own rounded box
-// carries the duotone backdrop — green-dark over a light scene, light green over a dark
+// carries the duotone backdrop — blue over a light scene, light green over a dark
 // one. Without it the dots are flat and simply vanish where Tutors crosses the dark
 // cliff/ocean. No mask is involved (the border-radius clips the backdrop), so this path
-// also runs on iOS, unlike the image-masked adaptive icons. Fallback = flat green-dark.
+// also runs on iOS, unlike the image-masked adaptive icons. Fallback = flat blue.
 // NB touch: the built-in chain (BACKDROP_BUILTIN) can only land on near-white/near-black,
 // so phones still get a grayscale dot — no built-in filter sequence can tint one side.
 function CarouselDots({
@@ -362,7 +362,7 @@ function CarouselDots({
 
   return (
     <>
-      {/* Only needed for the desktop chain (url(#adaptive-duotone-green) — BACKDROP and
+      {/* Only needed for the desktop chain (url(#adaptive-duotone-blue) — BACKDROP and
           this default must name the SAME palette); out of flow, no gap in the row below. */}
       {duotone?.includes('url(') && <AdaptiveDuotoneFilter />}
 
@@ -387,7 +387,7 @@ function CarouselDots({
                 // Duotone mode paints the sampled backdrop, so the box must be empty and
                 // the dim has to live INSIDE the chain — element opacity would regroup the
                 // box and leak past the radius clip (see dimDuotone).
-                backgroundColor: duotone ? 'transparent' : GREEN,
+                backgroundColor: duotone ? 'transparent' : BLUE,
                 opacity:         duotone ? 1 : dot.alpha,
                 backdropFilter:       chain,
                 WebkitBackdropFilter: chain,

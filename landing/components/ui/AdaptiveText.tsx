@@ -8,7 +8,7 @@ import {
   type ReactNode,
   type Ref,
 } from 'react'
-import { useAdaptiveText, GREEN, LIGHT_GREEN, INK, CREAM } from './useAdaptiveText'
+import { useAdaptiveText, GREEN, LIGHT_GREEN, BLUE, INK, CREAM } from './useAdaptiveText'
 
 // Shared duotone filter applied to the adaptive text (backdrop or static-fill):
 // grayscale → BINARY threshold at luminance 0.70 → map onto the palette's two-colour
@@ -20,12 +20,15 @@ import { useAdaptiveText, GREEN, LIGHT_GREEN, INK, CREAM } from './useAdaptiveTe
 const THRESHOLD_STEP = '0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1'
 
 // The duotone palettes. `dark` is what a DARK background resolves to, `light` what a
-// LIGHT one does (the tableValues order the filter reads). GREEN is the default and runs
-// green↔green — the whole adaptive system is brand-coloured, no ink and no cream in it.
-// Its light side is --color-green-DARK, not the brand green: #8fd096 over the collage's
-// pale stretches is only 1.75:1 against cream, #6a906e is 3.53:1.
-//   green-dark  #6a906e = rgb(.415686 .564706 .431373)   ← light background
+// LIGHT one does (the tableValues order the filter reads). BLUE is the default and runs
+// green↔blue — the whole adaptive system is brand-coloured, no ink and no cream in it.
+// Its light side is --color-blue, which reads best of the three over the collage's pale
+// stretches (5.49:1 against cream, vs green-dark's 3.53:1 and brand green's 1.75:1).
+//   blue        #2e67b2 = rgb(.180392 .403922 .698039)   ← light background
 //   green       #8fd096 = rgb(.560784 .815686 .588235)   ← dark background
+// `green` is the previous default, green↔green (light side --color-green-DARK, not the
+// brand green — that one is only 1.75:1 over cream), kept as the second brand pair.
+//   green-dark  #6a906e = rgb(.415686 .564706 .431373)   ← light background
 // `ink` is the legacy near-black/cream pair, kept as an escape hatch — nothing uses it.
 export const DUOTONES = {
   ink: {
@@ -40,10 +43,16 @@ export const DUOTONES = {
     light: ['0.415686', '0.564706', '0.431373'], lightColor: GREEN,
     cssVar: '--color-green-dark',
   },
+  blue: {
+    id: 'adaptive-duotone-blue',
+    dark:  ['0.560784', '0.815686', '0.588235'], darkColor:  LIGHT_GREEN,
+    light: ['0.180392', '0.403922', '0.698039'], lightColor: BLUE,
+    cssVar: '--color-blue',
+  },
 } as const
 export type Duotone = keyof typeof DUOTONES
 
-export const DEFAULT_DUOTONE: Duotone = 'green'
+export const DEFAULT_DUOTONE: Duotone = 'blue'
 
 export function AdaptiveDuotoneFilter({ duotone = DEFAULT_DUOTONE }: { duotone?: Duotone }) {
   const { id, dark, light } = DUOTONES[duotone]

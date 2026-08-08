@@ -83,9 +83,18 @@ async function main() {
   const page = await context.newPage()
 
   try {
-    await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 180_000 })
+    await page.goto(URL, { waitUntil: 'networkidle', timeout: 180_000 })
     await page.waitForSelector('#header', { timeout: 60_000 })
-    await page.waitForTimeout(2000)
+    // Wait for HYDRATION, not just markup — `bloomOnTap` is a React handler, and
+    // until React has attached, a tap fires DOM listeners and nothing else. The old
+    // `domcontentloaded` + fixed 2s was enough while the dev server was quick; once
+    // the CMS went slow this guard failed about two runs in three, and every failure
+    // read as "the bloom does not work" rather than "the page was not ready yet".
+    await page.waitForFunction(
+      () => Object.keys(document).some(k => k.startsWith('__reactContainer')),
+      null, { timeout: 120_000 },
+    )
+    await page.waitForTimeout(2500)
 
     // ── 1. At rest the phone's header carries no transform ───────────────────
     check(await maxScale(page, `${BAR} img`) < GREW, 'the plate\'s plants are already bloomed at rest')

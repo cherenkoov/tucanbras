@@ -31,6 +31,7 @@
  */
 import { chromium, type Page } from 'playwright'
 import { DECOR_BLEED } from '../components/ui/pillArt'
+import { BLADES, DOTS_SWAY_MS } from '../components/ui/dotsSway'
 
 const URL      = process.argv[2] ?? 'http://localhost:3000/ru'
 const VIEWPORT = { width: 1440, height: 900 }
@@ -87,6 +88,20 @@ function scaleOf(m: Motion | null): number {
   return parseFloat(m.scale)
 }
 
+/**
+ * A layer's `rotate`, in degrees. 'none' is 0 — and it is also exactly what a blade
+ * reads when the keyframe never ran, which is why the sway is asserted by magnitude
+ * rather than by the attribute being present.
+ */
+async function rotateOf(page: Page, selector: string): Promise<number> {
+  return page.evaluate((sel) => {
+    const el = document.querySelector(sel)
+    if (!el) return 0
+    const r = getComputedStyle(el).rotate
+    return !r || r === 'none' ? 0 : parseFloat(r)
+  }, selector)
+}
+
 /** Longest entry in a computed `transition-duration` list, in ms. */
 function slowestMs(m: Motion | null): number {
   if (!m) return 0
@@ -105,9 +120,19 @@ async function main() {
   const page = await context.newPage()
 
   try {
-    await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 180_000 })
+    await page.goto(URL, { waitUntil: 'networkidle', timeout: 180_000 })
     await page.waitForSelector('#header', { timeout: 60_000 })
-    await page.waitForTimeout(2000)
+    // Wait for HYDRATION, not just for markup. React attaches `__reactContainer$…`
+    // to the element it hydrates; until that lands the header is inert — a click
+    // fires DOM listeners and no React handler at all, which part 7 would read as a
+    // dead animation rather than as a page that was not ready. `domcontentloaded`
+    // plus a fixed 2s was enough while the dev server was quick and is not once the
+    // CMS is slow, and the failure looked exactly like a broken gesture.
+    await page.waitForFunction(
+      () => Object.keys(document).some(k => k.startsWith('__reactContainer')),
+      null, { timeout: 120_000 },
+    )
+    await page.waitForTimeout(2500)
 
     const decor = (pill: string, side: string) => `${pill} img[src*="-${side}"]`
 
@@ -167,14 +192,16 @@ async function main() {
     await hover(page, DOTS)
     check(scaleOf(await motionOf(page, 'img[src*="3dots-mid"]')) > GREW,
       'the ⋮ plants do not grow — they are decorations like every other in the bar')
-    check(scaleOf(await motionOf(page, 'img[src*="3dots-glyph"]')) < GREW,
-      'the ⋮ dots zoom — they are the button\'s label and must only ride it')
+    for (const b of BLADES) {
+      check(scaleOf(await motionOf(page, `img[src*="3dots-${b.part}"]`)) < GREW,
+        `the ⋮ ${b.part} zooms — the marks are the button's label and must only ride it`)
+    }
     // …and their satellites go the other way, giving room to the bloom behind them.
     check(scaleOf(await motionOf(page, 'img[src*="3dots-dots"]')) < 0.99,
       'the ⋮ dot satellites do not shrink as the bouquet grows')
     check(await lastPaintedIs(page, DOTS, '3dots-dots'),
       'the ⋮ dots are not the last thing drawn — the bouquet is painted over them')
-    console.log('✓ ⋮: the plants grow, the dots hold, their satellites give way')
+    console.log('✓ ⋮: the plants grow, the marks hold, their satellites give way')
 
     await hover(page, LANG)
     check(scaleOf(await motionOf(page, `${LANG} img[src*="bloom-"]`)) > GREW,
@@ -218,6 +245,55 @@ async function main() {
         `${name}: layer is ${b.h.toFixed(2)}× its box tall, not ${DECOR_BLEED}×`)
     }
     console.log(`✓ ${boxes.length} decoration layers measure ${DECOR_BLEED}× their own box`)
+
+    // ── 7. A click puts a gust through the ⋮'s marks ─────────────────────────
+    // The one gesture in this bar that is neither hover nor scroll. The three marks
+    // are leaves, each rooted at its own lower tip, and a click leans them — in
+    // DIFFERENT directions, which is the whole difference between grass moving and a
+    // signpost swinging on one hinge. Three ways it dies quietly:
+    //
+    //   • the keyframe never runs. `swayDots` arms `[data-swaying]` on the button and
+    //     the rule is `[data-swaying] .dot-blade`; a renamed class, a custom property
+    //     that never reaches the layer, or a blade that lost `.dot-blade` all leave
+    //     `rotate: none` behind with nothing failing anywhere.
+    //   • they lean together. One shared keyframe drives all three, so a `--sway` that
+    //     is not reaching them individually reads as the old rigid glyph — which is
+    //     precisely what splitting the sheet was for.
+    //   • it never lets go. A timer that does not fire leaves the marks mid-lean, and
+    //     a crooked ⋮ reads as art exported wrong rather than as a stuck animation.
+    //
+    // Sampled at PEAK_MS: past the last blade's start (120ms) and near the first
+    // keyframe stop for all three, so every one is at or approaching its own peak.
+    const PEAK_MS = 250
+    const blade = (part: string) => `img[src*="3dots-${part}"]`
+
+    await rest(page)
+    for (const b of BLADES) {
+      check(Math.abs(await rotateOf(page, blade(b.part))) < 0.5,
+        `the ⋮ ${b.part} is leaning at rest — the sway is stuck on`)
+    }
+
+    await page.locator(DOTS).click()
+    await page.waitForTimeout(PEAK_MS)
+    const leans = await Promise.all(BLADES.map(b => rotateOf(page, blade(b.part))))
+
+    BLADES.forEach((b, i) => {
+      check(Math.abs(leans[i]) > 0.5,
+        `the ⋮ ${b.part} does not lean on a click — the gust never reaches it ` +
+        `(rotate: ${leans[i]}deg)`)
+    })
+    check(new Set(leans.map(d => Math.sign(d))).size > 1,
+      'every ⋮ mark leans the same way — they are moving as one glyph, not as grass ' +
+      `(${leans.map(d => d.toFixed(1)).join(', ')})`)
+    console.log(`✓ ⋮ click: the marks lean apart (${leans.map(d => d.toFixed(1) + '°').join(', ')})`)
+
+    // Past the last blade's start plus a whole pass, plus room for the timer.
+    await page.waitForTimeout(DOTS_SWAY_MS + 600)
+    for (const b of BLADES) {
+      check(Math.abs(await rotateOf(page, blade(b.part))) < 0.5,
+        `the ⋮ ${b.part} stays leant — the sway never expires`)
+    }
+    console.log('✓ ⋮ click: the gust passes and the marks come back to rest')
 
     // NOTE: the plate's cover plants are deliberately NOT asserted here yet. They
     // are mid-refactor off `group-hover` and onto `coverHot` — the pointer being

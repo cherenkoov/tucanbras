@@ -216,18 +216,22 @@ backdrop-эталона, см. useAdaptiveText.ts; парные скриншот
 живой фон через `backdrop-filter`, как на десктопе — реконструкция композита больше не
 основной путь.
 
-**Палитра (2026-08-01): дуотон зелёный↔зелёный, ink и cream из системы убраны.**
+**Палитра (2026-08-08): дуотон зелёный↔синий на ВСЕЙ системе, ink и cream убраны.**
 `DUOTONES` в `AdaptiveText.tsx` — единый источник: тёмный фон → `--color-green` #8fd096,
-светлый фон → `--color-green-dark` #6a906e (брендовый #8fd096 на светлом даёт всего
-1.75:1 против cream, тёмно-зелёный — 3.53:1). Дефолт `DEFAULT_DUOTONE = 'green'` у
-`AdaptiveText`, `AdaptiveIcon` и `AdaptiveDuotoneFilter`; точки карусели (`BACKDROP`)
-тоже на нём. Палитра `ink` (ink↔cream) осталась как escape hatch — её никто не использует.
+светлый фон → `--color-blue` #2e67b2 (5.49:1 против cream — лучший из брендовых на светлых
+участках коллажа: тёмно-зелёный даёт 3.53:1, брендовый #8fd096 всего 1.75:1). Дефолт
+`DEFAULT_DUOTONE = 'blue'` у `AdaptiveText`, `AdaptiveIcon` и `AdaptiveDuotoneFilter`;
+точки карусели (`BACKDROP` в `useAdaptiveText.ts`) называют тот же id ВРУЧНУЮ — менять
+эти два места вместе. Ни одна секция палитру не переопределяет: и логотип в хедере, и VS
+в Comparison, и все заголовки идут дефолтом. Палитры `green` (зелёный↔зелёный, прежний
+дефолт до 2026-08-08) и `ink` (ink↔cream) остались как escape hatch — их никто не
+использует.
 **Следствие для тача:** built-in-цепочка физически не умеет выдать цвет (все её фильтры
 действуют одинаково на все каналы → результат всегда серый), поэтому НЕ-дефолтная палитра
 уводит тач на static-fill (гейт `filterId === INK_FILTER_ID`). Сейчас это значит: весь
 адаптивный ТЕКСТ на телефонах идёт по static-fill, а точки карусели остаются
 почти-белыми/почти-чёрными. Проверено только в Chromium, на реальном iPhone — нет.
-- **Десктоп** (движки, парсящие url(#) reference-filter): `backdrop-filter: url(#adaptive-duotone-green)`
+- **Десктоп** (движки, парсящие url(#) reference-filter): `backdrop-filter: url(#adaptive-duotone-blue)`
   — точные цвета палитры, отражает движущиеся спрайты.
 - **Тач/iOS** (WebKit рендерит url(#) в backdrop-filter как НИЧТО): встроенная цепочка
   `grayscale(1) brightness(0.714) contrast(50) invert(1)` (`BACKDROP_BUILTIN`) — та же
@@ -243,7 +247,7 @@ backdrop-эталона, см. useAdaptiveText.ts; парные скриншот
   `npm run gen:front-fill`, `?filldebug=1` — отладка стека): включается при reduced-motion,
   `?staticfill` (A/B), движках без backdrop-filter, и для ИКОНОК на тач (image-mask+backdrop
   на iOS не рендерится → ручной `staticFill`, применён: VS в Comparison). Имена значений
-  `staticFill` исторические: `"ink"` = светлая сторона палитры (тёмно-зелёный),
+  `staticFill` исторические: `"ink"` = светлая сторона палитры (сейчас синий),
   `"cream"` = тёмная (светло-зелёный) — красится `lightColor`/`darkColor` из `DUOTONES`.
 - **ФИГУРЫ, а не глифы** (`useAdaptiveDuotone` + `dimDuotone`, применено: точки-индикатор
   карусели Tutors): у сплошной формы маской служит её собственный border-box (радиус

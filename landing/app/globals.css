@@ -440,6 +440,42 @@ html.noanim * {
   transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* ── The ⋮ blades ──────────────────────────────────────────────────────────────
+   The three marks on the ⋮ button are leaf shapes, and a click sends a gust
+   through them: each one is rooted at its own lower tip and its top swings, so
+   the stack reads as grass rather than as one rigid glyph tipping over. Roots,
+   amplitudes and the stagger are measured off the art in components/ui/dotsSway.ts
+   and arrive here as custom properties on each layer.
+
+   `rotate`, not `transform`: they are separate properties, so the button's own
+   press (`scale`, from ICON_PILL_HOVER) rides on top of this instead of being
+   cancelled by it — the same split the tucan's bob relies on above.
+
+   One damped pass per click: out hard, back past centre, a smaller answering
+   swing, settle. `both` holds the 0° of the last frame so nothing snaps when the
+   attribute comes off. */
+.dot-blade {
+  transform-origin: var(--blade-origin, 50% 100%);
+}
+
+@keyframes dots-sway {
+  0%   { rotate: 0deg; }
+  22%  { rotate: var(--sway, 0deg); }
+  50%  { rotate: calc(var(--sway, 0deg) * -0.55); }
+  74%  { rotate: calc(var(--sway, 0deg) *  0.25); }
+  100% { rotate: 0deg; }
+}
+
+/* Armed by `swayDots` on the button itself (components/ui/dotsSway.ts) and taken
+   off on a timer — the same deal `bloomOnTap` makes for the pills' plants. */
+[data-swaying] .dot-blade {
+  animation: dots-sway 760ms cubic-bezier(0.22, 1, 0.36, 1) var(--blade-delay, 0ms) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-swaying] .dot-blade { animation: none; }
+}
+
 
 /* ── Header logotype responsive text ─────────────────────────────────────── */
 
@@ -506,4 +542,5 @@ html.noanim * {
     .about-calendar { display: block; grid-column: 3; grid-row: 1 / 3; }
   }
 }
+
 

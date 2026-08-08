@@ -69,14 +69,17 @@ const ART_Z = 10
 const FRONT_FILL_SRC = '/SVG/background/collage-front-fill.svg'
 // The duotone filter's output colors (see AdaptiveDuotoneFilter) — what the staticFill
 // manual override paints directly. Each palette maps a DARK background to one and a LIGHT
-// background to the other. The `green` palette (default) runs green↔green:
-//   GREEN       = --color-green-dark, the LIGHT-background side. Not the brand --color-green:
-//                 that one is 1.75:1 over the collage's pale stretches, this is 3.53:1.
+// background to the other. The `blue` palette (default) runs green↔blue:
+//   BLUE        = --color-blue, the LIGHT-background side. 5.49:1 over cream — the best
+//                 of the brand colours over the collage's pale stretches.
 //   LIGHT_GREEN = --color-green, the DARK-background side (replaced cream).
+// GREEN = --color-green-dark, the light side of the `green` palette (green↔green, the
+// previous default): 3.53:1 over cream, where the brand green is only 1.75:1.
 // INK / CREAM belong to the legacy `ink` palette, kept as the near-black escape hatch.
 export const INK = '#323031'
 export const GREEN = '#6a906e'
 export const LIGHT_GREEN = '#8fd096'
+export const BLUE = '#2e67b2'
 export const CREAM = '#fffce5'
 
 // The `ink` palette's filter. Named for the built-in gate below, which is the only thing
@@ -84,8 +87,9 @@ export const CREAM = '#fffce5'
 const INK_FILTER_ID = 'adaptive-duotone'
 // Exported for SHAPE consumers (useAdaptiveDuotone): a solid box whose own border-radius
 // is the mask needs the chain and the probes, but none of the glyph machinery below.
-// Runs the default green palette, same as the text — the shapes are part of that system.
-export const BACKDROP = 'grayscale(1) url(#adaptive-duotone-green)'
+// Runs the DEFAULT palette, same as the text — the shapes are part of that system, so this
+// id and AdaptiveText's DEFAULT_DUOTONE must be changed together.
+export const BACKDROP = 'grayscale(1) url(#adaptive-duotone-blue)'
 // Built-in-function equivalent of #adaptive-duotone for the LIVE backdrop on WebKit,
 // which parses-then-drops url(#) reference filters inside backdrop-filter (the reason the
 // static path exists). Reproduces the same map WITHOUT an SVG filter, so iOS renders it:

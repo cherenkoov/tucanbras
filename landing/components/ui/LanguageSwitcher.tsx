@@ -5,8 +5,10 @@ import { usePathname } from 'next/navigation'
 import { useState, useRef, useEffect } from 'react'
 import type { Locale } from '@/types'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
-import { DECK, dealDelay, ICON_PILL_HOVER, PILL_H, PITCH, TIGHT_PITCH } from '@/components/ui/deckMotion'
+import { DECK, dealDelay, ICON_PILL_HOVER, PILL_H, PITCH, TIGHT_PITCH, PRESS_MS } from '@/components/ui/deckMotion'
 import { DECOR_LAYER } from '@/components/ui/pillArt'
+import { coverGlass, GLASS_TRANSITION } from '@/components/ui/coverGlass'
+import { bloomOnTap } from '@/components/ui/tapBloom'
 
 type LocaleEntry = { code: Locale; label: string; flagUrl: string; bloomUrl: string }
 
@@ -19,13 +21,15 @@ const LOCALES: LocaleEntry[] = [
 ]
 
 // Square flag pill — same height as desktop NavPill (PILL_H), but 1:1 aspect.
-// Cream ground, so the plant behind the flag is the only dark thing on it.
+// Cream ground, so the plant behind the flag is the only dark thing on it — and
+// that ground is the header plate's own glass (coverGlass), applied as classes:
+// frosted at rest, filling in to solid cream with the plate. What stays here is
+// everything the glass does not own.
 const PILL_STYLE = {
-  backgroundColor: 'var(--color-cream)',
-  color:           'var(--color-ink)',
-  boxShadow:       'var(--shadow-round-inner)',
-  width:           `${PILL_H}px`,
-  height:          `${PILL_H}px`,
+  color:      'var(--color-ink)',
+  boxShadow:  'var(--shadow-round-inner)',
+  width:      `${PILL_H}px`,
+  height:     `${PILL_H}px`,
 } as const
 
 // Where card `i` comes to rest, per direction. Sideways the cards are a row of
@@ -38,18 +42,21 @@ const restingOffset = (i: number, row: boolean) =>
 /**
  * Transition for a card being dealt out of / tucked back into the deck.
  *
- * Two properties on two clocks. `transform` carries the deal — travel plus the
+ * Three properties on three clocks. `transform` carries the deal — travel plus the
  * tuck scale — on the deck's timing. The hover press writes the separate `scale`
  * property, and it needs its own entry: on the deal's 340ms + stagger the press
  * would trail the cursor by a third of a second, and omitting it from the list
- * altogether (not the same as leaving it at the default) makes it snap.
+ * altogether (not the same as leaving it at the default) makes it snap. The ground
+ * filling in is slower than either (GLASS_TRANSITION) — it is the plate's gesture,
+ * not the deck's, and it is on the list for the same reason the press is: a
+ * hand-written `transition` replaces the property list wholesale.
  */
 function dealMotion(i: number, count: number, open: boolean, still: boolean) {
   const ms   = still ? 0 : (open ? DECK.OUT_MS : DECK.IN_MS)
   const wait = still ? 0 : dealDelay(i, count, open)
   const ease = open ? DECK.OUT_EASE : DECK.IN_EASE
   return {
-    transition: `transform ${ms}ms ${ease} ${wait}ms, scale ${still ? 0 : 120}ms ease-out`,
+    transition: `transform ${ms}ms ${ease} ${wait}ms, scale ${still ? 0 : 120}ms ease-out, ${GLASS_TRANSITION}`,
   } as const
 }
 
@@ -103,11 +110,17 @@ interface Props {
   variant?: 'pill' | 'text'
   /** down — dropdown below button (desktop) | row — inline row to the left (mobile) */
   dropDirection?: 'down' | 'row'
+  /**
+   * The header plate is hot (`coverHot`) → the pills standing on it fill in with it.
+   * Off the plate — the footer's text variant, or any caller that doesn't say — the
+   * pills simply answer to their own hover and touch. See coverGlass.
+   */
+  hot?: boolean
   className?: string
   style?: React.CSSProperties
 }
 
-export default function LanguageSwitcher({ variant = 'text', dropDirection = 'down', className, style }: Props) {
+export default function LanguageSwitcher({ variant = 'text', dropDirection = 'down', hot = false, className, style }: Props) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const reduceMotion = useReducedMotion()
@@ -162,7 +175,8 @@ export default function LanguageSwitcher({ variant = 'text', dropDirection = 'do
               aria-hidden={!open}
               tabIndex={open ? 0 : -1}
               onClick={() => setOpen(false)}
-              className={`${PILL_GROUP} absolute left-0 top-0 flex items-center justify-center overflow-hidden rounded-btn font-semibold whitespace-nowrap select-none cursor-pointer ${ICON_PILL_HOVER}`}
+              onPointerDown={bloomOnTap}
+              className={`${PILL_GROUP} absolute left-0 top-0 flex items-center justify-center overflow-hidden rounded-btn font-semibold whitespace-nowrap select-none cursor-pointer ${coverGlass(hot)} ${ICON_PILL_HOVER}`}
               style={{
                 ...PILL_STYLE,
                 boxShadow: 'var(--shadow-pill-float)',
@@ -185,8 +199,13 @@ export default function LanguageSwitcher({ variant = 'text', dropDirection = 'do
         <button
           type="button"
           onClick={() => setOpen(v => !v)}
-          className={`${PILL_GROUP} relative flex items-center justify-center overflow-hidden rounded-btn font-semibold whitespace-nowrap select-none shrink-0 cursor-pointer transition-transform duration-[240ms] ease-out ${ICON_PILL_HOVER}`}
-          style={{ ...PILL_STYLE, zIndex: others.length + 1 }}
+          onPointerDown={bloomOnTap}
+          className={`${PILL_GROUP} relative flex items-center justify-center overflow-hidden rounded-btn font-semibold whitespace-nowrap select-none shrink-0 cursor-pointer ${coverGlass(hot)} ${ICON_PILL_HOVER}`}
+          // Hand-written for the reason GLASS_TRANSITION gives: `transition-colors`
+          // and `transition-transform` set the same property, so as classes one of
+          // the two would win outright and the other would silently stop. `scale` is
+          // what Tailwind v4's `scale-*` writes — not `transform`.
+          style={{ ...PILL_STYLE, zIndex: others.length + 1, transition: `scale ${PRESS_MS}ms ease-out, ${GLASS_TRANSITION}` }}
           aria-haspopup="listbox"
           aria-expanded={open}
         >

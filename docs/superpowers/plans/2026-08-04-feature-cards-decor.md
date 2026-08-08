@@ -48,19 +48,18 @@ Four files' box proportions do not match their design instances, so their angle 
 **Interfaces:**
 - Produces: printed per-card `{ file, right, top, w, rotate, flipY }` in `cqh`, plus an IoU score. Task 3 copies these verbatim.
 
-- [ ] **Step 1: Fetch the five isolated Figma renders**
+- [ ] **Step 1: Check the five reference renders are in place**
 
-Use the Figma MCP `get_screenshot` tool, once per node, with `contentsOnly: true` and `maxDimension: 2048`, then `curl` each returned URL into `landing/scripts/.figma-ref/`. The node ids and the file each one is fitted against:
+They have already been fetched into `landing/scripts/.figma-ref/` — `learn.png`, `practice.png`, `train.png`, `help.png`, `plan.png`, from Figma nodes `3479:44720`, `3476:44596`, `3479:44896`, `3479:44998`, `3479:44971` respectively. Confirm all five exist and are non-empty; do not re-fetch (the URLs are one-shot).
 
-| ref filename | Figma node | local file |
-|---|---|---|
-| `learn.png` | `3479:44720` | `Flower 3 - Become.svg` |
-| `practice.png` | `3476:44596` | `Flower 1 - Tutors.svg` |
-| `train.png` | `3479:44896` | `Flower 2 - CELPE-BRAS.svg` |
-| `help.png` | `3479:44998` | `Flower 1 - Cover.svg` |
-| `plan.png` | `3479:44971` | `Flower - Plans.svg` |
+**What they are, precisely:** each is the flower **as its card crops it** — not the instance's full box. Figma renders the node clipped by the card's `overflow-clip`, so `learn.png` is 238 × 158 for a flower whose own box is 425.864 × 443.369. Each image therefore maps to a known rectangle of the card:
 
-The URLs expire in ~7 days; that is fine, this script is a one-off.
+```
+rx0 = max(0, left)      ry0 = max(0, top)
+rx1 = min(599, left+w)  ry1 = min(157.2, top+h)
+```
+
+That is *better* reference than an isolated render — it is the end-to-end result the implementation has to reproduce — but it means the ink centre cannot be read off it, and the fit below is built around that.
 
 - [ ] **Step 2: Ignore the reference dir**
 
@@ -75,13 +74,20 @@ scripts/.figma-ref/
 
 Create `landing/scripts/fitFeaturePlants.mjs`:
 
+The angle is the only free parameter. Everything else is pinned by the node: once the file is turned to the right angle, its ink box must fill the instance's box `(left, top, w, h)` exactly, which fixes the scale and the position. So the sweep rotates, scales the ink to that box, composes the result into the card, crops to the reference's rectangle, and scores against it — an end-to-end comparison against the picture the card is supposed to show.
+
 ```js
 // Four of the five feature-card plants were exported from instances that already
-// carried a rotation, so the file's box has nothing to do with the design's. This
-// fits each file to its own isolated Figma render — sweeping angles, scoring
-// silhouette overlap — and prints what featureCardPlants.ts should hold.
+// carried a rotation, so the file's box has nothing to do with the design's, and
+// neither its angle nor its width can be read off the node.
 //
-//   npm run build is irrelevant here; this is pure raster work.
+// The angle is the ONLY unknown. The node pins everything else: at the right angle
+// the file's ink box has to fill the instance's box exactly, which fixes the scale
+// and the placement. So this sweeps the angle, and for each candidate composes the
+// whole thing the way the browser will — rotate, scale the ink onto the instance's
+// box, crop to the card — and scores that against Figma's own render of the card.
+// A number that survives that is a number that draws the design.
+//
 //   node scripts/fitFeaturePlants.mjs
 import sharp from 'sharp'
 import path from 'node:path'
@@ -93,7 +99,6 @@ const CARD_H = 157.2
 // The raster the local file is measured in. Big enough that a 0.1° step moves
 // pixels, small enough that a 360-step sweep stays quick.
 const RASTER = 900
-const MASK = 256   // both silhouettes are normalised to this box before scoring
 
 // The instance's axis-aligned box in CARD coordinates, straight from the node.
 const PLANTS = [
@@ -104,11 +109,15 @@ const PLANTS = [
   { key: 'plan',     file: 'Flower - Plans.svg',         left: 237.72,  top:  -47.03,  w: 476.426, h: 549.326 },
 ]
 
-/** Alpha-trimmed ink box of a PNG buffer, plus the canvas it was found in. */
-async function ink(buf) {
+/** Alpha plane of a PNG, plus its dimensions. */
+async function alpha(buf) {
   const img = sharp(buf).ensureAlpha()
   const { width, height } = await img.metadata()
-  const a = await img.extractChannel('alpha').raw().toBuffer()
+  return { width, height, a: await img.extractChannel('alpha').raw().toBuffer() }
+}
+
+/** Ink box of an alpha plane. */
+function inkBox({ width, height, a }) {
   let x0 = width, y0 = height, x1 = -1, y1 = -1
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
@@ -120,30 +129,7 @@ async function ink(buf) {
     }
   }
   if (x1 < 0) throw new Error('empty raster — nothing to fit')
-  return { canvas: { width, height }, box: { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 } }
-}
-
-/** A silhouette normalised into MASK×MASK, as a Uint8Array of 0/1. */
-async function silhouette(buf, box) {
-  const a = await sharp(buf)
-    .ensureAlpha()
-    .extract({ left: box.x, top: box.y, width: box.w, height: box.h })
-    .resize(MASK, MASK, { fit: 'fill' })
-    .extractChannel('alpha')
-    .raw()
-    .toBuffer()
-  const out = new Uint8Array(MASK * MASK)
-  for (let i = 0; i < out.length; i++) out[i] = a[i] >= 128 ? 1 : 0
-  return out
-}
-
-function iou(a, b) {
-  let inter = 0, union = 0
-  for (let i = 0; i < a.length; i++) {
-    if (a[i] & b[i]) inter++
-    if (a[i] | b[i]) union++
-  }
-  return union ? inter / union : 0
+  return { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 }
 }
 
 /** The local file rasterised, optionally flipped, then rotated — flip first, as the CSS does. */
@@ -154,49 +140,71 @@ function raster(file, flipY, deg) {
 }
 
 async function fit(plant) {
-  const refBuf = await sharp(path.join(REF, `${plant.key}.png`)).png().toBuffer()
-  const ref = await ink(refBuf)
-  const refSil = await silhouette(refBuf, ref.box)
+  const ref = await alpha(await sharp(path.join(REF, `${plant.key}.png`)).png().toBuffer())
+  // The rectangle of the card this reference covers, and its scale.
+  const rx0 = Math.max(0, plant.left)
+  const ry0 = Math.max(0, plant.top)
+  const ppu = ref.width / (Math.min(CARD_W, plant.left + plant.w) - rx0)
 
   let best = null
+  const score = async (flipY, deg) => {
+    const rot = await alpha(await raster(plant.file, flipY, deg))
+    const box = inkBox(rot)
+    // Uniform scale only: the ink has to fill the instance's box on BOTH axes, so a
+    // candidate whose aspect is wrong is the wrong angle, not a stretch to apply.
+    const s = plant.w / box.w
+    const aspectErr = Math.abs(box.h * s - plant.h) / plant.h
+    if (aspectErr > 0.06) return null
+
+    const f = s * ppu // raster px → reference px
+    const rw = Math.max(1, Math.round(rot.width * f))
+    const rh = Math.max(1, Math.round(rot.height * f))
+    const scaled = await alpha(await sharp(await raster(plant.file, flipY, deg))
+      .resize(rw, rh, { fit: 'fill' }).png().toBuffer())
+    const offX = (plant.left - rx0) * ppu - box.x * f
+    const offY = (plant.top - ry0) * ppu - box.y * f
+
+    let inter = 0, union = 0
+    for (let y = 0; y < ref.height; y++) {
+      for (let x = 0; x < ref.width; x++) {
+        const sx = Math.round(x - offX)
+        const sy = Math.round(y - offY)
+        const mine = (sx >= 0 && sy >= 0 && sx < scaled.width && sy < scaled.height
+          && scaled.a[sy * scaled.width + sx] >= 128) ? 1 : 0
+        const theirs = ref.a[y * ref.width + x] >= 128 ? 1 : 0
+        if (mine & theirs) inter++
+        if (mine | theirs) union++
+      }
+    }
+    return { iou: union ? inter / union : 0, deg, flipY, s, box, canvas: { w: rot.width, h: rot.height } }
+  }
+
   for (const flipY of [false, true]) {
     for (let deg = 0; deg < 360; deg += 2) {
-      const buf = await raster(plant.file, flipY, deg)
-      const got = await ink(buf)
-      const score = iou(refSil, await silhouette(buf, got.box))
-      if (!best || score > best.score) best = { score, deg, flipY, buf, got }
+      const r = await score(flipY, deg)
+      if (r && (!best || r.iou > best.iou)) best = r
     }
   }
+  if (!best) throw new Error(`${plant.key}: no angle produced the instance's proportions`)
   for (let deg = best.deg - 2; deg <= best.deg + 2; deg += 0.1) {
-    const buf = await raster(plant.file, best.flipY, deg)
-    const got = await ink(buf)
-    const score = iou(refSil, await silhouette(buf, got.box))
-    if (score > best.score) best = { score, deg: Math.round(deg * 100) / 100, flipY: best.flipY, buf, got }
+    const r = await score(best.flipY, Math.round(deg * 100) / 100)
+    if (r && r.iou > best.iou) best = r
   }
 
-  // Card units per reference pixel, then per local raster pixel.
-  const k = plant.w / ref.canvas.width
-  const s = (ref.box.w * k) / best.got.box.w
-
-  // Where the image's own centre lands. Rotation is about that centre, so the offset
-  // from the ink's centre to the canvas centre is the only term that carries it.
-  const inkCentre = {
-    x: plant.left + (ref.box.x + ref.box.w / 2) * k,
-    y: plant.top + (ref.box.y + ref.box.h / 2) * k,
+  // The image's own centre, which is what the CSS places. Rotation is about it, so
+  // the offset from the ink's box to the raster's centre is the only term that carries.
+  const centre = {
+    x: plant.left + (best.canvas.w / 2 - best.box.x) * best.s,
+    y: plant.top + (best.canvas.h / 2 - best.box.y) * best.s,
   }
-  const drift = {
-    x: (best.got.box.x + best.got.box.w / 2 - best.got.canvas.width / 2) * s,
-    y: (best.got.box.y + best.got.box.h / 2 - best.got.canvas.height / 2) * s,
-  }
-  const centre = { x: inkCentre.x - drift.x, y: inkCentre.y - drift.y }
 
   return {
     key: plant.key,
     file: plant.file,
-    iou: best.score,
+    iou: best.iou,
     right: +(((CARD_W - centre.x) / CARD_H) * 100).toFixed(3),
     top: +((centre.y / CARD_H) * 100).toFixed(3),
-    w: +(((RASTER * s) / CARD_H) * 100).toFixed(3),
+    w: +(((RASTER * best.s) / CARD_H) * 100).toFixed(3),
     rotate: best.deg,
     flipY: best.flipY,
   }
@@ -214,11 +222,15 @@ for (const plant of PLANTS) {
 - [ ] **Step 4: Run the fit**
 
 Run: `node scripts/fitFeaturePlants.mjs`
-Expected: five lines, every one `✓` (IoU ≥ 0.97).
 
-`train` is the control — its file already matches the design's proportions (0.591 vs 0.594), so it must come back near `rotate: 29.21` with `flipY: false`. If it does not, the script is wrong, not the art. Fix the script before trusting the other four.
+**`train` is the control.** Its file already matches the design's proportions (0.591 against 0.594 drawn), so it must come back near `rotate: 29.21` with `flipY: false`. If it does not, the script is wrong and the other four numbers are worthless — fix the script first.
 
-A row below 0.97 means the local file is **not** the drawing the design uses. Stop and re-export that asset from Figma; do not nudge the number by eye.
+The control also sets the bar. This IoU is an end-to-end silhouette comparison between two different renderers at roughly one pixel per card unit, so a correct fit scores high but not 1.0; `train`'s score is what "correct" looks like for this art at this resolution. Read the five rows against it:
+
+- **≥ 0.92, and within ~0.03 of the control** — good, take the numbers.
+- **materially below the control** — that plant is not fitted. Re-run its refine sweep at a 0.05° step first; if it does not move, the local file is not the drawing the design uses. Stop and re-export the asset from Figma. Do not nudge the number by eye.
+
+Report all five scores in the task report whatever they are — the controller adjudicates a borderline row, the implementer does not.
 
 - [ ] **Step 5: Sanity-check the centres against the spec**
 

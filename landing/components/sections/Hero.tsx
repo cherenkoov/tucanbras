@@ -3,7 +3,7 @@ import type { HeroProps } from "@/types";
 import FreeLessonButton from '@/components/ui/FreeLessonButton'
 import { HERO_ANTHURIUM, decorSrc } from '@/components/ui/heroPlants'
 
-export default function Hero({ data }: HeroProps) {
+export default function Hero({ data, trialPlanName, locale }: HeroProps) {
   return (
     <section id="hero" className="w-full pt-[80px] scroll-mt-[136px] lg:scroll-mt-[164px]">
 
@@ -38,7 +38,8 @@ export default function Hero({ data }: HeroProps) {
             scale off one number. `relative` is what the flower hangs off. */}
         <div className="relative mt-[24px] @container">
           <FreeLessonButton
-            ctaText={data.ctaText}
+            planName={trialPlanName}
+            locale={locale}
             className="btn-press-hero peer inline-flex w-full items-center justify-center rounded-[26px] font-bold text-ink bg-yellow whitespace-nowrap cursor-pointer"
             style={{
               fontSize: 'clamp(20px, 2.5vw, 48px)',

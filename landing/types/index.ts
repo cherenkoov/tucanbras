@@ -32,12 +32,14 @@ export interface HeaderProps {
 export interface HeroData {
   heading1: string;
   heading2: string;
-  ctaText: string;
+  ctaText: string; // из Notion, БОЛЬШЕ НЕ РЕНДЕРИТСЯ — надпись CTA владеет uiLabels.tryFree
   ctaHref: string; // TODO: TBD
 }
 
 export interface HeroProps {
   data: HeroData;
+  trialPlanName: string; // «Пробный урок» — тариф, который CTA кладёт в футер-форму
+  locale: Locale;
 }
 
 // ─── 3. About ────────────────────────────────────────────────────────────────

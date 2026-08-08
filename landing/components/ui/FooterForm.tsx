@@ -241,10 +241,13 @@ export default function FooterForm({ formTitle, tutors, planNames, planPrices, l
     ? (selectedPlan === null ? L.needBoth : L.needTutor)
     : L.needPlan
 
-  // Prefill from the Plans section CTA (plan-selected) — unchanged behaviour.
+  // Prefill from the Plans section CTA (plan-selected). detail = plan name, or null
+  // when a CTA drops its own choice (the hero button toggles off) — same null-means-
+  // nothing convention `tutor-selected` already uses below.
   useEffect(() => {
     const onPlan = (e: Event) => {
-      const plan = (e as CustomEvent<string>).detail
+      const plan = (e as CustomEvent<string | null>).detail
+      if (plan === null) { setSelectedPlan(null); return }
       if (planNames.includes(plan)) setSelectedPlan(plan)
     }
     window.addEventListener('plan-selected', onPlan)

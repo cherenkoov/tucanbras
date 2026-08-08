@@ -89,6 +89,13 @@ export default async function Home({
 
   const displayTutors = tutors.length > 0 ? tutors : getStubTutors(locale)
 
+  // Одна строка на два места: первый пункт списка тарифов в футер-форме И значение,
+  // которым hero-CTA стреляет в `plan-selected`. FooterForm принимает событие только
+  // если тариф есть в `planNames`, так что разъехаться им нельзя. Пофайловый фолбэк —
+  // как у секций выше: частичный ответ Notion обнулил бы поле, и кнопка выбирала бы
+  // пустой тариф.
+  const trialPlanName = footerData.formFreeLessonOption || snap.footer.formFreeLessonOption
+
   const navLinks = NAV_HREFS.map((href, i) => ({
     href,
     // "Туторы"/"Tutors"/"Tutores" is owned in code (uiLabels), not Notion — the
@@ -121,7 +128,7 @@ export default async function Home({
       <main className="relative z-10 px-[var(--page-x)] pt-[128px] lg:pt-[156px] pb-[24px] lg:pb-[60px]" style={{ overflowX: 'clip' }}>
         <div className="max-w-[1440px] mx-auto flex flex-col gap-[80px]">
           {/* 2 */}
-          <Hero data={heroData} />
+          <Hero data={heroData} trialPlanName={trialPlanName} locale={locale} />
           {/* 3 */}
           <About data={aboutData} />
           {/* 4 */}
@@ -137,9 +144,9 @@ export default async function Home({
           <Footer
               data={footerData}
               tutors={displayTutors}
-              planNames={[footerData.formFreeLessonOption, ...plansData.plans.map(p => p.name)]}
+              planNames={[trialPlanName, ...plansData.plans.map(p => p.name)]}
               planPrices={{
-                [footerData.formFreeLessonOption]: FREE_LABEL[locale],
+                [trialPlanName]: FREE_LABEL[locale],
                 ...Object.fromEntries(plansData.plans.map(p => [p.name, p.priceAmount + p.pricePeriod])),
               }}
               locale={locale}

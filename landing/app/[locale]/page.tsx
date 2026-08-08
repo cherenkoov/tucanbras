@@ -18,6 +18,7 @@ import NotionRetry from '@/components/ui/NotionRetry'
 import ScrollDebug from '@/components/ui/ScrollDebug'
 import { getTutors } from '@/lib/tutors'
 import { getStubTutors } from '@/lib/tutorStubs'
+import { uiLabels } from '@/lib/uiLabels'
 import {
   getHeaderData,
   getHeroData,
@@ -27,7 +28,6 @@ import {
   getCelpeBrasData,
   getPlansData,
   getFooterData,
-  getFreeLessonModalData,
 } from '@/lib/notion'
 import snapshot from '@/lib/notionSnapshot.json'
 
@@ -63,11 +63,10 @@ export default async function Home({
     getTutorsData(locale),
   ])
 
-  const [notionCelpeBras, notionPlans, notionFooter, notionModal, tutors] = await Promise.all([
+  const [notionCelpeBras, notionPlans, notionFooter, tutors] = await Promise.all([
     getCelpeBrasData(locale),
     getPlansData(locale),
     getFooterData(locale),
-    getFreeLessonModalData(locale),
     getTutors(locale).catch(() => []),
   ])
 
@@ -87,13 +86,22 @@ export default async function Home({
   const celpeBrasData = notionFailed || !notionCelpeBras.heading  ? snap.celpeBras  : notionCelpeBras
   const plansData     = notionFailed || notionPlans.plans.length === 0 ? snap.plans : notionPlans
   const footerData    = notionFailed ? snap.footer : notionFooter
-  const modalStrings  = notionFailed || !notionModal.title        ? snap.modal      : notionModal
 
   const displayTutors = tutors.length > 0 ? tutors : getStubTutors(locale)
 
+  // Одна строка на два места: первый пункт списка тарифов в футер-форме И значение,
+  // которым hero-CTA стреляет в `plan-selected`. FooterForm принимает событие только
+  // если тариф есть в `planNames`, так что разъехаться им нельзя. Пофайловый фолбэк —
+  // как у секций выше: частичный ответ Notion обнулил бы поле, и кнопка выбирала бы
+  // пустой тариф.
+  const trialPlanName = footerData.formFreeLessonOption || snap.footer.formFreeLessonOption
+
   const navLinks = NAV_HREFS.map((href, i) => ({
     href,
-    label: headerData[`nav${i}` as keyof typeof headerData],
+    // "Туторы"/"Tutors"/"Tutores" is owned in code (uiLabels), not Notion — the
+    // rebrand must render regardless of the live Notion "Репетиторы". Other nav
+    // labels still come from the CMS until the Phase 2 content migration.
+    label: href === '#tutors' ? uiLabels(locale).tutorsNav : headerData[`nav${i}` as keyof typeof headerData],
   }))
 
   return (
@@ -107,32 +115,38 @@ export default async function Home({
       {/* Background — absolute, anchored to page top */}
       <BackgroundCanvas />
       {/* 1 — fixed, вне main (не блюрится), z-50 */}
-      <div className="fixed top-0 left-0 right-0 z-50 pt-[43px] px-s600 lg:px-[var(--spacing-landing-x)]">
-        <Header navLinks={navLinks} />
+      {/* Desktop sits 17px lower than mobile: the header drum parks a pill one 60px
+          step ABOVE its slot, and 43px + the nav's own 12px left it 5px short — the
+          pill's rounded top got shaved by the viewport edge. 60px puts it at y=12.
+          Every anchor offset below is derived from this: main's padding, HEADER_OFFSET
+          in useActiveSection, scrollToElement's headerOffset, and each section's
+          lg:scroll-mt. Move one, move all six. */}
+      <div className="fixed top-0 left-0 right-0 z-50 pt-[43px] lg:pt-[60px] px-s600 lg:px-[var(--spacing-landing-x)]">
+        <Header navLinks={navLinks} locale={locale} />
       </div>
       {/* Компенсация высоты fixed хедера */}
-      <main className="relative z-10 px-[var(--page-x)] pt-[128px] lg:pt-[139px] pb-[24px] lg:pb-[60px]" style={{ overflowX: 'clip' }}>
+      <main className="relative z-10 px-[var(--page-x)] pt-[128px] lg:pt-[156px] pb-[24px] lg:pb-[60px]" style={{ overflowX: 'clip' }}>
         <div className="max-w-[1440px] mx-auto flex flex-col gap-[80px]">
           {/* 2 */}
-          <Hero data={heroData} />
+          <Hero data={heroData} trialPlanName={trialPlanName} locale={locale} />
           {/* 3 */}
           <About data={aboutData} />
           {/* 4 */}
           <Comparison data={comparisonData} />
           {/* 5 */}
-          <Tutors data={tutorsData} tutors={tutors} locale={locale} modalStrings={modalStrings} />
+          <Tutors data={tutorsData} tutors={tutors} locale={locale} />
           {/* WaveSection moved into BackgroundCanvas (behind the beach) — no longer a section */}
           {/* 6 */}
           <CelpeBras data={celpeBrasData} locale={locale} />
           {/* 7 */}
-          <Plans data={plansData} />
+          <Plans data={plansData} locale={locale} />
           {/* 8 */}
           <Footer
               data={footerData}
               tutors={displayTutors}
-              planNames={[footerData.formFreeLessonOption, ...plansData.plans.map(p => p.name)]}
+              planNames={[trialPlanName, ...plansData.plans.map(p => p.name)]}
               planPrices={{
-                [footerData.formFreeLessonOption]: FREE_LABEL[locale],
+                [trialPlanName]: FREE_LABEL[locale],
                 ...Object.fromEntries(plansData.plans.map(p => [p.name, p.priceAmount + p.pricePeriod])),
               }}
               locale={locale}

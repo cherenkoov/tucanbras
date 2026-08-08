@@ -48,15 +48,31 @@ export default function AnchorScrollHandler() {
 // ─── Scroll speed ────────────────────────────────────────────────────────────
 // Adjust SCROLL_DURATION_MS to control scroll speed (milliseconds).
 // Lower = faster, higher = slower. Typical range: 400–1200.
-const SCROLL_DURATION_MS = 2800
+// Exported because the header pins its active pill for exactly this long while
+// the tween runs — two copies of the number would drift apart.
+export const SCROLL_DURATION_MS = 2800
 
 const easeInOutCubic = (t: number) =>
   t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
 
+/**
+ * How much of the top of the viewport the fixed header owns.
+ *
+ * Desktop hangs 17px lower than mobile — see the wrapper padding in page.tsx, which
+ * is where the pair comes from (43/60px padding + 85/96px bar + 8px air). The same
+ * two numbers are what every section's `scroll-mt-[136px] lg:scroll-mt-[164px]`
+ * spells, and what useActiveSection's probe allows for; exported so the landing
+ * carries ONE copy of them instead of three that drift apart.
+ *
+ * Call it at the moment you need it, never at module scope: it reads innerWidth.
+ */
+export function headerOffset(): number {
+  return window.innerWidth >= 1024 ? 164 : 136
+}
+
 export function scrollToElement(el: HTMLElement) {
-  const headerOffset = window.innerWidth >= 1024 ? 147 : 136
   const start  = window.scrollY
-  const target = el.getBoundingClientRect().top + window.scrollY - headerOffset
+  const target = el.getBoundingClientRect().top + window.scrollY - headerOffset()
   const distance = target - start
   if (Math.abs(distance) < 1) return
 

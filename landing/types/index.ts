@@ -18,25 +18,28 @@ export interface NavLink {
 
 export interface HeaderData {
   nav0: string; // "О тукане"
-  nav1: string; // "Репетиторы"
+  nav1: string; // "Туторы"
   nav2: string; // "CELPE-BRAS"
   nav3: string; // "Тарифы"
 }
 
 export interface HeaderProps {
   navLinks: NavLink[];
+  locale: Locale;
 }
 
 // ─── 2. Hero ─────────────────────────────────────────────────────────────────
 export interface HeroData {
   heading1: string;
   heading2: string;
-  ctaText: string;
+  ctaText: string; // из Notion, БОЛЬШЕ НЕ РЕНДЕРИТСЯ — надпись CTA владеет uiLabels.tryFree
   ctaHref: string; // TODO: TBD
 }
 
 export interface HeroProps {
   data: HeroData;
+  trialPlanName: string; // «Пробный урок» — тариф, который CTA кладёт в футер-форму
+  locale: Locale;
 }
 
 // ─── 3. About ────────────────────────────────────────────────────────────────
@@ -134,6 +137,7 @@ export interface PlansData {
 
 export interface PlansProps {
   data: PlansData;
+  locale: Locale;
 }
 
 // ─── 8. Footer ───────────────────────────────────────────────────────────────

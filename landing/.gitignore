@@ -43,3 +43,6 @@ next-env.d.ts
 # throwaway verification screenshot output + scratch probes
 /verify-staticfill*/
 scripts/_*.ts
+
+# one-off Figma renders used by scripts/fitFeaturePlants.mjs
+scripts/.figma-ref/

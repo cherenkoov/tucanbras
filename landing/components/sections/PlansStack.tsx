@@ -7,7 +7,7 @@ import { PlanSection, CONFIG } from '@/components/sections/PlanSectionShared'
 const SCROLL_PER_CARD = 400
 const PIN_TOP = 168
 
-export default function PlansStack({ plans }: { plans: PlanCard[] }) {
+export default function PlansStack({ plans, locale }: { plans: PlanCard[]; locale: string }) {
   const [activeIndex, setActiveIndex] = useState(0)
   const [cardHeight, setCardHeight]   = useState(600)
 
@@ -73,7 +73,7 @@ export default function PlansStack({ plans }: { plans: PlanCard[] }) {
                   pointerEvents: isActive ? 'auto' : 'none',
                 }}
               >
-                <PlanSection plan={plan} index={i} />
+                <PlanSection plan={plan} index={i} locale={locale} />
               </div>
             )
           })}

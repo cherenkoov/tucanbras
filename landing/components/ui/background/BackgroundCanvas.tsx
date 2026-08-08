@@ -82,15 +82,34 @@ function stripSpinnerClip(groupSvg: string): string {
 // Groups lifted into a front layer ABOVE the train (z:7), in back→front paint order.
 // Train overlay is z:6; everything left in mainSvg (z:2) stays below it. Net result:
 // train runs UNDER {Slope 1, Mount Forest 1, Peak, Mount forest 2, Slope 2, Group 1,
-// Mount forest 4, City, bushes, Big tree} and OVER {Mount forest 3, road group, Slope 3, …}.
+// City, bushes, Big tree} and OVER {Mount forest 3, road group, Slope 3, …}.
+// `Mount forest 4` is NOT here — it gets its own lower layer so the figures walk in
+// front of it (see MF4_Z).
 const FRONT_IDS = [
   'Slope 1', 'Mount Forest 1', 'Peak', 'Mount forest 2', 'Slope 2', 'Group 1',
-  'Mount forest 4', 'City', // bush 03 is inside City; bush 01/02 and Big tree are their own animated layers
+  'City', // bush 03 is inside City; bush 01/02 and Big tree are their own animated layers
   // NOTE: house 1..11 and human 1..4 are all NESTED inside the `City` group. The
   // figures + house 4/6 are pulled OUT of City (below) before City is lifted here,
   // so the remaining houses (1,2,3,5,7,8,9,10,11) ride along into the front layer —
   // which is exactly where the figures must sit behind them.
 ]
+
+// `Mount forest 4` — own layer, BELOW every figure (BLUE z20 is the lowest human z)
+// and below the roads (z15), above the base terrain (mainSvg z10) and the train (z12).
+//
+// It used to ride in the front layer (z50), which put the whole forest band on top of
+// the walking figures: MF4 spans y 619–1160 in canvas units and the human track's upper
+// arc reaches y≈1117, so figures climbing that arc vanished behind the trees. In the
+// authored art MF4 paints right BEFORE `City` — and human 1..4 live inside City — so the
+// figures were always meant to be in front; lifting them out of City is what inverted it.
+//
+// z14 (not z50) is safe because MF4's art barely touches the rest of the front set: a
+// per-pixel probe of the collage puts the overlap at 0 px against Slope 1 / Mount Forest 1 /
+// Peak / Mount forest 2 / Group 1 and 302 px (0.8% of MF4) against Slope 2. What it DOES
+// overlap is below it either way — Mount forest 3 (816 px) and road group (622 px) in
+// mainSvg z10 — and everything the art puts above it keeps a higher z: roads z15,
+// house 4/6 z25, house 5 z35, City + Big tree z50.
+const MF4_Z = 14
 
 // Clouds (Cloud 01–08 minus the absent Cloud 04), in SVG document order so their
 // mutual overlap is preserved. Lifted into their own layer so the mobile descent
@@ -104,6 +123,15 @@ const BG_SHIFT = 'clamp(0px, calc((1024px - 100vw) * 400 / 649), 400px)'
 // KEEP IN SYNC with BG_SHIFT: if you change a number above, mirror it here (negate the
 // factor, flip the clamp bounds) or the clouds will drift instead of staying pinned.
 const BG_SHIFT_NEG = 'clamp(-400px, calc((1024px - 100vw) * -400 / 649), 0px)'
+
+// Дополнительный спуск ВСЕГО фона (px), на всех ширинах. Задаётся тем же способом, что и
+// мобильный спуск: вычитается из sceneLift, то есть статуя стартует на столько ниже линии
+// hero. Через sceneLift, а не отдельным translate, потому что от него уже зависят
+// useBackgroundCoverage (нижняя заливка ужимается ровно на столько же — снизу не появится
+// кремовая щель) и counter-transform облаков. Секции при этом НЕ двигаются.
+// Небо — это сама кремовая страница, облака остаются приколоты к её верху (как и при
+// BG_SHIFT), так что сверху просто открывается ещё столько же неба.
+const BG_DROP_PX = 100
 
 // EXPERIMENT: stretch the whole background vertically on phones only, so more art
 // covers the tall phone viewport. Origin 'top' keeps the statue/hero anchor in place —
@@ -285,6 +313,7 @@ export default function BackgroundCanvas() {
   const [beachVB, setBeachVB] = useState<{ x: number; y: number; w: number; h: number } | null>(null)
   const [spinnerLayers, setSpinnerLayers] = useState<(SpriteLayer | null)[]>([])
   const [cityLayer, setCityLayer] = useState<SpriteLayer | null>(null)
+  const [mf4Layer, setMf4Layer] = useState<SpriteLayer | null>(null)
   const [cloudsSvg, setCloudsSvg] = useState('')
   const [frontSvg, setFrontSvg] = useState('')
   const [bigTreeLayer, setBigTreeLayer] = useState<SpriteLayer | null>(null)
@@ -338,7 +367,7 @@ export default function BackgroundCanvas() {
           // each overlay carries a TIGHT viewBox instead of the whole 800×2047 canvas
           // (page-sized surfaces were the mobile crash — see backgroundTier).
           const boxes = measureGroupBoxes(raw, [
-            'Background city', 'house 6', 'house 4', 'house 5',
+            'Background city', 'Mount forest 4', 'house 6', 'house 4', 'house 5',
             'road 1', 'road 2', 'road 3',
             ...HUMANS.map(h => h.id),
             'bush 02', 'bush 01', 'Big tree',
@@ -365,6 +394,13 @@ export default function BackgroundCanvas() {
           // house 1..11 and human 1..4 are nested inside the `City` group). They must
           // leave City before it is lifted to the front layer below.
           s = city.rest
+
+          // Mount forest 4 — own layer at MF4_Z, i.e. BEHIND the figures (see MF4_Z).
+          // If the box can't be measured it stays inside mainSvg (z10): still behind the
+          // figures, only losing its edge over Mount forest 3 / road group.
+          const mf4 = takeLayer(s, 'Mount forest 4')
+          setMf4Layer(mf4.layer)
+          s = mf4.rest
 
           // house 6, house 4, house 5 — own layers; figures interleave by their
           // per-figure z (see the JSX z map).
@@ -619,7 +655,8 @@ export default function BackgroundCanvas() {
     return () => ro.disconnect()
   }, [svgReady, updatePeakPos])
 
-  // Lift the WHOLE scene up so the statue's head starts on the hero's top line.
+  // Lift the WHOLE scene up so the statue's head starts on the hero's top line —
+  // minus BG_DROP_PX, which parks the head (and with it весь фон) that many px lower.
   // Closed-form + parallax-safe: the container's untransformed top is the page top (0),
   // so at scroll 0 the head sits at (BG_SHIFT − lift) + headWithinContainer. The head
   // offset within the container and the hero's document-top are both transform- and
@@ -637,7 +674,7 @@ export default function BackgroundCanvas() {
     const bgShiftPx = Math.min(400, Math.max(0, (1024 - vw) * 400 / 649)) // === BG_SHIFT
     const headWithinContainer = christRect.top - containerRect.top
     const heroTopDoc = heroRect.top + window.scrollY
-    const lift = bgShiftPx + headWithinContainer - heroTopDoc
+    const lift = bgShiftPx + headWithinContainer - heroTopDoc - BG_DROP_PX
     setSceneLift(prev => (Math.abs(prev - lift) < 0.5 ? prev : lift))
   }, [])
 
@@ -732,7 +769,7 @@ export default function BackgroundCanvas() {
   // Host renders only once some layer exists (all states start null), which also keeps
   // SSR/hydration consistent — the server can't know the tier.
   const hasCollageSprites =
-    !!(cityLayer || roadsLayer || house4Layer || house5Layer || house6Layer ||
+    !!(cityLayer || mf4Layer || roadsLayer || house4Layer || house5Layer || house6Layer ||
       bush01Layer || bush02Layer || bigTreeLayer) || humanLayers.some(Boolean)
   // On the narrow crop the Cabine (useCarAnimation) and the walking figures are cropped
   // fully off-screen, so their animations are gated off there. Read each render; the
@@ -1040,6 +1077,15 @@ export default function BackgroundCanvas() {
             <div
               style={boundedLayerStyle(cityLayer.box, COLLAGE_VB)}
               dangerouslySetInnerHTML={{ __html: cityLayer.svg }}
+            />
+          )}
+          {/* Mount forest 4 — z14: above the base terrain (z10) and the train (z12),
+              below the roads (z15) and every figure, so the walkers pass IN FRONT of
+              the forest band the way the authored paint order had them. See MF4_Z. */}
+          {mf4Layer && (
+            <div
+              style={{ ...boundedLayerStyle(mf4Layer.box, COLLAGE_VB), zIndex: MF4_Z }}
+              dangerouslySetInnerHTML={{ __html: mf4Layer.svg }}
             />
           )}
           {/* roads — pulled out of City so the figures walk ON them (z15, above base

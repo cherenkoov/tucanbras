@@ -3,6 +3,7 @@ import Image from 'next/image'
 import { CelpeBrasProps } from '@/types'
 import type { Locale } from '@/types'
 import CelpeBrasStack from '@/components/sections/CelpeBrasStack'
+import CelpeBrasCta from '@/components/sections/CelpeBrasCta'
 import AdaptiveText from '@/components/ui/AdaptiveText'
 
 // ─── Passport intro (asset + localized quote — NOT from Notion) ──────────────
@@ -69,7 +70,7 @@ export default function CelpeBras({ data, locale }: CelpeBrasProps) {
   const [c0, c1, c2, c3, c4] = data.cards
 
   return (
-    <section id="celpe-bras" className="w-full scroll-mt-[136px] lg:scroll-mt-[147px]">
+    <section id="celpe-bras" className="w-full scroll-mt-[136px] lg:scroll-mt-[164px]">
       <div className="flex flex-col gap-[64px] max-w-[1720px] mx-auto w-full">
 
         {/* ══ Heading ══ */}
@@ -160,7 +161,11 @@ export default function CelpeBras({ data, locale }: CelpeBrasProps) {
         </div>
 
         {/* ══ Footer: hint + CTA ══ */}
-        <div className="flex flex-col gap-[42px] w-full lg:w-[485px]">
+        {/* Ширина = ОДНА колонка сетки фич: ряд — это два flex-1 с gap 20px, значит
+            колонка = (100% − 20px)/2. Литералом, а не токеном: тот же 20px стоит в
+            `gap-[20px]` рядов ниже, и Tailwind генерирует правило только для того, что
+            может прочитать буквально. Гард — verify:celpe-cta (сверяет с карточкой). */}
+        <div className="flex flex-col gap-[42px] w-full lg:w-[calc((100%_-_20px)/2)]">
 
           {/* Hint text */}
           <AdaptiveText
@@ -171,24 +176,10 @@ export default function CelpeBras({ data, locale }: CelpeBrasProps) {
             {data.hintText}
           </AdaptiveText>
 
-          {/* CTA button */}
-          <a
-            href="#footer"
-            className="btn-press flex items-center justify-center rounded-[66px] px-[44px] w-full lg:w-auto lg:min-w-[400px]"
-            style={{
-              backgroundColor: '#8fd096',
-              paddingTop: '44px',
-              paddingBottom: '44px',
-              boxShadow: 'var(--shadow-btn)',
-            }}
-          >
-            <span
-              className="font-accent text-center text-ink"
-              style={{ fontSize: 'clamp(24px, 1.2vw, 36px)', lineHeight: '1', letterSpacing: '0.1em' }}
-            >
-              {data.ctaText}
-            </span>
-          </a>
+          {/* CTA button — тёмная кнопка с цветами, растущими на наведение по таймингу
+              хедера. Отдельный клиентский компонент: фолбэк на тач — обработчик
+              pointerdown, а секция остаётся серверной. */}
+          <CelpeBrasCta ctaText={data.ctaText} />
         </div>
 
       </div>

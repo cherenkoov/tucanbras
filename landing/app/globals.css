@@ -90,6 +90,7 @@
   --color-blue:           #2e67b2; /* Surface/Secondary */
   --color-yellow:         #ffd376; /* Surface/Tertiary, hero CTA */
   --color-orange:         #f26434; /* Surface/Quinary, accent CTA */
+  --color-light-orange:   #f69137; /* Surface/Light Orange */
 
   /* ── Fonts ── */
   --font-sans:   'Involve',   system-ui, sans-serif; /* body + nav + headings */
@@ -363,13 +364,16 @@ html.noanim * {
 .btn-press-tighten:hover  { transform: scale(1.04) translateY(calc(2cqw - 2%)); border-radius: 26px; }
 .btn-press-tighten:active { transform: scale(0.95); }
 
-/* Header desktop plate fill — frosted (translucent) → solid when the bar is hovered. */
+/* Header desktop plate fill — frosted (translucent) → solid when the pointer is
+   on the plate. Driven by `.cover-hot` on the bar, not by `:hover`: the drum's
+   column is a DOM child of the bar but hangs BELOW it, so a descendant hover lit
+   the plate up from a pill floating over the page. See Header.tsx. */
 .header-plate {
   fill-opacity: 0.72;
   transition: fill-opacity 600ms ease;
 }
 
-.group:hover .header-plate {
+.cover-hot .header-plate {
   fill-opacity: 1;
 }
 
@@ -390,6 +394,86 @@ html.noanim * {
   .btn-press-hero:hover { border-radius: 26px; }
   /* Keep the pill — don't tighten the corners on hover. */
   .btn-press-tighten:hover { border-radius: 66px; }
+}
+
+
+/* ── Header decorative art — hover zoom ──────────────────────────────────── */
+
+/* Shared timing for every painted SVG in the header: the botanical baked into
+   each pill's art sheet, the flag on the language pill, the cover plants on the
+   bar plate, and the tucan. Only the timing lives here — WHICH hover turns a
+   given piece on is decided in the markup with Tailwind named groups, so a
+   pill's plant answers to its own pill while the plate's plants answer to the
+   whole bar.
+
+   The zoom is written to `scale`, not `transform`. The pills already animate
+   `transform` (the drum's translate, the press scale) and the tucan's head runs
+   a `transform` rotate keyframe — the separate `scale` property composes with
+   those instead of overwriting them, and it is the property Tailwind v4's
+   `scale-*` utilities write to. Which is why the transition has to name it:
+   transitioning `transform` alone would make the zoom snap.
+
+   Easing is the switcher's Figma curve, "ease in 90 / ease out 30". */
+.art-zoom {
+  transition-property: transform, translate, scale, rotate;
+  transition-duration: 500ms;
+  transition-timing-function: cubic-bezier(0.9, 0, 0.7, 1);
+}
+
+/* The decorations painted INSIDE a pill are a different case: they belong to the
+   button, not to the bar's ambience, so they start on the same gesture the press
+   does — but they do NOT finish with it. The button snaps to size in its own
+   120ms; the plants keep travelling for another ~220ms and settle soft, so the
+   button lands first and the greenery drifts into place behind it. That trailing
+   overlap is the whole effect: matched timings read as one rigid object being
+   scaled, while the lag reads as something growing.
+
+   340ms on cubic-bezier(0.22, 1, 0.36, 1) — the deck's own OUT curve (see
+   deckMotion), so the header has one vocabulary for "long glide, settles soft".
+   Symmetric on the way out: the plants take just as long to relax back.
+
+   `translate` is in the list because the outer pair also converges on the pill's
+   centre; see PILL_DECOR in Header.tsx. */
+.pill-decor {
+  transition-property: transform, translate, scale, rotate;
+  transition-duration: 340ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ── The ⋮ blades ──────────────────────────────────────────────────────────────
+   The three marks on the ⋮ button are leaf shapes, and a click sends a gust
+   through them: each one is rooted at its own lower tip and its top swings, so
+   the stack reads as grass rather than as one rigid glyph tipping over. Roots,
+   amplitudes and the stagger are measured off the art in components/ui/dotsSway.ts
+   and arrive here as custom properties on each layer.
+
+   `rotate`, not `transform`: they are separate properties, so the button's own
+   press (`scale`, from ICON_PILL_HOVER) rides on top of this instead of being
+   cancelled by it — the same split the tucan's bob relies on above.
+
+   One damped pass per click: out hard, back past centre, a smaller answering
+   swing, settle. `both` holds the 0° of the last frame so nothing snaps when the
+   attribute comes off. */
+.dot-blade {
+  transform-origin: var(--blade-origin, 50% 100%);
+}
+
+@keyframes dots-sway {
+  0%   { rotate: 0deg; }
+  22%  { rotate: var(--sway, 0deg); }
+  50%  { rotate: calc(var(--sway, 0deg) * -0.55); }
+  74%  { rotate: calc(var(--sway, 0deg) *  0.25); }
+  100% { rotate: 0deg; }
+}
+
+/* Armed by `swayDots` on the button itself (components/ui/dotsSway.ts) and taken
+   off on a timer — the same deal `bloomOnTap` makes for the pills' plants. */
+[data-swaying] .dot-blade {
+  animation: dots-sway 760ms cubic-bezier(0.22, 1, 0.36, 1) var(--blade-delay, 0ms) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-swaying] .dot-blade { animation: none; }
 }
 
 
@@ -458,4 +542,5 @@ html.noanim * {
     .about-calendar { display: block; grid-column: 3; grid-row: 1 / 3; }
   }
 }
+
 

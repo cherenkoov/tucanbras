@@ -2,6 +2,8 @@ import type { FooterProps, FaqGroup as FaqGroupType } from '@/types'
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
 import FooterForm from '@/components/ui/FooterForm'
 import FooterTucan from '@/components/ui/FooterTucan'
+import ComingSoonHint from '@/components/ui/ComingSoonHint'
+import { uiLabels } from '@/lib/uiLabels'
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
 const IMG_LOGO      = '/SVG/footer/TUCANBRAS.svg'
@@ -10,6 +12,12 @@ const IMG_SOCIAL_IG = '/SVG/footer/instagram.svg'
 const IMG_SOCIAL_YT = '/SVG/footer/youtube.svg'
 // Arrow icon (bxs:up-arrow). Base state = up, closed accordion = rotate-180 (down).
 const ICON_ARROW    = '/SVG/footer/arrow.svg'
+
+// Live social URLs, keyed by socialLinks label. Anything not listed here renders
+// as an inactive (dimmed, non-clickable) icon until its channel goes live.
+const SOCIAL_URLS: Record<string, string> = {
+  Telegram: 'https://t.me/tucanBRAS',
+}
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -63,8 +71,9 @@ function FaqAccordion({ group }: { group: FaqGroupType }) {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function Footer({ data, tutors, planNames, planPrices, locale }: FooterProps) {
+  const comingSoon = uiLabels(locale).comingSoon
   return (
-    <footer id="footer" className="w-full scroll-mt-[136px] lg:scroll-mt-[147px]">
+    <footer id="footer" className="w-full scroll-mt-[136px] lg:scroll-mt-[164px]">
       {/* ══ Outer container — transparent (green plate removed), keeps the 12px gutter ══ */}
       <div
         className="relative isolate flex flex-col max-w-[1720px] mx-auto w-full rounded-[38px] p-[12px]"
@@ -73,19 +82,13 @@ export default function Footer({ data, tutors, planNames, planPrices, locale }: 
         {/* ══ Form row ══ */}
         <div className="relative pb-[12px] flex flex-col lg:flex-row gap-[12px]">
 
-          {/* Form: 60% on desktop, full width on mobile */}
-          <div className="lg:flex-[6] min-w-0">
+          {/* Form: 60% on desktop, full width on mobile.
+              z-[3]: the open tutor/plan dropdowns hang below the form and must paint
+              over the footer content card (z-[2]) instead of behind it. Equal z to the
+              tucan head, which is later in the DOM → head still wins over the form. */}
+          <div className="relative z-[3] lg:flex-[6] min-w-0">
             <FooterForm
               formTitle={data.formTitle}
-              formNamePlaceholder={data.formNamePlaceholder}
-              formTutorPlaceholder={data.formTutorPlaceholder}
-              formPlanPlaceholder={data.formPlanPlaceholder}
-              formTelegramPlaceholder={data.formTelegramPlaceholder}
-              formEmailPlaceholder={data.formEmailPlaceholder}
-              formContactError={data.formContactError}
-              formEmailError={data.formEmailError}
-              formErrorMsg={data.formErrorMsg}
-              formSubmitText={data.formSubmitText}
               tutors={tutors}
               planNames={planNames}
               planPrices={planPrices}
@@ -160,37 +163,86 @@ export default function Footer({ data, tutors, planNames, planPrices, locale }: 
                 {data.legalTitle}
               </p>
               <div className="flex flex-col gap-[16px] pl-[8px]">
-                {data.policyLinks.map(link => (
-                  <a
-                    key={link.label}
-                    href={link.href} // TODO: TBD — final URLs
-                    className="font-sans font-bold text-ink underline"
-                    style={{ fontSize: 'clamp(14px, 1.2vw, 18px)', lineHeight: '18px' }}
-                  >
-                    {link.label}
-                  </a>
-                ))}
+                {data.policyLinks.map(link => {
+                  const href = link.href && link.href !== '#' ? link.href : null
+                  const style = { fontSize: 'clamp(14px, 1.2vw, 18px)', lineHeight: '18px' }
+
+                  // No page yet: dimmed to 40%, non-clickable, hint on hover/tap.
+                  if (!href) {
+                    return (
+                      <ComingSoonHint key={link.label} label={comingSoon}>
+                        <span
+                          className="font-sans font-bold text-ink underline opacity-40 pointer-events-none"
+                          style={style}
+                          aria-disabled="true"
+                        >
+                          {link.label}
+                        </span>
+                      </ComingSoonHint>
+                    )
+                  }
+
+                  return (
+                    <a
+                      key={link.label}
+                      href={href}
+                      className="font-sans font-bold text-ink underline"
+                      style={style}
+                    >
+                      {link.label}
+                    </a>
+                  )
+                })}
               </div>
             </div>
 
             {/* Social icons */}
             {data.socialLinks.length > 0 && (
               <div className="flex flex-1 min-w-[276px] gap-[24px] items-center justify-center">
-                {data.socialLinks.map(link => (
-                  <a
-                    key={link.label}
-                    href={link.href} // TODO: TBD — final URLs
-                    className="btn-press flex-1 aspect-square relative"
-                    style={{ maxWidth: '210px' }}
-                    aria-label={link.label}
-                  >
+                {data.socialLinks.map(link => {
+                  const url = SOCIAL_URLS[link.label]
+                  const icon = (
                     <img
                       src={link.iconUrl}
                       alt={link.label}
                       className="w-full h-full object-contain"
                     />
-                  </a>
-                ))}
+                  )
+
+                  // Inactive channel: dimmed to 40%, non-clickable, hint on hover/tap.
+                  if (!url) {
+                    return (
+                      <ComingSoonHint
+                        key={link.label}
+                        label={comingSoon}
+                        className="flex-1 aspect-square flex items-center justify-center"
+                        style={{ maxWidth: '210px' }}
+                      >
+                        <span
+                          className="block w-full h-full opacity-40 pointer-events-none"
+                          aria-label={link.label}
+                          aria-disabled="true"
+                        >
+                          {icon}
+                        </span>
+                      </ComingSoonHint>
+                    )
+                  }
+
+                  return (
+                    <a
+                      key={link.label}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-press flex-1 aspect-square relative"
+                      style={{ maxWidth: '210px' }}
+                      aria-label={link.label}
+                    >
+                      {icon}
+                    </a>
+                  )
+                })}
               </div>
             )}
           </div>

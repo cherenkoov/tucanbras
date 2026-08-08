@@ -2,8 +2,36 @@
 
 import { useEffect, useRef, useState } from 'react'
 import TutorAvatar from '@/components/ui/TutorAvatar'
-import HoneypotField from '@/components/ui/HoneypotField'
+import ComingSoonHint from '@/components/ui/ComingSoonHint'
+import { uiLabels, BECOME_TEACHER_ID } from '@/lib/uiLabels'
 import type { TutorRef } from '@/types'
+
+// The "I want to teach" row is an action, not a person: no avatar (initials of a
+// sentence read as noise), and picking it drops the plan field — see the form below.
+const isTeacherRoute = (t: TutorRef | null) => t?.id === BECOME_TEACHER_ID
+
+// Who that row is for. Same type size as the label it follows — only the opacity
+// sets it back — so the two read as one line. Renders in the list and once selected.
+function ForTutors({ label }: { label: string }) {
+  // nowrap: once the label wraps, the parenthetical has to move as one piece —
+  // "(для" left on the first line reads as a typo, not a hint.
+  return <span className="opacity-80 ml-[0.35em] whitespace-nowrap">{label}</span>
+}
+
+const ARROW_ICON = '/SVG/footer/arrow.svg'
+
+// Chevron: FAQ accordion icon, points down when closed; flips (scaleY) to up when open.
+function Chevron({ open }: { open: boolean }) {
+  return (
+    <img
+      src={ARROW_ICON}
+      alt=""
+      aria-hidden
+      className="shrink-0 w-[20px] h-[16px] object-contain transition-transform"
+      style={{ transform: open ? 'scaleY(-1)' : 'scaleY(1)' }}
+    />
+  )
+}
 
 // ─── Tutor Selector ───────────────────────────────────────────────────────────
 
@@ -11,13 +39,13 @@ function TutorSelector({
   selected,
   allTutors,
   placeholder,
-  hasError,
+  teacherHint,
   onChange,
 }: {
   selected:    TutorRef | null
   allTutors:   TutorRef[]
   placeholder: string
-  hasError:    boolean
+  teacherHint: string
   onChange:    (t: TutorRef) => void
 }) {
   const [open, setOpen] = useState(false)
@@ -37,17 +65,20 @@ function TutorSelector({
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
-        className="btn-press flex items-center gap-[12px] w-full border-2 rounded-[66px] px-[32px] py-[24px]"
-        style={{ borderColor: hasError ? '#f26434' : '#323031' }}
+        className="btn-press flex items-center gap-[12px] w-full border-[3px] border-[#323031] rounded-[66px] px-[32px] py-[24px]"
       >
         {selected ? (
           <>
-            <TutorAvatar tutor={selected} size={40} />
+            {!isTeacherRoute(selected) && <TutorAvatar tutor={selected} size={40} />}
+            {/* Wraps instead of truncating: the teacher row is a whole sentence, and
+                an ellipsis in the middle of it hides the very thing the reader picked.
+                min-w-0 lets the flex child actually shrink to the pill's width. */}
             <span
-              className="font-heading font-normal text-ink flex-1 text-left truncate"
-              style={{ fontSize: 'clamp(20px, 2.5vw, 32px)', lineHeight: '36px' }}
+              className="font-heading font-normal text-ink flex-1 min-w-0 text-left break-words"
+              style={{ fontSize: 'clamp(20px, 2.5vw, 32px)', lineHeight: '1.15' }}
             >
               {selected.fullName}
+              {isTeacherRoute(selected) && <ForTutors label={teacherHint} />}
             </span>
           </>
         ) : (
@@ -58,17 +89,12 @@ function TutorSelector({
             {placeholder}
           </span>
         )}
-        <svg width="32" height="24" viewBox="-8 -4 36 28" fill="none"
-          className="shrink-0 transition-transform"
-          style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}
-        >
-          <path d="M-2 4L10 16L22 4" stroke="#323031" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
+        <Chevron open={open} />
       </button>
 
       {open && allTutors.length > 0 && (
         <div
-          className="absolute left-0 right-0 bg-cream border-2 border-[#323031] rounded-[24px] overflow-auto z-20 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="absolute left-0 right-0 bg-cream border-[3px] border-[#323031] rounded-[32px] overflow-auto z-20 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           style={{ top: 'calc(100% + 8px)', maxHeight: 280, boxShadow: '0 4px 24px rgba(0,0,0,0.14)' }}
         >
           {allTutors.map((tutor, i) => (
@@ -78,15 +104,18 @@ function TutorSelector({
               onClick={() => { onChange(tutor); setOpen(false) }}
               className="flex items-center gap-[12px] w-full px-[32px] py-[20px] hover:bg-[#f5f3d8] transition-colors text-left"
               style={{
-                borderRadius: i === 0 ? '22px 22px 0 0' : i === allTutors.length - 1 ? '0 0 22px 22px' : '0',
+                // Panel radius minus its 3px border — the row has to hug the curve
+                // from the inside, otherwise the corners show a cream wedge.
+                borderRadius: i === 0 ? '29px 29px 0 0' : i === allTutors.length - 1 ? '0 0 29px 29px' : '0',
               }}
             >
-              <TutorAvatar tutor={tutor} size={36} />
+              {!isTeacherRoute(tutor) && <TutorAvatar tutor={tutor} size={36} />}
               <span
-                className="font-heading font-normal text-ink truncate"
+                className="font-heading font-normal text-ink flex-1 min-w-0 break-words"
                 style={{ fontSize: 'clamp(18px, 2vw, 28px)', lineHeight: '1.3' }}
               >
                 {tutor.fullName}
+                {isTeacherRoute(tutor) && <ForTutors label={teacherHint} />}
               </span>
             </button>
           ))}
@@ -103,14 +132,12 @@ function PlanSelector({
   planNames,
   planPrices,
   placeholder,
-  hasError,
   onChange,
 }: {
   selected:    string | null
   planNames:   string[]
   planPrices:  Record<string, string>
   placeholder: string
-  hasError:    boolean
   onChange:    (plan: string) => void
 }) {
   const [open, setOpen] = useState(false)
@@ -130,26 +157,20 @@ function PlanSelector({
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
-        className="btn-press flex items-center gap-[12px] w-full border-2 rounded-[66px] px-[32px] py-[24px]"
-        style={{ borderColor: hasError ? '#f26434' : '#323031' }}
+        className="btn-press flex items-center gap-[12px] w-full border-[3px] border-[#323031] rounded-[66px] px-[32px] py-[24px]"
       >
         <span
-          className={`font-heading font-normal text-ink flex-1 text-left truncate${!selected ? ' opacity-50' : ''}`}
-          style={{ fontSize: 'clamp(20px, 2.5vw, 32px)', lineHeight: '36px' }}
+          className={`font-heading font-normal text-ink flex-1 min-w-0 text-left break-words${!selected ? ' opacity-50' : ''}`}
+          style={{ fontSize: 'clamp(20px, 2.5vw, 32px)', lineHeight: '1.15' }}
         >
           {selected ?? placeholder}
         </span>
-        <svg width="32" height="24" viewBox="-8 -4 36 28" fill="none"
-          className="shrink-0 transition-transform"
-          style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}
-        >
-          <path d="M-2 4L10 16L22 4" stroke="#323031" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
+        <Chevron open={open} />
       </button>
 
       {open && planNames.length > 0 && (
         <div
-          className="absolute left-0 right-0 bg-cream border-2 border-[#323031] rounded-[24px] overflow-auto z-20 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="absolute left-0 right-0 bg-cream border-[3px] border-[#323031] rounded-[32px] overflow-auto z-20 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           style={{ top: 'calc(100% + 8px)', maxHeight: 280, boxShadow: '0 4px 24px rgba(0,0,0,0.14)' }}
         >
           {planNames.map((name, i) => (
@@ -159,11 +180,11 @@ function PlanSelector({
               onClick={() => { onChange(name); setOpen(false) }}
               className="flex items-center justify-between gap-[16px] w-full px-[32px] py-[20px] hover:bg-[#f5f3d8] transition-colors text-left"
               style={{
-                borderRadius: i === 0 ? '22px 22px 0 0' : i === planNames.length - 1 ? '0 0 22px 22px' : '0',
+                borderRadius: i === 0 ? '29px 29px 0 0' : i === planNames.length - 1 ? '0 0 29px 29px' : '0',
               }}
             >
               <span
-                className="font-heading font-normal text-ink flex-1 min-w-0 truncate"
+                className="font-heading font-normal text-ink flex-1 min-w-0 break-words"
                 style={{ fontSize: 'clamp(18px, 2vw, 28px)', lineHeight: '1.3' }}
               >
                 {name}
@@ -187,127 +208,99 @@ function PlanSelector({
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface Props {
-  formTitle:               string
-  formNamePlaceholder:     string
-  formTutorPlaceholder:    string
-  formPlanPlaceholder:     string
-  formTelegramPlaceholder: string
-  formEmailPlaceholder:    string
-  formContactError:        string
-  formEmailError:          string
-  formErrorMsg:            string
-  formSubmitText:          string
-  tutors:                  TutorRef[]
-  planNames:               string[]
-  planPrices:              Record<string, string>
-  locale:                  string
+  formTitle:  string
+  tutors:     TutorRef[]
+  planNames:  string[]
+  planPrices: Record<string, string>
+  locale:     string
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function FooterForm({
-  formTitle,
-  formNamePlaceholder,
-  formTutorPlaceholder,
-  formPlanPlaceholder,
-  formTelegramPlaceholder,
-  formEmailPlaceholder,
-  formContactError,
-  formEmailError,
-  formErrorMsg,
-  formSubmitText,
-  tutors,
-  planNames,
-  planPrices,
-  locale,
-}: Props) {
-  const [name,          setName]          = useState('')
+export default function FooterForm({ formTitle, tutors, planNames, planPrices, locale }: Props) {
+  const L = uiLabels(locale)
+
   const [selectedTutor, setSelectedTutor] = useState<TutorRef | null>(null)
   const [selectedPlan,  setSelectedPlan]  = useState<string | null>(null)
-  const [telegram,      setTelegram]      = useState('')
-  const [email,         setEmail]         = useState('')
-  const [website,       setWebsite]       = useState('') // honeypot — humans never see the field
 
+  // Heads the tutor list: whoever wants to teach rather than study says so here,
+  // and the header's "become a tutor" pill preselects this row on arrival.
+  const teacherRoute: TutorRef = { id: BECOME_TEACHER_ID, fullName: L.wantToTeach, imageUrl: null }
+  const options = [teacherRoute, ...tutors]
+
+  const teaching = isTeacherRoute(selectedTutor)
+
+  // Continue needs BOTH a tutor and a plan — the onboarding URL is built from the
+  // two of them. The teacher branch is the exception: it carries no tariff at all,
+  // so the plan field is gone and the tutor alone is enough.
+  const canContinue = selectedTutor !== null && (teaching || selectedPlan !== null)
+
+  // Заблокированная кнопка не говорит, почему она заблокирована — подсказка у курсора
+  // называет недостающее поле (тот же чип, что и у неактивных ссылок футера).
+  const blockedHint = selectedTutor === null
+    ? (selectedPlan === null ? L.needBoth : L.needTutor)
+    : L.needPlan
+
+  // Prefill from the Plans section CTA (plan-selected). detail = plan name, or null
+  // when a CTA drops its own choice (the hero button toggles off) — same null-means-
+  // nothing convention `tutor-selected` already uses below.
   useEffect(() => {
-    // Handle prefill from plan CTA clicks (page already mounted — via CustomEvent)
-    const handlePlanSelected = (e: Event) => {
-      const plan = (e as CustomEvent<string>).detail
+    const onPlan = (e: Event) => {
+      const plan = (e as CustomEvent<string | null>).detail
+      if (plan === null) { setSelectedPlan(null); return }
       if (planNames.includes(plan)) setSelectedPlan(plan)
     }
-    window.addEventListener('plan-selected', handlePlanSelected)
-    return () => window.removeEventListener('plan-selected', handlePlanSelected)
+    window.addEventListener('plan-selected', onPlan)
+    return () => window.removeEventListener('plan-selected', onPlan)
   }, [planNames])
 
-  const [nameErr,     setNameErr]     = useState(false)
-  const [tutorErr,    setTutorErr]    = useState(false)
-  const [planErr,     setPlanErr]     = useState(false)
-  const [contactErr,  setContactErr]  = useState(false)
-  const [emailErr,    setEmailErr]    = useState(false)
-
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const tg      = telegram.trim()
-    const em      = email.trim()
-    const emailOk = !em || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)
-
-    const nErr  = !name.trim()
-    const tuErr = !selectedTutor
-    const plErr = !selectedPlan
-    const coErr = !tg && !em
-    const emErr = !emailOk
-
-    setNameErr(nErr)
-    setTutorErr(tuErr)
-    setPlanErr(plErr)
-    setContactErr(coErr)
-    setEmailErr(emErr)
-
-    if (nErr || tuErr || plErr || coErr || emErr) return
-
-    setStatus('loading')
-    try {
-      const res = await fetch('/api/free-lesson', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({
-          name:     name.trim(),
-          telegram: tg,
-          email:    em,
-          tutor_id: selectedTutor?.id ?? null,
-          plan:     selectedPlan,
-          locale,
-          source:   'footer',
-          website,
-        }),
-      })
-      if (!res.ok) throw new Error('non-ok')
-      setStatus('success')
-    } catch {
-      setStatus('error')
+  // Two-way sync with the Tutors carousel and the header's "become a tutor" pill.
+  // detail = tutor id, the BECOME_TEACHER_ID sentinel, or null on deselect.
+  useEffect(() => {
+    const onTutor = (e: Event) => {
+      const id = (e as CustomEvent<number | null>).detail
+      if (id == null) { setSelectedTutor(null); return }
+      if (id === BECOME_TEACHER_ID) { setSelectedTutor(teacherRoute); return }
+      setSelectedTutor(tutors.find(t => t.id === id) ?? null)
     }
+    window.addEventListener('tutor-selected', onTutor)
+    return () => window.removeEventListener('tutor-selected', onTutor)
+    // teacherRoute is rebuilt every render but only ever holds L.wantToTeach.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tutors, L.wantToTeach])
+
+  const changeTutor = (t: TutorRef) => {
+    setSelectedTutor(t)
+    window.dispatchEvent(new CustomEvent('tutor-selected', { detail: t.id }))
   }
 
-  const inputStyle = { fontSize: 'clamp(20px, 2.5vw, 32px)', lineHeight: '36px' } as const
-  const errorStyle = { fontSize: '14px' } as const
+  // Двусторонняя синхронизация с секцией Plans: без диспатча кнопка ранее выбранного
+  // тарифа так и осталась бы с надписью «Выбрано!» после смены тарифа в форме.
+  const changePlan = (plan: string) => {
+    setSelectedPlan(plan)
+    window.dispatchEvent(new CustomEvent('plan-selected', { detail: plan }))
+  }
 
-  if (status === 'success') {
-    return (
-      <div data-glass-center className="glass rounded-[26px] flex items-center justify-center" style={{ minHeight: 200, padding: 'clamp(12px, 4vw, 36px)' }}>
-        <p
-          className="font-heading font-medium text-ink text-center"
-          style={{ fontSize: 'clamp(24px, 3vw, 40px)', lineHeight: '1.2' }}
-        >
-          ✓
-        </p>
-      </div>
-    )
+  const handleContinue = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!canContinue) return
+
+    const base = process.env.NEXT_PUBLIC_ONBOARDING_URL
+    if (!base) {
+      console.warn('[footer] NEXT_PUBLIC_ONBOARDING_URL is not set — cannot continue to onboarding')
+      return
+    }
+    // Onboarding opens on a role question ("I want to learn / I want to teach").
+    // Teaching carries no tutor and no tariff — just the role.
+    const query = teaching
+      ? `?role=teacher`
+      : `?tutor=${encodeURIComponent(selectedTutor!.id)}&plan=${encodeURIComponent(selectedPlan!)}`
+    window.location.assign(`${base}${query}&locale=${encodeURIComponent(locale)}`)
   }
 
   return (
     <form
-      onSubmit={handleSubmit}
+      onSubmit={handleContinue}
       noValidate
       data-glass-center
       className="glass rounded-[26px] flex flex-col gap-[24px]"
@@ -323,118 +316,66 @@ export default function FooterForm({
         </p>
       </div>
 
-      <HoneypotField value={website} onChange={setWebsite} />
-
-      {/* Inputs */}
+      {/* Selectors */}
       <div className="flex flex-col gap-[16px]">
-
-        {/* Name */}
-        <label
-          className="btn-press border-2 rounded-[66px] px-[32px] py-[24px] block"
-          style={{ borderColor: nameErr ? '#f26434' : '#323031' }}
-        >
-          <input
-            type="text"
-            name="name"
-            value={name}
-            onChange={e => { setName(e.target.value); setNameErr(false) }}
-            placeholder={formNamePlaceholder}
-            className="w-full bg-transparent font-heading font-normal text-ink placeholder:text-ink placeholder:opacity-50 outline-none"
-            style={inputStyle}
-          />
-        </label>
-
-        {/* Tutor */}
         <TutorSelector
           selected={selectedTutor}
-          allTutors={tutors}
-          placeholder={formTutorPlaceholder}
-          hasError={tutorErr}
-          onChange={t => { setSelectedTutor(t); setTutorErr(false) }}
+          allTutors={options}
+          placeholder={L.yourTutor}
+          teacherHint={L.forTutors}
+          onChange={changeTutor}
         />
-
-        {/* Plan */}
-        <PlanSelector
-          selected={selectedPlan}
-          planNames={planNames}
-          planPrices={planPrices}
-          placeholder={formPlanPlaceholder}
-          hasError={planErr}
-          onChange={p => { setSelectedPlan(p); setPlanErr(false) }}
-        />
-
-        {/* Telegram */}
-        <label
-          className="btn-press border-2 rounded-[66px] px-[32px] py-[24px] block"
-          style={{ borderColor: contactErr ? '#f26434' : '#323031' }}
-        >
-          <input
-            type="text"
-            name="telegram"
-            value={telegram}
-            onChange={e => { setTelegram(e.target.value); setContactErr(false) }}
-            placeholder={formTelegramPlaceholder}
-            autoComplete="off"
-            className="w-full bg-transparent font-heading font-normal text-ink placeholder:text-ink placeholder:opacity-50 outline-none"
-            style={inputStyle}
+        {/* No tariff on the teacher route. The choice itself is kept, not cleared,
+            so switching back to a tutor restores the plan the reader already picked. */}
+        {!teaching && (
+          <PlanSelector
+            selected={selectedPlan}
+            planNames={planNames}
+            planPrices={planPrices}
+            placeholder={L.yourPlan}
+            onChange={changePlan}
           />
-        </label>
-
-        {/* Email */}
-        <label
-          className="btn-press border-2 rounded-[66px] px-[32px] py-[24px] block"
-          style={{ borderColor: (contactErr || emailErr) ? '#f26434' : '#323031' }}
-        >
-          <input
-            type="email"
-            name="email"
-            value={email}
-            onChange={e => { setEmail(e.target.value); setContactErr(false); setEmailErr(false) }}
-            placeholder={formEmailPlaceholder}
-            autoComplete="email"
-            className="w-full bg-transparent font-heading font-normal text-ink placeholder:text-ink placeholder:opacity-50 outline-none"
-            style={inputStyle}
-          />
-        </label>
-
-        {contactErr && <p className="font-sans text-[#f26434] pl-[16px]" style={errorStyle}>{formContactError}</p>}
-        {emailErr   && <p className="font-sans text-[#f26434] pl-[16px]" style={errorStyle}>{formEmailError}</p>}
-        {status === 'error' && (
-          <p className="font-sans text-[#f26434] pl-[16px]" style={errorStyle}>
-            {formErrorMsg}
-          </p>
         )}
       </div>
 
-      {/* Submit */}
-      <button
-        type="submit"
-        disabled={status === 'loading'}
-        className="btn-press flex items-center justify-center w-full rounded-[66px] px-[36px] py-[36px] disabled:opacity-60"
-        style={{
-          backgroundColor: '#323031',
-          boxShadow: '0px 1px 4px 0px rgba(0,0,0,0.18), inset 0px 1px 2px 0px rgba(255,255,255,0.18)',
-        }}
-      >
-        {status === 'loading' ? (
-          <div className="flex items-center gap-[8px]">
-            {[0, 1, 2].map(i => (
-              <span
-                key={i}
-                className="block bg-cream rounded-[4px]"
-                style={{ width: 10, height: 10, animation: 'btn-dot-pulse 1.2s ease-in-out infinite', animationDelay: `${i * 0.2}s` }}
-              />
-            ))}
-          </div>
-        ) : (
-          <span
-            className="font-sans font-bold text-cream"
-            style={{ fontSize: 'clamp(20px, 2.5vw, 32px)', lineHeight: '32px' }}
+      {/* Continue */}
+      {(() => {
+        const button = (
+          <button
+            type="submit"
+            disabled={!canContinue}
+            // btn-press only while enabled: :hover/:active fire on disabled buttons too,
+            // and a dead button that still lifts under the cursor reads as clickable.
+            // Disabled also hands the pointer to the wrapper below, which needs the
+            // hover to place its hint chip.
+            // Keep the space before `${`: Tailwind scans the raw source for candidates,
+            // and an interpolation glued straight onto `py-[36px]` swallows the class —
+            // the button silently loses its 36px of vertical padding.
+            className={`flex items-center justify-center w-full rounded-[66px] px-[36px] py-[36px] ${
+              canContinue ? 'btn-press' : 'opacity-40 pointer-events-none'
+            }`}
+            style={{
+              backgroundColor: '#323031',
+              boxShadow: '0px 1px 4px 0px rgba(0,0,0,0.18), inset 0px 1px 2px 0px rgba(255,255,255,0.18)',
+            }}
           >
-            {formSubmitText}
-          </span>
-        )}
-      </button>
+            <span
+              className="font-sans font-bold text-cream"
+              style={{ fontSize: 'clamp(20px, 2.5vw, 32px)', lineHeight: '32px' }}
+            >
+              {L.continue}
+            </span>
+          </button>
+        )
+
+        // Blocked: no crossed-out cursor — say what is missing, the same cursor chip
+        // the footer's inactive links use.
+        return canContinue ? button : (
+          <ComingSoonHint label={blockedHint} className="block w-full">
+            {button}
+          </ComingSoonHint>
+        )
+      })()}
     </form>
   )
 }

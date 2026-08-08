@@ -79,6 +79,13 @@ const driftCeiling = (widthScale: number) => ((widthScale - 1) * VIEWBOX_W) / 2
 // handed (layout.beachViewH for the conveyor, a plain number for the static sea) instead of a
 // fixed constant — see seaBaseRect().
 const SEA_BASE_COLOR = '#2982B6' // a mid blue taken from the wave art
+// The CONVEYOR tucks the water's straight top edge this many canvas units BELOW
+// SEA_BASE_TOP. Near the shore the animated surf dissolves and thins out, and the flat
+// blue top edge was peeking through above it ("торчит из-под исчезающих волн"). Dropping
+// it keeps the seam under the DENSE part of the conveyor. Conveyor-only: the static sea
+// (balanced/lite/reduced-motion) stops its viewBox at BEACH_ART_H, so a lower top would
+// leave it with no water at all — it keeps SEA_BASE_TOP.
+const CONVEYOR_SEA_DROP = 110
 
 // Per-line dissolve cascade (fractions of the cycle) — ONLY near the shore (top), so overlapping
 // neighbours keep the lower/mid sea gap-free. DROP_WIDTH must stay < the per-line step
@@ -498,7 +505,9 @@ export function injectWaveSurfAnimation(beachSvg: string, options: WaveSurfOptio
     }
     // The sea base goes in FRONT of the queue group in document order, i.e. painted first =
     // behind every wave, so gaps show water instead of whatever lies behind the beach.
-    const queueGroup = `${seaBaseRect(viewH)}<g class="beach-wave-queue">${queue}</g>`
+    // Top dropped by CONVEYOR_SEA_DROP so its flat edge stays under the dense surf.
+    const queueGroup =
+      `${seaBaseRect(viewH, SEA_BASE_TOP + CONVEYOR_SEA_DROP)}<g class="beach-wave-queue">${queue}</g>`
 
     if (out.includes(PLACEHOLDER)) out = out.replace(PLACEHOLDER, queueGroup)
     else {
@@ -520,9 +529,12 @@ export function injectWaveSurfAnimation(beachSvg: string, options: WaveSurfOptio
 // `project_turbopack_template_fold_bug` memory): Turbopack's prod minifier only mis-folds
 // FULLY-CONSTANT template concatenations, and `seaBottom` is now a runtime parameter, so this
 // expression is no longer constant-foldable.
-function seaBaseRect(seaBottom: number): string {
+function seaBaseRect(seaBottom: number, top: number = SEA_BASE_TOP): string {
+  // Clamp so a viewBox that stops above `top` (e.g. the static sea's BEACH_ART_H, or a
+  // degenerate pre-measure layout) yields an empty rect instead of an inverted one.
+  const y = Math.min(top, seaBottom)
   return (
-    `<rect x="${-2 * VIEWBOX_W}" y="${SEA_BASE_TOP}" width="${5 * VIEWBOX_W}" ` +
-    `height="${seaBottom - SEA_BASE_TOP}" fill="${SEA_BASE_COLOR}"/>`
+    `<rect x="${-2 * VIEWBOX_W}" y="${y}" width="${5 * VIEWBOX_W}" ` +
+    `height="${Math.max(0, seaBottom - y)}" fill="${SEA_BASE_COLOR}"/>`
   )
 }

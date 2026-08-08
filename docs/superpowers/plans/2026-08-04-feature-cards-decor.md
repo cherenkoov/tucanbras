@@ -74,7 +74,9 @@ scripts/.figma-ref/
 
 Create `landing/scripts/fitFeaturePlants.mjs`:
 
-The angle is the only free parameter. Everything else is pinned by the node: once the file is turned to the right angle, its ink box must fill the instance's box `(left, top, w, h)` exactly, which fixes the scale and the position. So the sweep rotates, scales the ink to that box, composes the result into the card, crops to the reference's rectangle, and scores against it — an end-to-end comparison against the picture the card is supposed to show.
+**Do not try to pin the scale or the position analytically from the node.** An earlier version of this task did, by requiring the rotated ink box to fill the instance's outer box, and it is wrong: these drawings are thin diagonal slivers, and the bounding box of a sliver does not transform like a rotated rectangle. Turning `Flower 2 - CELPE-BRAS.svg` from its steep rest angle toward the horizontal takes its ink box from 900 × 1514 to 1492 × 1015 — the box genuinely gets shorter, so matching box proportions selects the wrong angle. Measured, not assumed.
+
+What the node *does* pin is only the starting guess. The reference render pins everything else, so the fit optimises against it directly: for each candidate angle, the scale and the centre are solved by fixed-point iteration (match the visible ink's area, then its centroid), and the candidate is scored by silhouette IoU against the reference. Angle is the only searched parameter; the other three fall out.
 
 ```js
 // Four of the five feature-card plants were exported from instances that already
@@ -139,6 +141,14 @@ function raster(file, flipY, deg) {
   return p.rotate(deg, { background: { r: 0, g: 0, b: 0, alpha: 0 } }).png().toBuffer()
 }
 
+/** Cache: rotating is the expensive step and the sweep revisits angles. */
+const rotCache = new Map()
+async function rotated(file, flipY, deg) {
+  const key = `${file}|${flipY}|${deg}`
+  if (!rotCache.has(key)) rotCache.set(key, alpha(await raster(file, flipY, deg)))
+  return rotCache.get(key)
+}
+
 async function fit(plant) {
   const ref = await alpha(await sharp(path.join(REF, `${plant.key}.png`)).png().toBuffer())
   // The rectangle of the card this reference covers, and its scale.
@@ -146,25 +156,30 @@ async function fit(plant) {
   const ry0 = Math.max(0, plant.top)
   const ppu = ref.width / (Math.min(CARD_W, plant.left + plant.w) - rx0)
 
-  let best = null
-  const score = async (flipY, deg) => {
-    const rot = await alpha(await raster(plant.file, flipY, deg))
-    const box = inkBox(rot)
-    // Uniform scale only: the ink has to fill the instance's box on BOTH axes, so a
-    // candidate whose aspect is wrong is the wrong angle, not a stretch to apply.
-    const s = plant.w / box.w
-    const aspectErr = Math.abs(box.h * s - plant.h) / plant.h
-    if (aspectErr > 0.06) return null
+  // What the reference actually shows: the visible ink's area and centroid, in ref px.
+  let refArea = 0, refCx = 0, refCy = 0
+  for (let y = 0; y < ref.height; y++) {
+    for (let x = 0; x < ref.width; x++) {
+      if (ref.a[y * ref.width + x] < 128) continue
+      refArea++; refCx += x; refCy += y
+    }
+  }
+  if (!refArea) throw new Error(`${plant.key}: the reference has no ink`)
+  refCx /= refArea; refCy /= refArea
 
-    const f = s * ppu // raster px → reference px
-    const rw = Math.max(1, Math.round(rot.width * f))
-    const rh = Math.max(1, Math.round(rot.height * f))
+  // Rasterise a candidate into the reference's frame and measure it.
+  const compose = async (flipY, deg, w, cx, cy) => {
+    const rot = await rotated(plant.file, flipY, deg)
+    const f = (w * ppu) / RASTER // raster px → reference px
+    const sw = Math.max(1, Math.round(rot.width * f))
+    const sh = Math.max(1, Math.round(rot.height * f))
     const scaled = await alpha(await sharp(await raster(plant.file, flipY, deg))
-      .resize(rw, rh, { fit: 'fill' }).png().toBuffer())
-    const offX = (plant.left - rx0) * ppu - box.x * f
-    const offY = (plant.top - ry0) * ppu - box.y * f
+      .resize(sw, sh, { fit: 'fill' }).png().toBuffer())
+    // The rotated canvas is centred on the image's centre, which is what CSS places.
+    const offX = (cx - rx0) * ppu - sw / 2
+    const offY = (cy - ry0) * ppu - sh / 2
 
-    let inter = 0, union = 0
+    let inter = 0, union = 0, area = 0, mx = 0, my = 0
     for (let y = 0; y < ref.height; y++) {
       for (let x = 0; x < ref.width; x++) {
         const sx = Math.round(x - offX)
@@ -172,39 +187,55 @@ async function fit(plant) {
         const mine = (sx >= 0 && sy >= 0 && sx < scaled.width && sy < scaled.height
           && scaled.a[sy * scaled.width + sx] >= 128) ? 1 : 0
         const theirs = ref.a[y * ref.width + x] >= 128 ? 1 : 0
+        if (mine) { area++; mx += x; my += y }
         if (mine & theirs) inter++
         if (mine | theirs) union++
       }
     }
-    return { iou: union ? inter / union : 0, deg, flipY, s, box, canvas: { w: rot.width, h: rot.height } }
+    return { iou: union ? inter / union : 0, area, cx: area ? mx / area : 0, cy: area ? my / area : 0 }
   }
 
-  for (const flipY of [false, true]) {
-    for (let deg = 0; deg < 360; deg += 2) {
-      const r = await score(flipY, deg)
-      if (r && (!best || r.iou > best.iou)) best = r
+  // For one angle: solve the scale and the centre by fixed point. Area fixes the
+  // scale (it goes as w²), the centroid fixes the placement, and each correction
+  // changes what the card crops — so they are iterated together, not solved once.
+  const solve = async (flipY, deg) => {
+    let w = plant.w        // seed: the instance's own box, right order of magnitude
+    let cx = plant.left + plant.w / 2
+    let cy = plant.top + plant.h / 2
+    let last = null
+    for (let i = 0; i < 6; i++) {
+      const m = await compose(flipY, deg, w, cx, cy)
+      last = m
+      if (!m.area) return { iou: 0, deg, flipY, w, cx, cy }
+      cx += (refCx - m.cx) / ppu
+      cy += (refCy - m.cy) / ppu
+      w *= Math.sqrt(refArea / m.area)
     }
-  }
-  if (!best) throw new Error(`${plant.key}: no angle produced the instance's proportions`)
-  for (let deg = best.deg - 2; deg <= best.deg + 2; deg += 0.1) {
-    const r = await score(best.flipY, Math.round(deg * 100) / 100)
-    if (r && r.iou > best.iou) best = r
+    const m = await compose(flipY, deg, w, cx, cy)
+    return { iou: Math.max(m.iou, last.iou), deg, flipY, w, cx, cy }
   }
 
-  // The image's own centre, which is what the CSS places. Rotation is about it, so
-  // the offset from the ink's box to the raster's centre is the only term that carries.
-  const centre = {
-    x: plant.left + (best.canvas.w / 2 - best.box.x) * best.s,
-    y: plant.top + (best.canvas.h / 2 - best.box.y) * best.s,
+  const results = []
+  for (const flipY of [false, true]) {
+    for (let deg = 0; deg < 360; deg += 4) results.push(await solve(flipY, deg))
+  }
+  results.sort((a, b) => b.iou - a.iou)
+  let best = results[0]
+  for (const step of [1, 0.25]) {
+    for (let deg = best.deg - step * 4; deg <= best.deg + step * 4; deg += step) {
+      const r = await solve(best.flipY, Math.round(deg * 100) / 100)
+      if (r.iou > best.iou) best = r
+    }
   }
 
   return {
     key: plant.key,
     file: plant.file,
     iou: best.iou,
-    right: +(((CARD_W - centre.x) / CARD_H) * 100).toFixed(3),
-    top: +((centre.y / CARD_H) * 100).toFixed(3),
-    w: +(((RASTER * best.s) / CARD_H) * 100).toFixed(3),
+    runnersUp: results.slice(1, 4).map(r => `${r.deg}${r.flipY ? 'F' : ''}@${r.iou.toFixed(3)}`),
+    right: +(((CARD_W - best.cx) / CARD_H) * 100).toFixed(3),
+    top: +((best.cy / CARD_H) * 100).toFixed(3),
+    w: +((best.w / CARD_H) * 100).toFixed(3),
     rotate: best.deg,
     flipY: best.flipY,
   }
@@ -212,18 +243,20 @@ async function fit(plant) {
 
 for (const plant of PLANTS) {
   const r = await fit(plant)
-  const flag = r.iou >= 0.97 ? '✓' : '✗'
-  console.log(`${flag} ${r.key.padEnd(9)} IoU ${r.iou.toFixed(3)}  `
-    + `{ file: '${r.file}', right: ${r.right}, top: ${r.top}, w: ${r.w}, `
-    + `rotate: ${r.rotate}${r.flipY ? ', flipY: true' : ''} }`)
+  const flag = r.iou >= 0.92 ? '✓' : '✗'
+  console.log(`${flag} ${r.key.padEnd(9)} IoU ${r.iou.toFixed(3)}  next: ${r.runnersUp.join(' ')}\n`
+    + `    { file: '${r.file}', right: ${r.right}, top: ${r.top}, w: ${r.w}, `
+    + `rotate: ${r.rotate}${r.flipY ? ', flipY: true' : ''} },`)
 }
 ```
+
+`w` here is the image's width in card units before the final `cqh` conversion, which is why the printed `w` divides by `CARD_H` and not by `RASTER`.
 
 - [ ] **Step 4: Run the fit**
 
 Run: `node scripts/fitFeaturePlants.mjs`
 
-**`train` is the control.** Its file already matches the design's proportions (0.591 against 0.594 drawn), so it must come back near `rotate: 29.21` with `flipY: false`. If it does not, the script is wrong and the other four numbers are worthless — fix the script first.
+**`train` is the control.** Its file is the one that is *not* pre-rotated — its ink aspect measures 0.5945 against the design's unrotated 0.5941 — so the design's own 29.21° applies to it directly. It must come back near `rotate: 29.21` with `flipY: false`, and its `w` must land near `206.7` (the instance's 325 card units over the card's 157.2). If it does not, the script is wrong and the other four numbers are worthless — fix the script first.
 
 The control also sets the bar. This IoU is an end-to-end silhouette comparison between two different renderers at roughly one pixel per card unit, so a correct fit scores high but not 1.0; `train`'s score is what "correct" looks like for this art at this resolution. Read the five rows against it:
 
@@ -232,9 +265,13 @@ The control also sets the bar. This IoU is an end-to-end silhouette comparison b
 
 Report all five scores in the task report whatever they are — the controller adjudicates a borderline row, the implementer does not.
 
-- [ ] **Step 5: Sanity-check the centres against the spec**
+- [ ] **Step 5: Sanity-check against the spec, and against the runners-up**
 
-Compare each printed `right`/`top` against spec §3's anchor table (Learn `15.813` / `68.240`, Practice `−43.015` / `78.461`, Train `−8.586` / `53.501`, Help `113.551` / `189.946`, Plan `78.287` / `144.805`). They are derived two different ways and must agree within ~2 cqh. A larger gap means the fit landed on a wrong angle that happens to score well — re-run with a finer sweep before continuing.
+Two checks, and neither is a hard gate — they are how a wrong answer that scores well gets caught.
+
+**The centres.** Spec §3's anchor table gives the instance box's centre: Learn `15.813` / `68.240`, Practice `−43.015` / `78.461`, Train `−8.586` / `53.501`, Help `113.551` / `189.946`, Plan `78.287` / `144.805`. For `train` — the only file that is not pre-rotated — the fitted centre should land within ~2 cqh of it. For the other four the image's box is not the instance's box, so a difference of tens of cqh is expected and fine; what would be suspicious is a difference of hundreds.
+
+**The runners-up.** The script prints the next three angles and their scores. If the winner beats them by a comfortable margin the fit is decided. If several angles score within ~0.01 of each other, that plant's visible crop does not constrain the angle — say so in the report rather than picking one. `help` is the likely candidate: only a small corner of a large flower is inside its card.
 
 - [ ] **Step 6: Commit**
 

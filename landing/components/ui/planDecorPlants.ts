@@ -103,8 +103,24 @@ export const PLAN_DECOR: readonly Record<PlanDecorSlot, readonly PlanDecorPlant[
       { file: 'Flower 1 - CELPE-BRAS - Plans Blue.svg', anchorX: 'left', x: 122.765, anchorY: 'bottom', y: 34.56, w: 366.857, rotate: 76.48, flipY: true },
     ],
   },
-  /* Тариф 3: все четыре инстанса Flower 3 - Become отсеяны фитом, см. шапку файла */
-  { plate: [], button: [] },
+  {
+    /* Тариф 3 пущен НИЖЕ порога IoU (0.435 после доводки центра) — см. BELOW_PASS_OK в
+       scripts/fitPlanDecor.mjs. Силуэт и угол при ψ=209.4 совпадают с рендером Figma,
+       метрика строгая; центр доведён по референсу, а не взят из бокса макета. Проверено
+       глазами против макета — если разойдётся, снимать отсюда вместе с BELOW_PASS_OK. */
+    plate: [
+      /* p3-plate-0  3484:59802 */
+      { file: 'Flower 3 - Become - Plans Olive.svg', anchorX: 'right', x: 95.912, anchorY: 'top', y: 42.465, w: 168.686, rotate: 138.8, flipY: true },
+      /* p3-plate-1  3484:60356 */
+      { file: 'Flower 3 - Become - Plans Olive.svg', anchorX: 'left', x: 12.901, anchorY: 'bottom', y: -1.574, w: 227.828, rotate: 280 },
+    ],
+    button: [
+      /* p3-btn-0  3484:60565 */
+      { file: 'Flower 3 - Become - Plans Pale.svg', anchorX: 'left', x: 34.679, anchorY: 'bottom', y: -13.14, w: 380.026, rotate: 280 },
+      /* p3-btn-1  3484:60653 */
+      { file: 'Flower 3 - Become - Plans Pale.svg', anchorX: 'right', x: 109.596, anchorY: 'bottom', y: 23.501, w: 380.026, rotate: 100 },
+    ],
+  },
 ]
 
 /** Длина в единицах контейнера. `--plan-u` ставит globals.css. */

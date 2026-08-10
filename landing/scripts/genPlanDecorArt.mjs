@@ -25,6 +25,8 @@ const JOBS = [
   { src: 'Flower - Plans.svg',        out: 'Flower - Plans - Plan Button.svg',       from: '#BEA94A', to: '#E4E2D4' },
   { src: 'Flower 1 - CELPE-BRAS.svg', out: 'Flower 1 - CELPE-BRAS - Plans Pale.svg', from: '#465D3E', to: '#E6E3B5' },
   { src: 'Flower 1 - CELPE-BRAS.svg', out: 'Flower 1 - CELPE-BRAS - Plans Blue.svg', from: '#465D3E', to: '#3C7EC6' },
+  { src: 'Flower 3 - Become.svg',     out: 'Flower 3 - Become - Plans Olive.svg',    from: '#71673D', to: '#8C7C36' },
+  { src: 'Flower 3 - Become.svg',     out: 'Flower 3 - Become - Plans Pale.svg',     from: '#71673D', to: '#EBE9BD' },
 ]
 
 const TOL = 6

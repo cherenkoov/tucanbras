@@ -28,6 +28,7 @@
     "verify:tutor-dots": "tsx scripts/verifyTutorDots.ts",
     "verify:hero-plants": "tsx scripts/verifyHeroPlants.ts",
     "verify:celpe-cta": "tsx scripts/verifyCelpeCta.ts",
+    "verify:plan-decor": "tsx scripts/verifyPlanDecor.mts",
     "verify:z-order": "tsx scripts/verifyCollageZOrder.ts"
   },
   "dependencies": {

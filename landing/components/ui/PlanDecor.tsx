@@ -1,0 +1,69 @@
+import type { CSSProperties } from 'react'
+import { PLAN_DECOR, planDecorStyle, decorSrc, type PlanDecorSlot } from '@/components/ui/planDecorPlants'
+
+/**
+ * Растения одного тарифа — на плашке или внутри кнопки, клипнутые по своему контейнеру
+ * и нарисованные под его контентом.
+ *
+ * Три вещи несущие:
+ *
+ * `container-type: size` живёт на ЭТОМ слое, а не на плашке. Растения меряются в
+ * `--plan-u`, а контейнерная единица требует контейнер, чей размер не задаётся
+ * содержимым — у плашки задаётся именно им. Слой `inset-0` берёт размер от плашки и
+ * может нести containment, не отбирая у неё высоту.
+ *
+ * `max-w-none` на картинке. Preflight ставит `max-width: 100%`, и он бьёт контейнерную
+ * ширину: цветок тихо нарисуется во всю плашку и уедет далеко от того места, куда его
+ * поставили.
+ *
+ * Плашка полупрозрачная и доходит до непрозрачной на hover и в центре экрана. Слой
+ * декора несёт ТЕ ЖЕ классы: цветок на полной непрозрачности поверх полупрозрачной
+ * плашки сломал бы стекло.
+ *
+ * Внутренний блик кнопки здесь НЕ перерисовывается, в отличие от FeatureCardDecor:
+ * кнопка тарифа непрозрачная, блик у неё 18% белого, и лист поверх него читается
+ * нормально — а трогать box-shadow кнопки значит менять сам тариф.
+ */
+export default function PlanDecor({ plan, slot, mask }: {
+  plan: number
+  slot: PlanDecorSlot
+  mask?: { mobile: string; desktop: string }
+}) {
+  const plants = PLAN_DECOR[plan]?.[slot]
+  if (!plants?.length) return null
+
+  const isPlate = slot === 'plate'
+
+  return (
+    <div
+      aria-hidden
+      data-plan-decor={`${plan}-${slot}`}
+      className={
+        isPlate
+          ? 'plan-decor-plate absolute inset-0 overflow-hidden pointer-events-none opacity-80 group-hover:opacity-100 group-[.is-center]:opacity-100 transition-opacity duration-[600ms]'
+          : 'plan-decor-button absolute inset-0 overflow-hidden pointer-events-none'
+      }
+      style={{
+        borderRadius: 'inherit',
+        containerType: 'size',
+        ...(mask ? {
+          '--plan-mask-mobile': `url(${mask.mobile})`,
+          '--plan-mask-desktop': `url(${mask.desktop})`,
+        } : null),
+      } as CSSProperties}
+    >
+      {plants.map((p, i) => (
+        <img
+          key={i}
+          src={decorSrc(p.file)}
+          alt=""
+          data-plan-plant={`${plan}-${slot}-${i}`}
+          className="absolute h-auto max-w-none select-none pointer-events-none"
+          loading="lazy"
+          decoding="async"
+          style={planDecorStyle(p)}
+        />
+      ))}
+    </div>
+  )
+}

@@ -491,9 +491,24 @@ html.noanim * {
 .logo-sm   { display: none; }
 .logo-full { display: none; }
 
+/* The optical nudge that lifts the wordmark off the bar's exact centre, moved here
+   from an inline style so a breakpoint can switch it off. It is -0.1em of the
+   WRAPPER's font-size, and that clamp sits on its own 28px floor until 597px — so
+   the nudge is a flat 2.8px on every phone. From 460px up the visible spelling
+   renders at that same 28px (or larger, once the clamp lifts), so -0.1em really is
+   the tenth of the glyph height it means to be. Below 460px .logo-xs scales itself
+   down to 20–26.5px while the nudge stays 2.8px: measured at 390px the wordmark
+   ended up 3.6px above the bar's centre — 12% of its own height instead of 10% —
+   with 24.4px of air above the caps and 31.6px below, which is what read as the
+   logotype "sitting high" on phones. Zero is the right value there, not a smaller
+   nudge: the caps' ink box is itself ~0.8px above the line box's centre, so with no
+   transform at all the word lands centred (27.2 / 28.8). */
+.logo-lift { transform: none; }
+
 @media (min-width: 460px) {
   .logo-xs   { display: none; }
   .logo-mob  { display: inline; }
+  .logo-lift { transform: translateY(-0.1em); }
 }
 
 @media (min-width: 1024px) {
@@ -504,6 +519,40 @@ html.noanim * {
 @media (min-width: 1366px) {
   .logo-sm   { display: none; }
   .logo-full { display: inline; }
+}
+
+/* ── Декор тарифов ──────────────────────────────────────────────────────────
+   Числа в planDecor.ts — проценты КОРОТКОЙ стороны контейнера: у плашки на десктопе
+   это высота (широкая полоса), на телефоне — ширина (высокая карточка). Кнопка
+   остаётся широкой низкой полосой на всех ширинах и держит высоту везде.
+
+   Медиазапрос сюда, а не в инлайн-стиль: инлайн его не умеет, а Tailwind генерирует
+   правило только для литерального имени класса.
+
+   Маска — силуэт плашки, те же значения, что на frost-слое в PlanSectionShared:
+   разъедься они, и клип разойдётся с окрашенной плашкой. URL приходят инлайном в
+   переменных, потому что зависят от индекса тарифа.                              */
+
+.plan-decor-plate {
+  --plan-u: 1cqw;
+  -webkit-mask-image: var(--plan-mask-mobile);
+  mask-image: var(--plan-mask-mobile);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+.plan-decor-button {
+  --plan-u: 1cqh;
+}
+
+@media (min-width: 1024px) {
+  .plan-decor-plate {
+    --plan-u: 1cqh;
+    -webkit-mask-image: var(--plan-mask-desktop);
+    mask-image: var(--plan-mask-desktop);
+  }
 }
 
 /* ── Christ Statue — star float ─────────────────────────────────────────── */

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { scrollToElement } from '@/components/ui/AnchorScrollHandler'
 import { uiLabels } from '@/lib/uiLabels'
+import PlanDecor from '@/components/ui/PlanDecor'
 import type { PlanCard } from '@/types'
 
 export const BG = [
@@ -143,6 +144,9 @@ export function PlanSection({ plan, index, locale }: { plan: PlanCard; index: nu
         }}
       />
 
+      {/* Декор плашки — над окрашенной плашкой, под контентом; клип по её силуэту */}
+      <PlanDecor plan={index} slot="plate" mask={{ mobile: MOBILE_BG[index], desktop: BG[index] }} />
+
       <div className={`relative z-10 flex ${rowClass} items-center justify-between gap-[0px] w-full`}>
 
         <div className={`flex flex-col items-center ${cfg.featuresFirst ? 'lg:items-end' : 'lg:items-start'} shrink-0 lg:flex-1`}>
@@ -206,8 +210,11 @@ export function PlanSection({ plan, index, locale }: { plan: PlanCard; index: nu
               boxShadow: '0px 1px 4px 0px rgba(0,0,0,0.18), inset 0px 1px 2px 0px rgba(255,255,255,0.18)',
             }}
           >
+            <PlanDecor plan={index} slot="button" />
+
+            {/* `relative` — иначе абсолютный слой декора нарисуется поверх лейбла */}
             <span
-              className="font-sans font-bold text-center"
+              className="relative font-sans font-bold text-center"
               style={{ fontSize: 'clamp(24px, 2.5vw, 48px)', lineHeight: '32px', color: cfg.btnText ?? 'var(--color-cream)' }}
             >
               {selected ? L.planSelected : plan.ctaText}

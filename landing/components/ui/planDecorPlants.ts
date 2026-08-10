@@ -68,11 +68,11 @@ export const PLAN_DECOR: readonly Record<PlanDecorSlot, readonly PlanDecorPlant[
   {
     plate: [
       /* p0-plate-0  3483:45165 */
-      { file: 'Flower 2 - Tutors.svg', anchorX: 'left', x: 9.821, anchorY: 'bottom', y: -9.85, w: 67.938, rotate: 0.19 },
+      { file: 'Flower 2 - Tutors - Plans Cream.svg', anchorX: 'left', x: 9.821, anchorY: 'bottom', y: -9.85, w: 67.938, rotate: 0.19 },
       /* p0-plate-1  3483:45159 */
-      { file: 'Flower 2 - Tutors.svg', anchorX: 'right', x: 11.427, anchorY: 'top', y: -5.01, w: 69.27, rotate: 326.5 },
+      { file: 'Flower 2 - Tutors - Plans Cream.svg', anchorX: 'right', x: 11.427, anchorY: 'top', y: -5.01, w: 69.27, rotate: 326.5 },
       /* p0-plate-2  3483:45170 */
-      { file: 'Flower 2 - Tutors.svg', anchorX: 'center', x: 25.517, anchorY: 'top', y: 31.76, w: 80.609, rotate: 0.19 },
+      { file: 'Flower 2 - Tutors - Plans Cream.svg', anchorX: 'center', x: 25.517, anchorY: 'top', y: 31.76, w: 80.609, rotate: 0.19 },
     ],
     /* 3483:45351 и 3483:45402 — ждут референса, см. шапку файла */
     button: [],
@@ -86,21 +86,21 @@ export const PLAN_DECOR: readonly Record<PlanDecorSlot, readonly PlanDecorPlant[
     ],
     button: [
       /* p1-btn-0  3484:60166 — бокс вчетверо шире кнопки: в кадр попадает только край листа */
-      { file: 'Flower - Plans.svg', anchorX: 'center', x: 0.486, anchorY: 'top', y: -26.538, w: 1062.886, rotate: 358.5, flipY: true },
+      { file: 'Flower - Plans - Plan Button.svg', anchorX: 'center', x: 0.486, anchorY: 'top', y: -26.538, w: 1062.886, rotate: 358.5, flipY: true },
     ],
   },
   {
     plate: [
       /* p2-plate-0  3484:60118 */
-      { file: 'Flower 1 - CELPE-BRAS.svg', anchorX: 'left', x: 28.523, anchorY: 'top', y: -45.102, w: 127.61, rotate: 291.03 },
+      { file: 'Flower 1 - CELPE-BRAS - Plans Pale.svg', anchorX: 'left', x: 28.523, anchorY: 'top', y: -45.102, w: 127.61, rotate: 291.03 },
       /* p2-plate-1  3484:59890 */
-      { file: 'Flower 1 - CELPE-BRAS.svg', anchorX: 'right', x: -0.07, anchorY: 'bottom', y: -25.012, w: 146.131, rotate: 106.2 },
+      { file: 'Flower 1 - CELPE-BRAS - Plans Pale.svg', anchorX: 'right', x: -0.07, anchorY: 'bottom', y: -25.012, w: 146.131, rotate: 106.2 },
     ],
     button: [
       /* p2-btn-0  3484:60261 */
-      { file: 'Flower 1 - CELPE-BRAS.svg', anchorX: 'right', x: 102.488, anchorY: 'bottom', y: 0.217, w: 366.857, rotate: 256.48, flipY: true },
+      { file: 'Flower 1 - CELPE-BRAS - Plans Blue.svg', anchorX: 'right', x: 102.488, anchorY: 'bottom', y: 0.217, w: 366.857, rotate: 256.48, flipY: true },
       /* p2-btn-1  3484:60309 */
-      { file: 'Flower 1 - CELPE-BRAS.svg', anchorX: 'left', x: 122.765, anchorY: 'bottom', y: 34.56, w: 366.857, rotate: 76.48, flipY: true },
+      { file: 'Flower 1 - CELPE-BRAS - Plans Blue.svg', anchorX: 'left', x: 122.765, anchorY: 'bottom', y: 34.56, w: 366.857, rotate: 76.48, flipY: true },
     ],
   },
   /* Тариф 3: все четыре инстанса Flower 3 - Become отсеяны фитом, см. шапку файла */

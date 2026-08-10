@@ -200,7 +200,10 @@ export function PlanSection({ plan, index, locale }: { plan: PlanCard; index: nu
             type="button"
             onClick={handleCtaClick}
             aria-pressed={selected}
-            className="btn-press flex items-center justify-center w-full overflow-hidden rounded-[28px] cursor-pointer"
+            /* `relative` — контейнер для слоя декора: без него `absolute inset-0`
+               отсчитывается от ближайшего позиционированного предка, и лист рисуется
+               размером с колонку, а не с кнопку. На вид самой кнопки не влияет. */
+            className="btn-press relative flex items-center justify-center w-full overflow-hidden rounded-[28px] cursor-pointer"
             style={{
               backgroundColor: cfg.accent,
               paddingTop: '32px',

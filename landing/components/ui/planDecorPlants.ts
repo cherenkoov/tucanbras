@@ -134,10 +134,10 @@ export const PLAN_DECOR: readonly Record<PlanDecorSlot, readonly PlanDecorPlant[
       Высота приходит сама: аспект файла равен аспекту окна.
     */
     plate: [
-      /* p3-plate-0  3484:59802 — окно x[100.7,1100] y[0,423], прижат к правому краю */
-      { file: '/SVG/plans/decor/tier4-plate-right.svg', anchorX: 'right', x: 118.121, anchorY: 'center', y: 0, w: 236.241, rotate: 0 },
-      /* p3-plate-1  3484:60356 — окно x[0,549.6] y[18,423], прижат к левому краю */
-      { file: '/SVG/plans/decor/tier4-plate-left.svg', anchorX: 'left', x: 64.962, anchorY: 'center', y: 2.128, w: 129.925, rotate: 0 },
+      /* p3-plate-0  3484:59802 — полный арт, клип снят */
+      { file: '/SVG/plans/decor/tier4-plate-right.svg', anchorX: 'right', x: 89.148, anchorY: 'top', y: 28.893, w: 210.312, rotate: 0 },
+      /* p3-plate-1  3484:60356 — полный арт, клип снят */
+      { file: '/SVG/plans/decor/tier4-plate-left.svg', anchorX: 'left', x: 19.585, anchorY: 'bottom', y: 8.394, w: 158.563, rotate: 0 },
     ],
     button: [
       /* p3-btn-0  3484:60565 */
@@ -184,10 +184,10 @@ export const PLAN_DECOR_MOBILE: readonly (readonly PlanDecorPlant[])[] = [
   [
     /* Тариф 4 — готовые срезы из Figma по той же причине, что и на десктопе (см. комментарий
        у десктопной плашки тарифа 4). Оба среза во всю ширину плашки. */
-    /* m3-plate-0  3499:46642 — окно x[0,354] y[0,338] */
-    { file: '/SVG/plans/decor/tier4-m-top.svg', anchorX: 'center', x: 0, anchorY: 'top', y: 34.211, w: 71.66, rotate: 0 },
-    /* m3-plate-1  3499:46643 — окно x[0,354] y[183,494] */
-    { file: '/SVG/plans/decor/tier4-m-bottom.svg', anchorX: 'center', x: 0, anchorY: 'bottom', y: 31.478, w: 71.66, rotate: 0 },
+    /* m3-plate-0  3499:46642 — полный арт, клип снят */
+    { file: '/SVG/plans/decor/tier4-m-top.svg', anchorX: 'right', x: 16.245, anchorY: 'top', y: 18.756, w: 89.763, rotate: 0 },
+    /* m3-plate-1  3499:46643 — полный арт, клип снят */
+    { file: '/SVG/plans/decor/tier4-m-bottom.svg', anchorX: 'left', x: 29.781, anchorY: 'bottom', y: 7.73, w: 100.189, rotate: 0 },
   ],
 ]
 

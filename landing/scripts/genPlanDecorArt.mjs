@@ -27,6 +27,11 @@ const JOBS = [
   { src: 'Flower 1 - CELPE-BRAS.svg', out: 'Flower 1 - CELPE-BRAS - Plans Blue.svg', from: '#465D3E', to: '#3C7EC6' },
   { src: 'Flower 3 - Become.svg',     out: 'Flower 3 - Become - Plans Olive.svg',    from: '#71673D', to: '#8C7C36' },
   { src: 'Flower 3 - Become.svg',     out: 'Flower 3 - Become - Plans Pale.svg',     from: '#71673D', to: '#EBE9BD' },
+  // Лист в кнопке первого тарифа залит ТЕМ ЖЕ зелёным, что и сама кнопка (#8FD096 —
+  // `--color-green`), а тёмно-оливковым он выглядит из-за multiply-слоёв ВНУТРИ самого
+  // рисунка. Блендинг здесь самодостаточен: он идёт против нижних слоёв файла, а не
+  // против подложки страницы, поэтому две тональности переживают и подмену заливки.
+  { src: 'Flower 2 - Cover.svg',      out: 'Flower 2 - Cover - Plans Green.svg',     from: '#969238', to: '#8FD096' },
 ]
 
 const TOL = 6

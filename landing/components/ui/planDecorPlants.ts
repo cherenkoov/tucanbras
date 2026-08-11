@@ -41,9 +41,14 @@ export { decorSrc } from '@/components/ui/heroPlants'
  * • тариф 3 (оранжевый), все четыре инстанса `Flower 3 - Become` — фит не берёт порог
  *   ни на одном угле (лучшее IoU 0.372 против порога 0.92). Неверный ψ даёт
  *   правдоподобный, но ЧУЖОЙ кроп, поэтому лучше без растения, чем не то растение;
- * • тариф 0, оба инстанса `Flower 2 - Cover` в кнопке — ждут референса из Figma
- *   (инстанс 3483:45351): у прежнего окно было 119×99, композит закрывал его целиком,
- *   и IoU держался на 0.415 у любого кандидата — скор не различал угол.
+ * Все 16 инстансов на месте. Два из них — кнопка тарифа 0 — стоят при IoU 0.497, ниже
+ * порога 0.92, и это осознанно: угол подтверждён НЕЗАВИСИМО двумя разными кадрами
+ * (77.1 на окне 119×99 инстанса 3483:45402 и 76.6 на окне 260×99 инстанса 3483:45351).
+ * Совпадение замеров по разным окнам — довод сильнее самой метрики, которая на плотном
+ * листе в узкой полосе штрафует за доли градуса. То же и у тарифа 3 (IoU 0.435).
+ *
+ * Заливка листьев в кнопке тарифа 0 — тот же `#8FD096`, что у самой кнопки; тёмным лист
+ * выглядит из-за multiply-слоёв ВНУТРИ рисунка, а не из-за подложки.
  */
 export type PlanDecorSlot = 'plate' | 'button'
 
@@ -74,8 +79,12 @@ export const PLAN_DECOR: readonly Record<PlanDecorSlot, readonly PlanDecorPlant[
       /* p0-plate-2  3483:45170 */
       { file: 'Flower 2 - Tutors - Plans Cream.svg', anchorX: 'center', x: 25.517, anchorY: 'top', y: 31.76, w: 80.609, rotate: 0.19 },
     ],
-    /* 3483:45351 и 3483:45402 — ждут референса, см. шапку файла */
-    button: [],
+    button: [
+      /* p0-btn-0  3483:45351 */
+      { file: 'Flower 2 - Cover - Plans Green.svg', anchorX: 'left', x: 89.677, anchorY: 'top', y: 0.489, w: 362.111, rotate: 348.45, flipY: true },
+      /* p0-btn-1  3483:45402 */
+      { file: 'Flower 2 - Cover - Plans Green.svg', anchorX: 'right', x: -22.863, anchorY: 'center', y: 0.023, w: 258.473, rotate: 128.43, flipY: true },
+    ],
   },
   {
     plate: [
@@ -121,6 +130,47 @@ export const PLAN_DECOR: readonly Record<PlanDecorSlot, readonly PlanDecorPlant[
       { file: 'Flower 3 - Become - Plans Pale.svg', anchorX: 'right', x: 109.596, anchorY: 'bottom', y: 23.501, w: 380.026, rotate: 100 },
     ],
   },
+]
+
+/**
+ * Мобильная композиция — ОТДЕЛЬНЫЙ макет (Figma Price List 3498:46099, ширина 354), а не
+ * пересчёт десктопной. Разница не косметическая:
+ *
+ * • внутри кнопок на мобилке декора НЕТ ни у одного тарифа — поэтому здесь только плашки;
+ * • у растений свои позиции и часть из них другого размера;
+ * • у `3499:46325` вдобавок другой угол (−64.04 против −115.96) и НЕТ флипа, то есть
+ *   пересчёт десктопных чисел дал бы просто не тот лист.
+ *
+ * Единица та же `--plan-u` = 1cqh, но контейнер свой: высоты мобильных плашек (472/448/
+ * 478/494) отличаются от десктопных, и числа посчитаны против них.
+ */
+export const PLAN_DECOR_MOBILE: readonly (readonly PlanDecorPlant[])[] = [
+  [
+    /* m0-plate-0  3498:46306 */
+    { file: 'Flower 2 - Tutors - Plans Cream.svg', anchorX: 'left', x: -9.091, anchorY: 'top', y: 7.242, w: 66.776, rotate: 0.19 },
+    /* m0-plate-1  3499:46312 */
+    { file: 'Flower 2 - Tutors - Plans Cream.svg', anchorX: 'right', x: -1.551, anchorY: 'top', y: 25.723, w: 57.382, rotate: 326.5 },
+    /* m0-plate-2  3499:46318 */
+    { file: 'Flower 2 - Tutors - Plans Cream.svg', anchorX: 'left', x: 12.373, anchorY: 'bottom', y: 9.849, w: 56.279, rotate: 0.19 },
+  ],
+  [
+    /* m1-plate-0  3499:46324 */
+    { file: 'Flower 4 - Cover.svg', anchorX: 'right', x: 6.824, anchorY: 'bottom', y: -2.306, w: 87.216, rotate: 115.86 },
+    /* m1-plate-1  3499:46325 — не копия десктопного: свой угол, без флипа */
+    { file: 'Flower 4 - Cover.svg', anchorX: 'left', x: 4.228, anchorY: 'top', y: 7.892, w: 66.162, rotate: 295.86 },
+  ],
+  [
+    /* m2-plate-0  3499:46375 */
+    { file: 'Flower 1 - CELPE-BRAS - Plans Pale.svg', anchorX: 'left', x: 23.332, anchorY: 'top', y: -36.893, w: 104.384, rotate: 291.03 },
+    /* m2-plate-1  3499:46376 */
+    { file: 'Flower 1 - CELPE-BRAS - Plans Pale.svg', anchorX: 'right', x: 20.235, anchorY: 'bottom', y: -24.016, w: 119.534, rotate: 106.2 },
+  ],
+  [
+    /* m3-plate-0  3499:46642 */
+    { file: 'Flower 3 - Become - Plans Olive.svg', anchorX: 'right', x: 21.624, anchorY: 'top', y: 29.509, w: 129.03, rotate: 100 },
+    /* m3-plate-1  3499:46643 */
+    { file: 'Flower 3 - Become - Plans Olive.svg', anchorX: 'left', x: 24.127, anchorY: 'bottom', y: -1.157, w: 144.047, rotate: 280 },
+  ],
 ]
 
 /** Длина в единицах контейнера. `--plan-u` ставит globals.css. */

@@ -19,7 +19,7 @@
 //   npm run verify:plan-decor -- http://host/pt          → самые длинные подписи
 //   npm run verify:plan-decor -- http://host/ru 390x844  → телефон
 import { chromium } from 'playwright'
-import { PLAN_DECOR } from '../components/ui/planDecorPlants'
+import { PLAN_DECOR, PLAN_DECOR_MOBILE } from '../components/ui/planDecorPlants'
 
 const BASE = process.argv[2] ?? 'http://localhost:3000/ru'
 const vp = /^(\d+)x(\d+)$/.exec(process.argv[3] ?? '')
@@ -29,10 +29,17 @@ const DESKTOP = VIEWPORT.width >= 1024
 // Субпиксельная раскладка плюс проценты от дробной высоты контейнера.
 const TOL = 1.5
 
-const expected = PLAN_DECOR.flatMap((p, plan) => [
-  ...p.plate.map((q, i) => ({ ...q, id: `${plan}-plate-${i}`, slot: 'plate' as const })),
-  ...p.button.map((q, i) => ({ ...q, id: `${plan}-button-${i}`, slot: 'button' as const })),
-])
+// Наборов два, и это не одна композиция в двух единицах: у мобилки собственный макет
+// (Price List 3498:46099) — свои позиции, часть растений другого размера, у одного другой
+// угол и нет флипа. Внутри кнопок мобильный макет декора не несёт вовсе, поэтому ниже lg
+// ожидаются ТОЛЬКО плашки.
+const expected = DESKTOP
+  ? PLAN_DECOR.flatMap((p, plan) => [
+      ...p.plate.map((q, i) => ({ ...q, id: `${plan}-plate-${i}`, slot: 'plate' as const })),
+      ...p.button.map((q, i) => ({ ...q, id: `${plan}-button-${i}`, slot: 'button' as const })),
+    ])
+  : PLAN_DECOR_MOBILE.flatMap((plants, plan) =>
+      plants.map((q, i) => ({ ...q, id: `${plan}-plate-mobile-${i}`, slot: 'plate' as const })))
 
 const browser = await chromium.launch()
 const page = await browser.newPage({ viewport: VIEWPORT, deviceScaleFactor: 1 })
@@ -92,8 +99,9 @@ for (const want of expected) {
       + `!= хозяин ${got.hostW.toFixed(0)}x${got.hostH.toFixed(0)} (нет position: relative на хозяине?)`)
   }
 
-  // Единица: плашка переключается на ширину ниже lg, кнопка держит высоту везде.
-  const unit = want.slot === 'button' || DESKTOP ? got.layerH : got.layerW
+  // Единица одна на всех ширинах — высота своего контейнера. Подмена опорной стороны на
+  // мобилке отпала вместе с появлением собственной мобильной таблицы.
+  const unit = got.layerH
   const expW = unit / 100 * want.w
   if (Math.abs(got.imgW - expW) > TOL) {
     fails.push(`${want.id}: ширина ${got.imgW.toFixed(1)}px, ждали ${expW.toFixed(1)}px (${want.w}u от ${unit.toFixed(1)}px)`)

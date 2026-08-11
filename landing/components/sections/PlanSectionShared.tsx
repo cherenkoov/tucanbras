@@ -145,7 +145,10 @@ export function PlanSection({ plan, index, locale }: { plan: PlanCard; index: nu
       />
 
       {/* Декор плашки — над окрашенной плашкой, под контентом; клип по её силуэту */}
+      {/* Две композиции декора плашки: у мобилки свой макет (Price List 3498:46099), а не
+          пересчёт десктопной. Обе в разметке, выбор — брейкпоинтом внутри PlanDecor. */}
       <PlanDecor plan={index} slot="plate" mask={{ mobile: MOBILE_BG[index], desktop: BG[index] }} />
+      <PlanDecor plan={index} slot="plate" variant="mobile" mask={{ mobile: MOBILE_BG[index], desktop: BG[index] }} />
 
       <div className={`relative z-10 flex ${rowClass} items-center justify-between gap-[0px] w-full`}>
 

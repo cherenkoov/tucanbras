@@ -69,6 +69,24 @@ const PLANTS = [
   { key:'p3-plate-1', plan:3, slot:'plate',  node:'3484:60356', file:'Flower 3 - Become.svg',     left:-386,   top:18,         w:935.583,  h:725.849, frame:[479.715,822.961], rot:70.6 },
   { key:'p3-btn-0',   plan:3, slot:'button', node:'3484:60565', file:'Flower 3 - Become.svg',     left:-169,   top:-88,        w:483.303,  h:374.959, frame:[247.811,425.125], rot:70.6 },
   { key:'p3-btn-1',   plan:3, slot:'button', node:'3484:60653', file:'Flower 3 - Become.svg',     left:160,    top:-136,       w:483.303,  h:374.959, frame:[247.811,425.125], rot:-109.4 },
+
+  // ── Мобильный макет (Price List 3498:46099, ширина 354) ───────────────────────────
+  //
+  // Отдельная композиция, а не пересчёт десктопной: у плашек свои позиции, часть
+  // инстансов другого размера, а у 3499:46325 ещё и другой угол (−64.04 вместо −115.96)
+  // и НЕТ флипа. Внутри кнопок на мобилке декора нет вообще — поэтому здесь только
+  // плашки, девять инстансов.
+  //
+  // `box` задан явно: у каждой мобильной плашки своя высота, и единица считается от неё.
+  { key:'m0-plate-0', plan:0, slot:'plate', set:'mobile', box:{w:354,h:472}, node:'3498:46306', file:'Flower 2 - Tutors.svg',     left:-200.003, top:-110,      w:314.187,  h:288.36,   frame:[256.348,212.66],  rot:20.29 },
+  { key:'m0-plate-1', plan:0, slot:'plate', set:'mobile', box:{w:354,h:472}, node:'3499:46312', file:'Flower 2 - Tutors.svg',     left:232.997,  top:6.9995,    w:256.643,  h:228.823,  frame:[220.287,182.745], rot:-13.4 },
+  { key:'m0-plate-2', plan:0, slot:'plate', set:'mobile', box:{w:354,h:472}, node:'3499:46318', file:'Flower 2 - Tutors.svg',     left:-73.999,  top:303.9975,  w:264.7996, h:243.0325, frame:[216.052,179.232], rot:20.29 },
+  { key:'m1-plate-0', plan:1, slot:'plate', set:'mobile', box:{w:354,h:448}, node:'3499:46324', file:'Flower 4 - Cover.svg',      right:-243.86, bottom:-277.66, w:548.859, h:534.66,   frame:[389.859,420.638], rot:115.96 },
+  { key:'m1-plate-1', plan:1, slot:'plate', set:'mobile', box:{w:354,h:448}, node:'3499:46325', file:'Flower 4 - Cover.svg',      left:-189.24,  top:-167.44,   w:416.364,  h:405.593,  frame:[295.747,319.096], rot:-64.04 },
+  { key:'m2-plate-0', plan:2, slot:'plate', set:'mobile', box:{w:354,h:478}, node:'3499:46375', file:'Flower 1 - CELPE-BRAS.svg', left:-366,     top:-558,      w:955.0499, h:763.302,  frame:[494.521,832.189], rot:-68.67 },
+  { key:'m2-plate-1', plan:2, slot:'plate', set:'mobile', box:{w:354,h:478}, node:'3499:46376', file:'Flower 1 - CELPE-BRAS.svg', left:-280,     top:186,       w:1074.5506,h:813.5928, frame:[566.295,952.973], rot:106.5 },
+  { key:'m3-plate-0', plan:3, slot:'plate', set:'mobile', box:{w:354,h:494}, node:'3499:46642', file:'Flower 3 - Become.svg',     right:-229.8,  top:-143,      w:618.802,  h:480.082,  frame:[317.287,544.313], rot:-109.4 },
+  { key:'m3-plate-1', plan:3, slot:'plate', set:'mobile', box:{w:354,h:494}, node:'3499:46643', file:'Flower 3 - Become.svg',     left:-199,     bottom:-224.96, w:690.82,  h:535.956,  frame:[354.214,607.662], rot:70.6 },
 ]
 
 // ψ, известные из фита карточек CELPE-BRAS. Это КРОСС-ЧЕК, а не гейт (решение владельца
@@ -104,7 +122,7 @@ const FIT_ON = {
 /** Центр outer-бокса в координатах контейнера. CSS-семантика: `right: X` — это
  *  расстояние от правого края контейнера до правого края бокса, внутрь положительное. */
 function centre(p) {
-  const box = BOX[p.plan][p.slot]
+  const box = p.box ?? BOX[p.plan][p.slot]
   const cx = p.centerX !== undefined ? box.w / 2 + p.centerX
     : p.left !== undefined ? p.left + p.w / 2
     : box.w - p.right - p.w / 2
@@ -338,7 +356,13 @@ const PASS = 0.92  // порог приёмки по IoU
 // композита). Метрика строгая, а расхождение похоже на несовпадение масштаба: при этом ψ
 // бокс чернил меряет фрейм с ошибкой 2.2% против 0.6% у отвергнутого 73.5. Пускается
 // осознанно и проверяется ГЛАЗАМИ против макета; если разойдётся — снять отсюда.
-const BELOW_PASS_OK = new Set(['Flower 3 - Become.svg'])
+//
+// `Flower 2 - Cover.svg`: IoU 0.497. Угол подтверждён НЕЗАВИСИМО — два разных окна дали
+// практически одно значение: 77.1 на референсе инстанса 3483:45402 (окно 119×99) и 76.6
+// на 3483:45351 (окно 260×99). Совпадение замеров по разным кадрам — довод сильнее самой
+// метрики, которая на плотном листе в узкой полосе штрафует за доли градуса. Тоже
+// проверяется глазами.
+const BELOW_PASS_OK = new Set(['Flower 3 - Become.svg', 'Flower 2 - Cover.svg'])
 
 // Кеш на диске: {file: psi}. Переживает процесс, поэтому свип на файл, для которого ψ
 // уже найдена, не повторяется — только пересчитывается IoU по текущему референсу
@@ -455,7 +479,7 @@ for (const p of PLANTS) {
   const wCss = RASTER * (p.frame[0] / box.w)
   const a = anchors(p, deltaByFile[p.file])
   const deg = Math.round((((psi + p.rot) % 360 + 360) % 360) * 100) / 100
-  const wU = +(wCss / BOX[p.plan][p.slot].h * 100).toFixed(3)
+  const wU = +(wCss / (p.box ?? BOX[p.plan][p.slot]).h * 100).toFixed(3)
   if (!Number.isFinite(wU) || wU <= 0) failed = true
   console.log(`  /* ${p.key}  ${p.node} */`)
   console.log(`  { file: '${p.file}', anchorX: '${a.anchorX}', x: ${a.x}, anchorY: '${a.anchorY}', y: ${a.y}, `

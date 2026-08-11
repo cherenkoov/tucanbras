@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import { PLAN_DECOR, planDecorStyle, decorSrc, type PlanDecorSlot } from '@/components/ui/planDecorPlants'
+import { PLAN_DECOR, PLAN_DECOR_MOBILE, planDecorStyle, decorSrc, type PlanDecorSlot } from '@/components/ui/planDecorPlants'
 
 /**
  * Растения одного тарифа — на плашке или внутри кнопки, клипнутые по своему контейнеру
@@ -24,24 +24,34 @@ import { PLAN_DECOR, planDecorStyle, decorSrc, type PlanDecorSlot } from '@/comp
  * кнопка тарифа непрозрачная, блик у неё 18% белого, и лист поверх него читается
  * нормально — а трогать box-shadow кнопки значит менять сам тариф.
  */
-export default function PlanDecor({ plan, slot, mask }: {
+export default function PlanDecor({ plan, slot, variant = 'desktop', mask }: {
   plan: number
   slot: PlanDecorSlot
+  /**
+   * Какую композицию рисовать. Мобильная — не пересчёт десктопной, а свой макет: свои
+   * позиции, часть растений другого размера, а у одного другой угол и нет флипа. Оба
+   * набора живут в разметке одновременно и переключаются брейкпоинтом, как это уже
+   * сделано у самой плашки, — иначе выбор зависел бы от JS и мигал бы до гидрации.
+   */
+  variant?: 'desktop' | 'mobile'
   mask?: { mobile: string; desktop: string }
 }) {
-  const plants = PLAN_DECOR[plan]?.[slot]
+  const isPlate = slot === 'plate'
+  const isMobile = variant === 'mobile'
+  const plants = isMobile ? PLAN_DECOR_MOBILE[plan] : PLAN_DECOR[plan]?.[slot]
   if (!plants?.length) return null
 
-  const isPlate = slot === 'plate'
+  // Внутри кнопок мобильный макет декора не несёт вовсе.
+  const breakpoint = isPlate ? (isMobile ? 'lg:hidden ' : 'hidden lg:block ') : 'hidden lg:block '
 
   return (
     <div
       aria-hidden
-      data-plan-decor={`${plan}-${slot}`}
+      data-plan-decor={`${plan}-${slot}${isMobile ? '-mobile' : ''}`}
       className={
-        isPlate
+        breakpoint + (isPlate
           ? 'plan-decor-plate absolute inset-0 overflow-hidden pointer-events-none opacity-80 group-hover:opacity-100 group-[.is-center]:opacity-100 transition-opacity duration-[600ms]'
-          : 'plan-decor-button absolute inset-0 overflow-hidden pointer-events-none'
+          : 'plan-decor-button absolute inset-0 overflow-hidden pointer-events-none')
       }
       style={{
         borderRadius: 'inherit',
@@ -57,7 +67,7 @@ export default function PlanDecor({ plan, slot, mask }: {
           key={i}
           src={decorSrc(p.file)}
           alt=""
-          data-plan-plant={`${plan}-${slot}-${i}`}
+          data-plan-plant={`${plan}-${slot}${isMobile ? '-mobile' : ''}-${i}`}
           className="absolute h-auto max-w-none select-none pointer-events-none"
           loading="lazy"
           decoding="async"

@@ -68,7 +68,9 @@ export default function PlanDecor({ plan, slot, variant = 'desktop', mask }: {
       {plants.map((p, i) => (
         <img
           key={i}
-          src={decorSrc(p.file)}
+          /* Путь с ведущим слэшем — готовый рендер инстанса из Figma (тариф 4), он лежит
+             не на общей полке decor/ и подставляется как есть. */
+          src={p.file.startsWith('/') ? p.file : decorSrc(p.file)}
           alt=""
           data-plan-plant={`${plan}-${slot}${isMobile ? '-mobile' : ''}-${i}`}
           className="absolute h-auto max-w-none select-none pointer-events-none"

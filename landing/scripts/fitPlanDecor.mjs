@@ -115,7 +115,11 @@ const FIT_ON = {
   'Flower 2 - Cover.svg':      { key: 'p0-btn-0',   ref: 'cover2b' },
   'Flower 4 - Cover.svg':      { key: 'p1-plate-0', ref: 'cover4'  },
   'Flower 1 - CELPE-BRAS.svg': { key: 'p2-plate-1', ref: 'celpe'   },
-  'Flower 3 - Become.svg':     { key: 'p3-plate-1', ref: 'become'  },
+  // Мерился на p3-plate-1 (окно 550×405) и не брал порог: 0.435 даже после доводки центра.
+  // Владелец подтвердил глазами, что цветок в правом углу стоит не под тем углом и не того
+  // размера, — то есть замер шёл по слишком тесному кадру. Перенесён на p3-plate-0
+  // (3484:59802, окно 1000×423): это ровно тот инстанс, к которому была претензия.
+  'Flower 3 - Become.svg':     { key: 'p3-plate-0', ref: 'become2' },
   'Flower - Plans.svg':        { key: 'p1-btn-0',   ref: 'plans'   },
 }
 

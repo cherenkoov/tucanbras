@@ -117,11 +117,27 @@ export const PLAN_DECOR: readonly Record<PlanDecorSlot, readonly PlanDecorPlant[
        scripts/fitPlanDecor.mjs. Силуэт и угол при ψ=209.4 совпадают с рендером Figma,
        метрика строгая; центр доведён по референсу, а не взят из бокса макета. Проверено
        глазами против макета — если разойдётся, снимать отсюда вместе с BELOW_PASS_OK. */
+    /*
+      ЕДИНСТВЕННОЕ место, где арт не берётся с общей полки decor/, а приезжает готовым
+      рендером инстанса из Figma. Причина измерена, а не предположена: у `Flower 3 -
+      Become.svg` модель «общий файл + поворот + равномерный масштаб» не восстанавливается.
+      Свидетельства: два разных кадра одного файла сошлись к РАЗНЫМ углам (209.4 и 106.8),
+      чего не случилось ни с одним другим файлом; перебор со СВОБОДНЫМ масштабом упёрся в
+      IoU 0.39 и убежал в вырожденное «сделай побольше»; при этом наложение силуэтов
+      показало, что рисунок тот самый — не совпадает только трансформ. Скорее всего у этого
+      компонента фрейм инстанса не равен боксу чернил, а на этом равенстве держится вывод
+      масштаба во всём фиттере.
+
+      Поэтому здесь ставится ровно то, что рисует Figma, — срез инстанса, обрезанный
+      плашкой макета. Ни угла, ни масштаба подбирать не нужно: они уже вшиты в файл, а
+      `rotate: 0` и ширина, равная ширине окна, ставят срез на его собственное место.
+      Высота приходит сама: аспект файла равен аспекту окна.
+    */
     plate: [
-      /* p3-plate-0  3484:59802 */
-      { file: 'Flower 3 - Become - Plans Olive.svg', anchorX: 'right', x: 95.912, anchorY: 'top', y: 42.465, w: 168.686, rotate: 138.8, flipY: true },
-      /* p3-plate-1  3484:60356 */
-      { file: 'Flower 3 - Become - Plans Olive.svg', anchorX: 'left', x: 12.901, anchorY: 'bottom', y: -1.574, w: 227.828, rotate: 280 },
+      /* p3-plate-0  3484:59802 — окно x[100.7,1100] y[0,423], прижат к правому краю */
+      { file: '/SVG/plans/decor/tier4-plate-right.svg', anchorX: 'right', x: 118.121, anchorY: 'center', y: 0, w: 236.241, rotate: 0 },
+      /* p3-plate-1  3484:60356 — окно x[0,549.6] y[18,423], прижат к левому краю */
+      { file: '/SVG/plans/decor/tier4-plate-left.svg', anchorX: 'left', x: 64.962, anchorY: 'center', y: 2.128, w: 129.925, rotate: 0 },
     ],
     button: [
       /* p3-btn-0  3484:60565 */
@@ -166,10 +182,12 @@ export const PLAN_DECOR_MOBILE: readonly (readonly PlanDecorPlant[])[] = [
     { file: 'Flower 1 - CELPE-BRAS - Plans Pale.svg', anchorX: 'right', x: 20.235, anchorY: 'bottom', y: -24.016, w: 119.534, rotate: 106.2 },
   ],
   [
-    /* m3-plate-0  3499:46642 */
-    { file: 'Flower 3 - Become - Plans Olive.svg', anchorX: 'right', x: 21.624, anchorY: 'top', y: 29.509, w: 129.03, rotate: 100 },
-    /* m3-plate-1  3499:46643 */
-    { file: 'Flower 3 - Become - Plans Olive.svg', anchorX: 'left', x: 24.127, anchorY: 'bottom', y: -1.157, w: 144.047, rotate: 280 },
+    /* Тариф 4 — готовые срезы из Figma по той же причине, что и на десктопе (см. комментарий
+       у десктопной плашки тарифа 4). Оба среза во всю ширину плашки. */
+    /* m3-plate-0  3499:46642 — окно x[0,354] y[0,338] */
+    { file: '/SVG/plans/decor/tier4-m-top.svg', anchorX: 'center', x: 0, anchorY: 'top', y: 34.211, w: 71.66, rotate: 0 },
+    /* m3-plate-1  3499:46643 — окно x[0,354] y[183,494] */
+    { file: '/SVG/plans/decor/tier4-m-bottom.svg', anchorX: 'center', x: 0, anchorY: 'bottom', y: 31.478, w: 71.66, rotate: 0 },
   ],
 ]
 

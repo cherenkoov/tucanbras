@@ -54,13 +54,26 @@ await page.waitForSelector('[data-plan-plant]', { state: 'attached', timeout: 20
 // Картинки декора `loading="lazy"`, а секция лежит далеко ниже сгиба: без прокрутки к ней
 // браузер их вообще не запрашивает, и любая проверка «загрузилось ли» провалится вхолостую.
 await page.evaluate(() => document.querySelector('#plans')?.scrollIntoView())
-await page.waitForFunction(
-  () => [...document.querySelectorAll<HTMLImageElement>('[data-plan-plant]')]
-    .filter(i => i.getBoundingClientRect().width > 0).every(i => i.complete && i.naturalWidth > 0),
-  null, { timeout: 20_000 },
-)
-
+// Дать плавному скроллу доехать: пока секция едет, картинки формально ещё вне кадра, и
+// отсчёт ожидания уходит впустую — ловилось как «не загрузилась за 20с» на первой же плашке.
+await page.waitForTimeout(1_500)
 const fails: string[] = []
+
+// Ожидание загрузки не должно ронять прогон: голый TimeoutError приходит с пустым логом и
+// не говорит НИЧЕГО о том, какая картинка не доехала. Ловим и превращаем в обычную
+// находку с именами файлов.
+try {
+  await page.waitForFunction(
+    () => [...document.querySelectorAll<HTMLImageElement>('[data-plan-plant]')]
+      .filter(i => i.getBoundingClientRect().width > 0).every(i => i.complete && i.naturalWidth > 0),
+    null, { timeout: 20_000 },
+  )
+} catch {
+  const stuck = await page.evaluate(() => [...document.querySelectorAll<HTMLImageElement>('[data-plan-plant]')]
+    .filter(i => i.getBoundingClientRect().width > 0 && !(i.complete && i.naturalWidth > 0))
+    .map(i => `${i.dataset.planPlant} ← ${i.getAttribute('src')}`))
+  fails.push(`не загрузились за 20с: ${stuck.length ? stuck.join(', ') : '(ни одной — предикат сорвался на чём-то другом)'}`)
+}
 
 for (const want of expected) {
   const got = await page.evaluate((id) => {
@@ -112,6 +125,56 @@ for (const want of expected) {
   }
 
   if (want.slot === 'plate' && !got.hasMask) fails.push(`${want.id}: на слое плашки нет маски формы`)
+}
+
+// Разрастание на наведение. Ловит ровно тот отказ, который иначе молчит: `scale-[1.15]`
+// в Tailwind v4 пишет ОТДЕЛЬНОЕ свойство `scale`, его не анимирует `transition-property:
+// transform` — и, что хуже, имя класса, собранное из переменной, не генерируется вообще,
+// а сборка при этом проходит.
+if (DESKTOP) {
+  // Мышь двигается по координатам, а не через `locator.hover()`: карточки лежат внахлёст
+  // (`mb-[-48px]`), и проверка действуемости у Playwright на них не проходит — а настоящему
+  // курсору перекрытие соседом не мешает, он наводится на то, что сверху.
+  // Курсор наводится ПО ПОДТВЕРЖДЕНИЮ, а не по одному замеру координат. На странице
+  // включён плавный скролл: прямоугольник карточки ещё едет, и одиночный `mouse.move` по
+  // устаревшему rect промахивается через раз — симптом при этом выглядит как «класс не
+  // сгенерирован», то есть гард врал бы на ровном месте. Двигаем, пока сама карточка не
+  // отчитается `:hover`.
+  await page.evaluate(() => {
+    [...document.querySelectorAll<HTMLElement>('[data-glass-center]')]
+      .find(e => e.offsetWidth > 0 && e.querySelector('[data-plan-plant]'))
+      ?.scrollIntoView({ block: 'center' })
+  })
+  // Проверяется НАЛИЧИЕ ПРАВИЛА, а не живое наведение мышью. Симуляция курсора здесь
+  // принципиально флаки: на странице плавный скролл и движущийся фон, карточка уходит
+  // из-под курсора, и замер давал то 1.146, то `none` — гард врал бы примерно раз в три
+  // прогона, а гард, который кричит волками, хуже отсутствующего.
+  //
+  // Отказ, который надо поймать, при этом статический: Tailwind не генерирует правило для
+  // имени класса, собранного из переменной, и сборка при этом проходит молча. Значит
+  // достаточно спросить у CSSOM, существует ли правило, которое ставит `scale: 1.15` под
+  // `:hover`. Второй половиной механики — что переход вообще анимирует `scale` — служит
+  // `transitionProperty`, он читается с самого элемента.
+  // Обход СТЕКОМ, без вложенной функции: tsx подставляет для именованных функций хелпер
+  // `__name`, которого в браузере нет, и evaluate падает с `__name is not defined`.
+  const zoom = await page.evaluate(() => {
+    const stack: CSSRule[] = []
+    for (const ss of [...document.styleSheets]) {
+      try { stack.push(...(ss as CSSStyleSheet).cssRules) } catch { /* чужой источник */ }
+    }
+    let rule = false
+    while (stack.length) {
+      const r = stack.pop() as CSSStyleRule & CSSGroupingRule
+      if (r.style?.scale === '1.15' && (r.selectorText ?? '').includes(':hover')) rule = true
+      if (r.cssRules) stack.push(...r.cssRules)
+    }
+    const img = [...document.querySelectorAll<HTMLImageElement>('[data-plan-plant]')].find(i => i.offsetWidth > 0)
+    return { rule, transition: img ? getComputedStyle(img).transitionProperty : null }
+  })
+  if (!zoom.rule) fails.push('наведение: нет правила `scale: 1.15` под :hover — класс не сгенерирован')
+  if (!zoom.transition?.includes('scale')) {
+    fails.push(`наведение: transition-property=${zoom.transition}, в нём нет scale — потерян .pill-decor`)
+  }
 }
 
 // Лейбл кнопки обязан рисоваться поверх декора.

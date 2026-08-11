@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { scrollToElement } from '@/components/ui/AnchorScrollHandler'
 import { uiLabels } from '@/lib/uiLabels'
+import { bloomOnTap } from '@/components/ui/tapBloom'
 import PlanDecor from '@/components/ui/PlanDecor'
 import type { PlanCard } from '@/types'
 
@@ -101,6 +102,9 @@ export function PlanSection({ plan, index, locale }: { plan: PlanCard; index: nu
   return (
     <div
       data-glass-center
+      /* Тап взводит `[data-tapped]` на 900ms — на телефоне это стенд-ин для hover, к
+         которому обращается декор плашки (см. ZOOM_PLATE в PlanDecor). Мышь тут no-op. */
+      onPointerDown={bloomOnTap}
       className={`group relative px-[32px] py-[64px] w-full overflow-hidden rounded-[28px] lg:overflow-visible lg:rounded-none ${isLast ? '' : 'mb-[-48px]'}`}
     >
       {/*
@@ -206,7 +210,11 @@ export function PlanSection({ plan, index, locale }: { plan: PlanCard; index: nu
             /* `relative` — контейнер для слоя декора: без него `absolute inset-0`
                отсчитывается от ближайшего позиционированного предка, и лист рисуется
                размером с колонку, а не с кнопку. На вид самой кнопки не влияет. */
-            className="btn-press relative flex items-center justify-center w-full overflow-hidden rounded-[28px] cursor-pointer"
+            /* `group/btn` — своё имя группы: листья внутри кнопки должны отвечать на
+               наведение НА КНОПКУ, а не на карточку целиком. Тап взводится тем же
+               bloomOnTap; он всплывает и до карточки, поэтому плашка отвечает заодно. */
+            onPointerDown={bloomOnTap}
+            className="btn-press group/btn relative flex items-center justify-center w-full overflow-hidden rounded-[28px] cursor-pointer"
             style={{
               backgroundColor: cfg.accent,
               paddingTop: '32px',

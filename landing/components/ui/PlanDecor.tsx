@@ -24,6 +24,26 @@ import { PLAN_DECOR, PLAN_DECOR_MOBILE, planDecorStyle, decorSrc, type PlanDecor
  * кнопка тарифа непрозрачная, блик у неё 18% белого, и лист поверх него читается
  * нормально — а трогать box-shadow кнопки значит менять сам тариф.
  */
+/**
+ * Разрастание декора на наведение и на тап — тот же жест, что у пилюль хедера, и те же
+ * 1.15 и 340ms (`.pill-decor`).
+ *
+ * `scale` здесь — ОТДЕЛЬНОЕ CSS-свойство, а не часть `transform`: Tailwind v4 пишет
+ * `scale-[1.15]` именно так, и рукописный `transition-property: transform` его бы не
+ * анимировал. `.pill-decor` перечисляет все четыре свойства, поэтому переход живёт.
+ * Якорь `translate(-50%,-50%)` при этом остаётся в `transform` и не ломается: проценты
+ * считаются от border-box, а `scale` его не меняет — центр растения стоит на месте.
+ *
+ * Тап вместо hover на телефоне: `:active` держится ровно пока палец на экране (~100-150ms),
+ * то есть короче самого перехода, и жест читался бы как рывок. `bloomOnTap` вместо этого
+ * взводит `[data-tapped]` на 900ms — см. tapBloom.ts.
+ *
+ * Строки литеральные: Tailwind генерирует правило только для имени класса, которое может
+ * прочитать буквально, — собранное из переменной не даст НИЧЕГО, причём молча.
+ */
+const ZOOM_PLATE = 'pill-decor motion-safe:group-hover:scale-[1.15] motion-safe:group-data-tapped:scale-[1.15]'
+const ZOOM_BUTTON = 'pill-decor motion-safe:group-hover/btn:scale-[1.15] motion-safe:group-data-tapped/btn:scale-[1.15]'
+
 export default function PlanDecor({ plan, slot, variant = 'desktop', mask }: {
   plan: number
   slot: PlanDecorSlot
@@ -73,7 +93,7 @@ export default function PlanDecor({ plan, slot, variant = 'desktop', mask }: {
           src={p.file.startsWith('/') ? p.file : decorSrc(p.file)}
           alt=""
           data-plan-plant={`${plan}-${slot}${isMobile ? '-mobile' : ''}-${i}`}
-          className="absolute h-auto max-w-none select-none pointer-events-none"
+          className={`absolute h-auto max-w-none select-none pointer-events-none ${isPlate ? ZOOM_PLATE : ZOOM_BUTTON}`}
           loading="lazy"
           decoding="async"
           style={planDecorStyle(p)}

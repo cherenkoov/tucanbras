@@ -41,8 +41,11 @@ export default function PlanDecor({ plan, slot, variant = 'desktop', mask }: {
   const plants = isMobile ? PLAN_DECOR_MOBILE[plan] : PLAN_DECOR[plan]?.[slot]
   if (!plants?.length) return null
 
-  // Внутри кнопок мобильный макет декора не несёт вовсе.
-  const breakpoint = isPlate ? (isMobile ? 'lg:hidden ' : 'hidden lg:block ') : 'hidden lg:block '
+  // Плашки переключаются по брейкпоинту: композиции у них разные. Кнопка одна на все
+  // ширины — решение владельца. В мобильном макете её листья отсутствуют, но кнопка и на
+  // телефоне остаётся широкой низкой полосой (пропорция как у макетных 518×99), а числа
+  // считаются от её собственной высоты, поэтому десктопная композиция переносится как есть.
+  const breakpoint = isPlate ? (isMobile ? 'lg:hidden ' : 'hidden lg:block ') : ''
 
   return (
     <div

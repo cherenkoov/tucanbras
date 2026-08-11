@@ -29,17 +29,21 @@ const DESKTOP = VIEWPORT.width >= 1024
 // Субпиксельная раскладка плюс проценты от дробной высоты контейнера.
 const TOL = 1.5
 
-// Наборов два, и это не одна композиция в двух единицах: у мобилки собственный макет
-// (Price List 3498:46099) — свои позиции, часть растений другого размера, у одного другой
-// угол и нет флипа. Внутри кнопок мобильный макет декора не несёт вовсе, поэтому ниже lg
-// ожидаются ТОЛЬКО плашки.
-const expected = DESKTOP
-  ? PLAN_DECOR.flatMap((p, plan) => [
-      ...p.plate.map((q, i) => ({ ...q, id: `${plan}-plate-${i}`, slot: 'plate' as const })),
-      ...p.button.map((q, i) => ({ ...q, id: `${plan}-button-${i}`, slot: 'button' as const })),
-    ])
-  : PLAN_DECOR_MOBILE.flatMap((plants, plan) =>
-      plants.map((q, i) => ({ ...q, id: `${plan}-plate-mobile-${i}`, slot: 'plate' as const })))
+// У ПЛАШЕК две разные композиции: мобильная — собственный макет (Price List 3498:46099),
+// а не пересчёт десктопной (свои позиции, часть растений другого размера, у одного другой
+// угол и нет флипа). У КНОПОК композиция одна на все ширины: в мобильном макете их листья
+// отсутствуют, но владелец попросил оставить как на десктопе.
+const buttons = PLAN_DECOR.flatMap((p, plan) =>
+  p.button.map((q, i) => ({ ...q, id: `${plan}-button-${i}`, slot: 'button' as const })))
+
+const expected = [
+  ...(DESKTOP
+    ? PLAN_DECOR.flatMap((p, plan) =>
+        p.plate.map((q, i) => ({ ...q, id: `${plan}-plate-${i}`, slot: 'plate' as const })))
+    : PLAN_DECOR_MOBILE.flatMap((plants, plan) =>
+        plants.map((q, i) => ({ ...q, id: `${plan}-plate-mobile-${i}`, slot: 'plate' as const })))),
+  ...buttons,
+]
 
 const browser = await chromium.launch()
 const page = await browser.newPage({ viewport: VIEWPORT, deviceScaleFactor: 1 })

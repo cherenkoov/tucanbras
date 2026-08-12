@@ -79,11 +79,19 @@ export const PLAN_DECOR: readonly Record<PlanDecorSlot, readonly PlanDecorPlant[
       /* p0-plate-2  3483:45170 */
       { file: 'Flower 2 - Tutors - Plans Cream.svg', anchorX: 'center', x: 25.517, anchorY: 'top', y: 31.76, w: 80.609, rotate: 0.19 },
     ],
+    /*
+      Кнопка «Single lesson» — тоже готовые срезы из Figma, как у тарифа 4, и по той же
+      причине: фит здесь физически не мог найти угол. Окна инстансов — 260×99 и 119×99,
+      композит закрывает такую полоску целиком, и IoU держался на 0.415 у ЛЮБОГО кандидата
+      подряд; доводка центра поднимала до 0.497, но различать углы скор так и не начинал.
+      Оба инстанса стояли через BELOW_PASS_OK, то есть на честном признании «угол не
+      измерен». Срез снимает вопрос: угол и масштаб уже вшиты в файл.
+    */
     button: [
-      /* p0-btn-0  3483:45351 */
-      { file: 'Flower 2 - Cover - Plans Green.svg', anchorX: 'left', x: 89.677, anchorY: 'top', y: 0.489, w: 362.111, rotate: 348.45, flipY: true },
-      /* p0-btn-1  3483:45402 */
-      { file: 'Flower 2 - Cover - Plans Green.svg', anchorX: 'right', x: -22.863, anchorY: 'center', y: 0.023, w: 258.473, rotate: 128.43, flipY: true },
+      /* p0-btn-0  3483:45351 — окно x[0,259.6] y[0,99], входит слева */
+      { file: '/SVG/plans/decor/tier1-btn-left.svg', anchorX: 'left', x: 131.091, anchorY: 'center', y: 0, w: 262.183, rotate: 0 },
+      /* p0-btn-1  3483:45402 — окно x[347,466] y[0,99], входит справа */
+      { file: '/SVG/plans/decor/tier1-btn-right.svg', anchorX: 'right', x: 60.101, anchorY: 'center', y: 0, w: 120.202, rotate: 0 },
     ],
   },
   {

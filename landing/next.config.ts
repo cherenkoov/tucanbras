@@ -29,6 +29,10 @@ const csp = [
 ].join('; ');
 
 const nextConfig: NextConfig = {
+  // Без явного root Turbopack ищет lockfile вверх по дереву и в git-worktree
+  // (landing/.claude/worktrees/*/landing) выбирает ОСНОВНОЙ landing/ — вотчер
+  // видит чужой живой .next и уходит в вечный rebuild→full-reload цикл.
+  turbopack: { root: __dirname },
   allowedDevOrigins: ['26.93.*.*', '192.168.*.*', '10.*.*.*', '172.*.*.*'],
   images: {
     remotePatterns: IMAGE_HOSTS.map(hostname => ({ protocol: 'https' as const, hostname })),

@@ -22,6 +22,7 @@
 //     `hover: none` — where the lean must NOT engage, or a tap would leave it stuck
 import { chromium, type Page } from 'playwright'
 import { HERO_ANTHURIUM, HERO_ANTHURIUM_LEAN, HERO_ANTHURIUM_SM } from '../components/ui/heroPlants'
+import { TAP_BLOOM_MS } from '../components/ui/tapBloom'
 
 const BASE = process.argv[2] ?? 'http://localhost:3000/ru'
 const vpArg = /^(\d+)x(\d+)$/.exec(process.argv[3] ?? '')
@@ -31,7 +32,11 @@ const VIEWPORT = vpArg
 // Chromium's mobile emulation is what flips `hover: none`, and that is what Tailwind's
 // `hover` variant is gated behind — a narrow viewport alone is still a desktop.
 const TOUCH = process.argv.includes('touch')
-const SM = VIEWPORT.width <= 500
+// `< 500`, not `<= 500`: Tailwind v4 compiles `max-[500px]:` to `@media not (min-width:
+// 500px)`, which is EXCLUSIVE — at exactly 500px the card is still `w-fit` and the flower
+// is still the desktop's 25cqw. The two sizes now differ by half again, so a run at the
+// boundary would have failed on the width with nothing wrong with the page.
+const SM = VIEWPORT.width < 500
 
 // Subpixel layout plus a percentage of a fractional container width; 2px is well inside
 // any real mistake (the smallest failure mode above is off by tens of px).
@@ -40,6 +45,24 @@ const TOL = 2
 const PINK = [0xf5, 0x8b, 0x8c]
 const PINK_TOL = 40
 const CHANGED = 8
+
+/**
+ * What the phone's bloom is allowed to cost. HERO_ANTHURIUM_SM went to 36cqw — one and a
+ * half times what it was — as a design call, and at that size it no longer fits inside
+ * the two rules below. Both are budgets rather than switches, sized just past what was
+ * measured at the moment of the change (3.0px past the edge, 0.6% of the label at 390px)
+ * so locale and subpixel drift do not flip them, while the failures they were written
+ * for — a flower placed by its box instead of its anchor, or scaled to land ON the words
+ * — miss by tens of px and whole percent and still fail.
+ *
+ * Nothing here applies above the breakpoint: on desktop both remain hard zeroes.
+ */
+const SM_ALLOWANCE = {
+  /** px of the tail past the page edge. `overflow-x: clip` crops it — never a scrollbar. */
+  crop: 8,
+  /** share of the CTA label's own box the bloom may tint at its right end. */
+  labelPink: 0.02,
+}
 
 const failures: string[] = []
 const ok: string[] = []
@@ -67,6 +90,12 @@ async function main() {
   await page.addInitScript(() => {
     try { sessionStorage.setItem('notion_retry', '99') } catch { /* storage blocked */ }
   })
+  // The dev server serves the devtools' own webfont from /__nextjs_font, and that request
+  // can simply never settle — which holds `load` open forever and times the run out with
+  // a perfectly healthy page underneath (seen on /ru while /en and /pt sailed through).
+  // Aborting it is safe in a way that relaxing the wait below would not be: the route does
+  // not exist in a production build, which is what this guard is written against.
+  await page.route('**/__nextjs_font/**', route => route.abort())
   // `load`, not `domcontentloaded`: hydration is still landing at DOMContentLoaded and
   // an evaluate that straddles it has nothing useful to measure.
   await page.goto(BASE, { waitUntil: 'load', timeout: 60_000 })
@@ -142,8 +171,11 @@ async function main() {
   // silently cropped flower rather than a scrollbar.
   if (m.anth.right <= m.card.right) failures.push('anthurium does not overhang the card — that corner is meant to be broken')
   else ok.push(`anthurium overhangs the card by ${(m.anth.right - m.card.right).toFixed(1)}px`)
-  if (m.anth.right > VIEWPORT.width) failures.push(`anthurium is cropped by the viewport — ${(m.anth.right - VIEWPORT.width).toFixed(1)}px of it is off-page`)
-  else ok.push(`anthurium clears the page edge by ${(VIEWPORT.width - m.anth.right).toFixed(1)}px`)
+  const crop = m.anth.right - VIEWPORT.width
+  const cropBudget = SM ? SM_ALLOWANCE.crop : 0
+  if (crop > cropBudget) failures.push(`anthurium is cropped by the viewport — ${crop.toFixed(1)}px of it is off-page, budget ${cropBudget}px`)
+  else if (crop > 0) ok.push(`anthurium tail runs ${crop.toFixed(1)}px past the page edge — inside the ${cropBudget}px the phone's bloom is allowed`)
+  else ok.push(`anthurium clears the page edge by ${(-crop).toFixed(1)}px`)
   if (m.anth.y < 0) failures.push(`anthurium is cut off at the top of the page by ${(-m.anth.y).toFixed(1)}px`)
   if (m.docOverflow > 0) failures.push(`document scrolls horizontally by ${m.docOverflow}px`)
 
@@ -172,8 +204,13 @@ async function main() {
     x: w.x - cardClip.x, y: w.y - cardClip.y, w: w.right - w.x, h: w.bottom - w.y,
   })))
   m.words.forEach((w, i) => {
-    // Not zero: the edge of the art antialiases into a neighbouring box.
-    if (shares[i] > 0.001) failures.push(`anthurium paints over "${w.name}" — ${(shares[i] * 100).toFixed(1)}% of it is flower pink`)
+    // Not zero: the edge of the art antialiases into a neighbouring box. The CTA's label
+    // carries a budget on the phone and nowhere else — see SM_ALLOWANCE. The heading
+    // lines keep the hard limit at every width: the bloom grows up and to the LEFT out of
+    // the corner, so those are the boxes that say whether it grew too far.
+    const budget = SM && w.name === 'CTA label' ? SM_ALLOWANCE.labelPink : 0.001
+    if (shares[i] > budget) failures.push(`anthurium paints over "${w.name}" — ${(shares[i] * 100).toFixed(1)}% of it is flower pink, budget ${(budget * 100).toFixed(1)}%`)
+    else if (shares[i] > 0.001) ok.push(`"${w.name}" is ${(shares[i] * 100).toFixed(1)}% flower pink — inside the ${(budget * 100).toFixed(1)}% the phone's bloom is allowed`)
     else ok.push(`"${w.name}" carries no flower pink`)
   })
 
@@ -266,6 +303,42 @@ async function main() {
     failures.push('the lean engages on a `hover: none` device — a tap would leave it stuck')
   } else {
     ok.push(m.hoverable ? `lean engages: scale ${hovered.scale}, rotate ${hovered.rotate}` : 'lean stays off where hover is unavailable')
+  }
+
+  // ── the tap, which is the phone's whole share of this gesture.
+  //
+  // The check above proves the HOVER rules stay inert here — by design, so a tap cannot
+  // pin the flower open forever. That left the phone with no motion at all, and the same
+  // lean is now armed on the button's pointerdown instead (`peer-data-tapped`,
+  // tapBloom.ts). Two ways that comes apart silently, one assertion each:
+  //
+  //   • it never arrives. `peer-data-tapped` is a literal Tailwind class like every other
+  //     one here; a variant Tailwind cannot read generates NO rule and the flower simply
+  //     sits still. Read AFTER the finger has lifted — which is precisely what a
+  //     `peer-active` implementation cannot pass, and what makes this worth measuring.
+  //   • it never leaves. A timer that does not fire leaves the Hero permanently
+  //     mid-gesture, which reads as a broken layout rather than as a stuck animation.
+  if (!m.hoverable) {
+    await page.locator('#hero button').tap()
+    // Past the 340ms transition, well inside the 900ms hold.
+    await page.waitForTimeout(500)
+    const tapped = await leanOf(page)
+    if (Math.abs(Number.parseFloat(tapped.scale) - HERO_ANTHURIUM_LEAN.scale) > 0.01
+      || Math.abs(Number.parseFloat(tapped.rotate) - HERO_ANTHURIUM_LEAN.rotateDeg) > 0.5) {
+      failures.push(`tapping the CTA leaves the anthurium at scale ${tapped.scale} / rotate ${tapped.rotate}, `
+        + `expected ${HERO_ANTHURIUM_LEAN.scale} / ${HERO_ANTHURIUM_LEAN.rotateDeg}deg — check the peer-data-tapped classes are literal`)
+    } else {
+      ok.push(`tap leans the flower and holds it after the finger lifts: scale ${tapped.scale}, rotate ${tapped.rotate}`)
+    }
+
+    await page.waitForTimeout(TAP_BLOOM_MS + 800)
+    const settled = await leanOf(page)
+    const settledScale = settled.scale === 'none' ? 1 : Number.parseFloat(settled.scale)
+    if (Math.abs(settledScale - 1) > 0.01) {
+      failures.push(`the tap bloom never expires — the anthurium is still at scale ${settled.scale}`)
+    } else {
+      ok.push('the tap bloom expires on its own')
+    }
   }
 
   await browser.close()

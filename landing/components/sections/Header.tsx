@@ -1034,9 +1034,14 @@ export default function Header({ navLinks, locale }: HeaderProps) {
           >
             <div className="block lg:hidden h-full"><TucanLogo bodyW={100} /></div>
             <div className="hidden lg:block h-full"><TucanLogo bodyW={135} /></div>
+            {/* `logo-lift` carries the -0.1em optical nudge (globals.css, next to the
+                breakpoint spellings): it has to drop to zero below 460px, where
+                .logo-xs shrinks the glyphs but the em the nudge is measured in stays
+                pinned at the clamp's 28px floor — and an inline transform is not
+                something a media query can override. */}
             <span
-              className="flex items-center justify-center font-bold tracking-normal select-none font-accent h-full w-full ml-3"
-              style={{ fontSize: 'clamp(28px, 4.69vw, 90px)', lineHeight: '1', transform: 'translateY(-0.1em)' }}
+              className="flex items-center justify-center font-bold tracking-normal select-none font-accent h-full w-full ml-3 logo-lift"
+              style={{ fontSize: 'clamp(28px, 4.69vw, 90px)', lineHeight: '1' }}
             >
               {/* One AdaptiveText per breakpoint spelling, not one around all four.
                   The hook masks to the element's own text, and this span carries

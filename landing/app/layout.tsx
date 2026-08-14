@@ -1,9 +1,16 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "TucanBRAS — Online Brazilian Portuguese School",
   description: "Learn Portuguese with native speakers and prepare for CELPE-BRAS",
+};
+
+/* Browser chrome (Android status bar + toolbar) picks up theme-color. Without it
+   the browser guesses its own tint — hence the stray orange bottom bar on mobile.
+   Value is --color-cream, the page surface under the whole collage. */
+export const viewport: Viewport = {
+  themeColor: "#fffce5",
 };
 
 export default function RootLayout({

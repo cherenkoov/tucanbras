@@ -29,6 +29,10 @@ const DESKTOP = VIEWPORT.width >= 1024
 // Субпиксельная раскладка плюс проценты от дробной высоты контейнера.
 const TOL = 1.5
 
+// Пропорция макетной кнопки (Figma 518×99) — по ней зажат размер декора на узких экранах.
+// Число обязано совпадать с делителем в `.plan-decor-button` (globals.css).
+const PLAN_BTN_AR = 518 / 99
+
 // У ПЛАШЕК две разные композиции: мобильная — собственный макет (Price List 3498:46099),
 // а не пересчёт десктопной (свои позиции, часть растений другого размера, у одного другой
 // угол и нет флипа). У КНОПОК композиция одна на все ширины: в мобильном макете их листья
@@ -57,6 +61,30 @@ await page.evaluate(() => document.querySelector('#plans')?.scrollIntoView())
 // Дать плавному скроллу доехать: пока секция едет, картинки формально ещё вне кадра, и
 // отсчёт ожидания уходит впустую — ловилось как «не загрузилась за 20с» на первой же плашке.
 await page.waitForTimeout(1_500)
+
+// ГЕЙТ ДОСТОВЕРНОСТИ. Пока таблица стилей не применилась, у декора нет ни `absolute`, ни
+// `container-type`, и КАЖДАЯ проверка ниже падает — но врёт о причине: «слой 243x0 !=
+// хозяин», «нет правила scale под :hover», «лейбл статичный». Это не гипотетика, за одну
+// сессию поймано трижды, в том числе как ru-падение при зелёных en и pt на том же сервере.
+//
+// Отдельная ловушка — прод-сервер, переживший чужую пересборку: HTML остаётся со старыми
+// хэшами чанков, CSS отдаёт 500, и страница честно рендерится вообще без стилей. Гард в
+// такой ситуации обязан сказать «страница без стилей», а не выдумывать 15 находок.
+try {
+  await page.waitForFunction(() => {
+    const i = document.querySelector<HTMLElement>('[data-plan-plant]')
+    return !!i && getComputedStyle(i).position === 'absolute'
+  }, null, { timeout: 20_000 })
+} catch {
+  const sheets = await page.evaluate(() => document.styleSheets.length)
+  console.error(`✗ страница отдана БЕЗ ПРИМЕНЁННЫХ СТИЛЕЙ при ${VIEWPORT.width}x${VIEWPORT.height}`)
+  console.error(`   таблиц стилей в документе: ${sheets}; декор не получил даже position: absolute.`)
+  console.error('   Обычно это прод-сервер, переживший чужую пересборку (CSS-чанк отдаёт 500)')
+  console.error('   или dev-сервер, у которого увели .next. Замеры недостоверны — перезапустить сборку.')
+  await browser.close()
+  process.exit(1)
+}
+
 const fails: string[] = []
 
 // Ожидание загрузки не должно ронять прогон: голый TimeoutError приходит с пустым логом и
@@ -90,9 +118,20 @@ for (const want of expected) {
     // резолвятся против layout-бокса. Сравнение ректа с cq-единицей врало бы на скейл.
     const lo = layer as HTMLElement
     const ho = host as HTMLElement
+    // Высота хозяина при подписи В ОДНУ СТРОКУ. Больше неё декор кнопки не меряется:
+    // перенос подписи не должен раздувать растения (см. `.plan-decor-button`).
+    // Считается из ЖИВЫХ паддингов и line-height, а не из константы, — тогда правка
+    // отступов кнопки в PlanSectionShared.tsx роняет гард, а не тихо ломает декор.
+    // offsetHeight, а не рект: PlansStack масштабирует карточки трансформом.
+    const span = ho.tagName === 'BUTTON' ? ho.querySelector('span') : null
+    const lineH = span ? parseFloat(getComputedStyle(span).lineHeight) : 0
+    const hs = span ? getComputedStyle(ho) : null
+    const oneLine = hs ? parseFloat(hs.paddingTop) + parseFloat(hs.paddingBottom) + lineH : null
+    const lines = span ? Math.round((span as HTMLElement).offsetHeight / lineH) : 1
     return {
       layerW: lo.offsetWidth, layerH: lo.offsetHeight,
       hostW: ho.offsetWidth, hostH: ho.offsetHeight,
+      oneLine, lines, lineH: span ? lineH : null,
       imgW: img.offsetWidth,
       loaded: img.naturalWidth > 0,
       maxWidth: cs.maxWidth,
@@ -110,6 +149,16 @@ for (const want of expected) {
   if (got.containerType !== 'size') fails.push(`${want.id}: слой без container-type: size (${got.containerType})`)
   if (got.overflow !== 'hidden') fails.push(`${want.id}: слой не клипует (overflow ${got.overflow})`)
 
+  // `line-height: normal` (а это ДЕФОЛТ — стоит убрать явное значение у подписи, и
+  // computed вернёт ключевое слово) в число не парсится. NaN прополз бы через `oneLine`
+  // в `unit` и в `expW`, а сравнение с NaN ложно ОБА раза — гард зеленеет ровно в том
+  // случае, ради которого написан: правка паддингов и line-height кнопки. Поэтому
+  // нечитаемая высота строки — сама по себе находка, а не тихий пропуск замера.
+  if (got.lineH !== null && !Number.isFinite(got.lineH)) {
+    fails.push(`${want.id}: line-height подписи не число (computed 'normal'?) — потолок по одной строке считать не из чего`)
+    continue
+  }
+
   // Слой обязан быть ровно хозяином: иначе `--plan-u` считается не от того бокса.
   if (Math.abs(got.layerW - got.hostW) > TOL || Math.abs(got.layerH - got.hostH) > TOL) {
     fails.push(`${want.id}: слой ${got.layerW.toFixed(0)}x${got.layerH.toFixed(0)} `
@@ -118,10 +167,33 @@ for (const want of expected) {
 
   // Единица одна на всех ширинах — высота своего контейнера. Подмена опорной стороны на
   // мобилке отпала вместе с появлением собственной мобильной таблицы.
-  const unit = got.layerH
+  //
+  // У КНОПКИ единица зажата двумя потолками (см. `.plan-decor-button`):
+  //   • по ОДНОСТРОЧНОЙ высоте — вторая строка подписи не должна раздувать растения
+  //     (замерено на en/390, тариф 4: бокс 486×378 при кнопке 278×128);
+  //   • по ШИРИНЕ в пропорции макетных 518×99 — иначе постоянная по высоте композиция
+  //     закрывает всё большую долю сужающейся кнопки (0.58 ширины на 1920 → 1.65 на 320).
+  // Второй потолок живёт только ниже lg: выше кнопка делит строку с колонкой цены и на
+  // 1024 всего 380px, общий потолок ужал бы десктоп там, где претензии не было.
+  //
+  // Срезы из Figma мимо потолков: они сняты по окну инстанса и по высоте равны кнопке.
+  const isSlice = want.file.startsWith('/')
+  const caps = want.slot !== 'button' || isSlice
+    ? [got.layerH]
+    : [got.layerH, got.oneLine ?? Infinity, ...(DESKTOP ? [] : [got.layerW / PLAN_BTN_AR])]
+  const unit = Math.min(...caps)
   const expW = unit / 100 * want.w
   if (Math.abs(got.imgW - expW) > TOL) {
     fails.push(`${want.id}: ширина ${got.imgW.toFixed(1)}px, ждали ${expW.toFixed(1)}px (${want.w}u от ${unit.toFixed(1)}px)`)
+  }
+
+  // Ловится ровно тот отказ, ради которого потолок и появился: подпись перенеслась, кнопка
+  // выросла, а растение уехало за ней. Сравнение выше на этом уже упало бы, но без явного
+  // сообщения причина читалась бы как «не та ширина» вместо «декор поехал за переносом».
+  if (want.slot === 'button' && !isSlice && got.lines > 1 && got.layerH > (got.oneLine ?? 0) + TOL
+      && Math.abs(got.imgW - got.layerH / 100 * want.w) <= TOL) {
+    fails.push(`${want.id}: подпись в ${got.lines} строки, и декор вырос вместе с кнопкой `
+      + `(${got.imgW.toFixed(1)}px от ${got.layerH}px вместо ${got.oneLine}px) — потерян потолок в .plan-decor-button`)
   }
 
   if (want.slot === 'plate' && !got.hasMask) fails.push(`${want.id}: на слое плашки нет маски формы`)

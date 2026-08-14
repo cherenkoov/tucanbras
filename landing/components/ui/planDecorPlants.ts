@@ -150,8 +150,13 @@ export const PLAN_DECOR: readonly Record<PlanDecorSlot, readonly PlanDecorPlant[
     button: [
       /* p3-btn-0  3484:60565 */
       { file: 'Flower 3 - Become - Plans Pale.svg', anchorX: 'left', x: 34.679, anchorY: 'bottom', y: -13.14, w: 380.026, rotate: 280 },
-      /* p3-btn-1  3484:60653 */
-      { file: 'Flower 3 - Become - Plans Pale.svg', anchorX: 'right', x: 109.596, anchorY: 'bottom', y: 23.501, w: 380.026, rotate: 100 },
+      /* p3-btn-1  3484:60653 — ОТСТУПЛЕНИЕ ОТ МАКЕТА по просьбе владельца: правый цветок
+         поднят в правый верхний угол и привязан к нему. В Figma инстанс висел на нижней
+         грани (`anchorY: 'bottom', y: 23.501`); смена грани — это не сдвиг на константу, а
+         именно смена того, за какой край растение держится при изменении высоты кнопки:
+         на переносе подписи кнопка растёт вниз, и низовая привязка утаскивала цветок за
+         ней. Отступ от верхней грани взят равным прежнему от нижней. */
+      { file: 'Flower 3 - Become - Plans Pale.svg', anchorX: 'right', x: 109.596, anchorY: 'top', y: 23.501, w: 380.026, rotate: 100 },
     ],
   },
 ]

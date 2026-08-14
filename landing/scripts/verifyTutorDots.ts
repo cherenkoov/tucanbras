@@ -9,8 +9,13 @@
 //   npm run verify:tutor-dots                       → http://localhost:3000/ru
 //   npm run verify:tutor-dots -- http://host/ru      → custom URL
 //   npm run verify:tutor-dots -- http://host/ru 390x844         → phone-width layout
-//   npm run verify:tutor-dots -- http://host/ru 390x844 touch   → …and `hover: none`,
-//     which is what picks the built-in-function chain iOS needs (url(#) is dropped there)
+//   npm run verify:tutor-dots -- http://host/ru 390x844 touch   → …and `hover: none`
+//
+// NB `touch` no longer changes the duotone. The hook picks its chain by ENGINE, not by
+// input type (WebKit is the only one that drops url(#) inside backdrop-filter, and a
+// Chromium phone renders the exact palette) — so a touch viewport still expects the
+// palette. To check the chain iOS gets, append ?duowk=1 to the URL, which forces the
+// WebKit path on any engine; expectations below follow that flag.
 //
 // ?noanim=1 is forced: the two screenshots (dots shown / hidden) must see the SAME
 // background, and the collage sprites move on their own otherwise.
@@ -25,16 +30,16 @@ const VIEWPORT = vpArg
 // media query is how the hook picks the touch chain — a viewport alone stays a desktop.
 const TOUCH = process.argv.includes('touch')
 
-// The duotone's two outputs. Desktop runs the default palette (AdaptiveText DUOTONES.blue,
-// which BACKDROP names): blue over a light scene, light green over a dark one. The touch
-// chain (BACKDROP_BUILTIN) has no palette at all — no sequence of built-in filter functions
-// can tint one side, so it lands on pure black / white and is checked against those instead.
+// The duotone's two outputs. Engines that render url(#) inside backdrop-filter run the
+// default palette (AdaptiveText DUOTONES.blue, which BACKDROP names): blue over a light
+// scene, light green over a dark one. WebKit rebuilds the SAME pair out of built-in
+// functions (BACKDROP_BUILTIN_BRAND) — its blue lands 1/255 off, hence the separate hex.
 const BLUE = [0x2e, 0x67, 0xb2]
 const LIGHT_GREEN = [0x8f, 0xd0, 0x96]
-const BLACK = [0x00, 0x00, 0x00]
-const WHITE = [0xff, 0xff, 0xff]
-const SIDES: [string, number[]][] = TOUCH
-  ? [['black', BLACK], ['white', WHITE]]
+const WK_BLUE = [0x2e, 0x68, 0xb1]
+const WEBKIT_PATH = BASE.includes('duowk')
+const SIDES: [string, number[]][] = WEBKIT_PATH
+  ? [['blue (webkit)', WK_BLUE], ['light green (webkit)', LIGHT_GREEN]]
   : [['blue', BLUE], ['light green', LIGHT_GREEN]]
 const DUOTONE_TOL = 32
 // A dimmed dot composites `opacity(a)` of the duotone over the real backdrop; at a=0.2

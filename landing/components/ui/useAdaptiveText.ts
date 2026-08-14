@@ -82,14 +82,22 @@ export const LIGHT_GREEN = '#8fd096'
 export const BLUE = '#2e67b2'
 export const CREAM = '#fffce5'
 
-// The `ink` palette's filter. Named for the built-in gate below, which is the only thing
-// that still cares about it: that chain reproduces THIS palette and no other.
+// The `ink` palette's filter — the hook's default `filterId`, kept so a caller that passes
+// no palette still names a real filter. It no longer gates anything: the built-in chain
+// used to be restricted to this palette (it can only reach near-white/near-black), and
+// that restriction is what silently pushed every phone onto the static reconstruction once
+// the default palette moved off `ink`. See the gate in the effect.
 const INK_FILTER_ID = 'adaptive-duotone'
 // Exported for SHAPE consumers (useAdaptiveDuotone): a solid box whose own border-radius
 // is the mask needs the chain and the probes, but none of the glyph machinery below.
 // Runs the DEFAULT palette, same as the text — the shapes are part of that system, so this
 // id and AdaptiveText's DEFAULT_DUOTONE must be changed together.
-export const BACKDROP = 'grayscale(1) url(#adaptive-duotone-blue)'
+// Фильтр ДЕФОЛТНОЙ палитры (`DEFAULT_DUOTONE = 'blue'` в AdaptiveText.tsx — импортировать
+// оттуда нельзя, там встречный импорт). Имя нужно в двух местах: собрать `BACKDROP` для
+// фигур и — ниже, в эффекте — понять, та ли это палитра, под которую фитована
+// `BACKDROP_BUILTIN_BRAND`. Меняется вместе с `DEFAULT_DUOTONE`.
+const BRAND_FILTER_ID = 'adaptive-duotone-blue'
+export const BACKDROP = `grayscale(1) url(#${BRAND_FILTER_ID})`
 // Built-in-function equivalent of #adaptive-duotone for the LIVE backdrop on WebKit,
 // which parses-then-drops url(#) reference filters inside backdrop-filter (the reason the
 // static path exists). Reproduces the same map WITHOUT an SVG filter, so iOS renders it:
@@ -97,20 +105,50 @@ export const BACKDROP = 'grayscale(1) url(#adaptive-duotone-blue)'
 //   brightness(0.714) → L·0.714  (so the 0.70 threshold lands on contrast's 0.5 pivot)
 //   contrast(50)      → binarise: L≥0.70 → white, L<0.70 → black
 //   invert(1)         → L≥0.70 → INK (dark), L<0.70 → CREAM (light)   [same direction]
-// Near-white/near-black rather than the exact cream/ink hexes — device-validated on a real
-// iPhone (2026-07-19) as the touch DEFAULT, replacing the old static composite-reconstruction
-// (now only a fallback) and removing the reason for the extreme mobile crop (it existed only
-// to shrink static-fill drift).
+// Mono near-white/near-black — device-validated on a real iPhone (2026-07-19) and kept as
+// the ?duomono=1 escape hatch. No longer the WebKit default: see BACKDROP_BUILTIN_BRAND.
 export const BACKDROP_BUILTIN = 'grayscale(1) brightness(0.714) contrast(50) invert(1)'
+// WebKit DEFAULT — the full brand palette from a live sample, no SVG filter anywhere.
+// Renders #8fd096 over a dark backdrop and #2e68b1 over a light one (targets --color-green
+// #8fd096 and --color-blue #2e67b2; the blue is 1/255 off, invisible).
+//
+// THE CLAMP IS THE WHOLE TRICK. WebKit does not clamp between filter functions (Chromium
+// does), so contrast(50) leaves ±20-ish values that ride the rest of the chain and only
+// clamp at the very end — which is why a tint appended to the mono chain was inert on a
+// real iPhone, painting white/black everywhere except a seam where the backdrop luminance
+// sits inside contrast's in-range band. A blur() forces rasterisation, and rasterising
+// clamps: device-verified 2026-08-09. With clamping back, the reachable set changes
+// completely, because a clamp is a per-channel non-linearity:
+//   • one stage after the barrier still gives ONE hue at two lightnesses (both poles stay
+//     on a single ray) — that is the green↔green-dark limit measured earlier;
+//   • TWO stages break it. The second contrast lifts the pair off the ray and the second
+//     matrix supplies an independent direction, which is enough for two different hues.
+// Fitted numerically (npm run fit:duotone-chain) and confirmed in a real compositor, not
+// just modelled.
+//
+// contrast(50) TWICE is deliberate. One pass has slope 50, so a 1/50 = 2% band of backdrop
+// luminance lands in range and tints into intermediate colours — a visible seam wherever
+// the background crosses the threshold (this is exactly the third colour reported from the
+// device). Squaring the slope collapses that band: measured over a black→white gradient,
+// the transition goes from 5 intermediate shades to a hard pixel-to-pixel edge.
+//
+// The parameters ENCODE THE PALETTE. Change DUOTONES and this string is stale — refit with
+// `npm run fit:duotone-chain` and re-measure. Guard: npm run verify:adaptive-mode.
+export const BACKDROP_BUILTIN_BRAND =
+  'grayscale(1) brightness(0.714) contrast(50) contrast(50) invert(1) blur(0.5px) ' +
+  'contrast(0.538) sepia(0.105) saturate(7.9) hue-rotate(115.5deg) brightness(1.697) blur(0.5px) ' +
+  'contrast(0.69) sepia(0.135) saturate(8) hue-rotate(75.5deg) brightness(0.857)'
 const FIND_TIMEOUT_FRAMES = 300
 const SVGNS = 'http://www.w3.org/2000/svg'
 
-// True when the engine PARSES an SVG reference filter inside backdrop-filter. Engines
-// that can't (WebKit rejects the whole declaration) leave the inline style empty — we
-// probe that instead of CSS.supports so those devices fall back to static-fill rather
-// than painting transparent (invisible) glyphs. Note this only detects parse-level
-// rejection: an engine may accept the value and still render the chain partially
-// (grayscale-only ⇒ gray letters) — not detectable from JS, verify on real devices.
+// True when the engine PARSES an SVG reference filter inside backdrop-filter — a
+// NECESSARY, NOT sufficient condition for it to render.
+// MEASURED 2026-08-09 (Playwright WebKit, agreeing with the device note on
+// BACKDROP_BUILTIN below): WebKit returns TRUE here and then paints NOTHING — it parses
+// the reference and drops it at paint. So this probe cannot detect WebKit, and an earlier
+// version of this comment claiming it does ("WebKit rejects the whole declaration") was
+// wrong. Anything that must avoid WebKit's empty paint has to name the engine — see
+// isWebKit() — because painting an unrendered chain leaves the glyphs TRANSPARENT.
 export function supportsBackdrop(): boolean {
   const probe = document.createElement('span')
   probe.style.setProperty('backdrop-filter', BACKDROP)
@@ -129,6 +167,24 @@ export function supportsBuiltinBackdrop(): boolean {
   if (typeof CSS === 'undefined' || !CSS.supports) return false
   return CSS.supports('backdrop-filter', 'grayscale(1)') ||
     CSS.supports('-webkit-backdrop-filter', 'grayscale(1)')
+}
+
+// The one thing here that CANNOT be feature-detected: WebKit accepts url(#) inside
+// backdrop-filter and renders it as nothing (see supportsBackdrop). Every iOS browser is
+// WebKit (Chrome/Firefox on iOS included), and so is desktop Safari — which is why this
+// asks about the ENGINE and not about touch. `(hover: none)` used to stand in for it, and
+// that proxy is what made every non-iOS phone fall to the static reconstruction while
+// leaving desktop Safari on a chain it never paints.
+export function isWebKit(): boolean {
+  const ua = navigator.userAgent
+  // Every iOS/iPadOS browser is WebKit whatever it brands itself (CriOS, FxiOS, EdgiOS),
+  // so test the platform BEFORE the brand — an `Edg`/`Chrome` exclusion alone would hand
+  // Edge-on-iOS the url(#) chain it cannot paint. iPadOS asks for the desktop UA
+  // (Macintosh, no iPad token); its touch points give it away.
+  if (/iPhone|iPad|iPod/.test(ua)) return true
+  if (/Macintosh/.test(ua) && typeof navigator.maxTouchPoints === 'number' && navigator.maxTouchPoints > 1) return true
+  // Desktop Safari: WebKit with no Chromium/Gecko brand token.
+  return /AppleWebKit/.test(ua) && !/Chrome|Chromium|Edg|OPR|SamsungBrowser|Firefox/.test(ua)
 }
 
 // Measure the element's rendered lines so the glyph mask matches the browser's own
@@ -224,6 +280,12 @@ export function useAdaptiveText({
     if (params.has('noadaptive')) return
     const forceStatic = params.has('staticfill')
     const fillDebug = params.has('filldebug')
+    // WebKit levers. ?duowk=1 forces the WebKit path on ANY engine (Playwright WebKit
+    // renders no backdrop-filter at all, headless or headed, so this is the only way to
+    // measure that chain locally); ?duomono=1 drops back to the plain near-white/near-black
+    // pair, the escape hatch if the brand chain ever misbehaves on a device.
+    const forceWebkitPath = params.has('duowk')
+    const monoDuotone = params.has('duomono')
     const text = textRef.current
     const overlay = overlayRef.current
     const maskText = maskRef?.current ?? null
@@ -241,13 +303,36 @@ export function useAdaptiveText({
     // touch (image-mask + backdrop renders nothing on real iOS — the VS vanished).
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const touch = window.matchMedia('(hover: none)').matches
-    // The built-in chain can only land on near-white / near-black, so it cannot
-    // express a palette other than the default. Those fall through to the static
-    // path, whose plain `filter: url(#)` WebKit DOES render — it is only inside
-    // backdrop-filter that it drops the reference.
-    const useBuiltin = touch && supportsBuiltinBackdrop() && filterId === INK_FILTER_ID
-    const canBackdrop = !reduced && !forceStatic && (
-      useBuiltin ? !imageSrc : supportsBackdrop() && !touch
+    // Split by ENGINE, not by input type. WebKit needs the built-in chain (it paints the
+    // url(#) one as nothing); every other engine renders the url(#) chain exactly, phone
+    // or desktop.
+    //
+    // REGRESSION THIS REPLACES (8626ce6 + 1ce1538, 2026-08-08): the built-in chain was
+    // gated on `filterId === INK_FILTER_ID` because it cannot express a palette — all its
+    // filters act on every channel alike, so the two poles can only be near-white and
+    // near-black. When the default palette moved off `ink` (→ green, → blue) that gate went
+    // permanently false, and the other branch refused touch outright (`&& !touch`), so
+    // EVERY adaptive text on EVERY phone silently dropped off the live sample onto the
+    // static reconstruction — the path retired on 2026-07-19 precisely because it drifts
+    // against the parallaxing art. Measured on a 390×844 touch build: 9/9 texts static,
+    // the CELPE-BRAS heading reconstructing L=0.78 where the live background is L=0.13 —
+    // a full flip across the 0.70 threshold, i.e. glyphs coloured from the wrong region.
+    //
+    // So the gate no longer decides whether to SAMPLE — only which chain does it, and the
+    // sample is never given up: `BACKDROP_BUILTIN_BRAND` since 2026-08-09 reproduces the
+    // default palette out of built-in functions alone (blur barrier + two tone stages), so
+    // WebKit gets the same green↔blue as everyone else. A caller that asks for one of the
+    // OTHER palettes falls back to the mono chain instead — see the choice at
+    // `builtinChain` — because that string's coefficients encode one palette and nothing
+    // refits them per call. Chromium/Gecko render every palette exactly through url(#);
+    // they were never the engine with the problem.
+    const webkit = isWebKit() || forceWebkitPath
+    const useBuiltin = webkit && supportsBuiltinBackdrop()
+    // Icons: image-mask + backdrop-filter renders NOTHING on WebKit (the VS vanished on a
+    // real iPhone), and touch icons kept that fallback before this change — hold both.
+    const iconStatic = !!imageSrc && (webkit || touch)
+    const canBackdrop = !reduced && !forceStatic && !iconStatic && (
+      useBuiltin || (!webkit && supportsBackdrop())
     )
 
     // Manual override (staticFill prop): paint the requested duotone side directly and
@@ -287,6 +372,7 @@ export function useAdaptiveText({
       if (img) img.style.visibility = ''
       overlay.style.removeProperty('backdrop-filter')
       overlay.style.removeProperty('-webkit-backdrop-filter')
+      overlay.style.removeProperty('filter')
       overlay.style.removeProperty('mask')
       overlay.style.removeProperty('-webkit-mask')
       // Undo any glyph-overflow growth so a later icon/static pass starts flush with the
@@ -501,9 +587,21 @@ export function useAdaptiveText({
       if (mode !== 'backdrop') {
         clearAll()
         overlay.style.display = ''
-        // Built-in-function chain on touch/WebKit (drops the url reference); url(#) chain
-        // on desktop engines that render it exactly.
-        const chain = useBuiltin ? BACKDROP_BUILTIN : `grayscale(1) url(#${filterId})`
+        // Built-in-function chain on WebKit (it drops the url reference); url(#) chain on
+        // engines that render it exactly. The brand hue has to live INSIDE the backdrop
+        // chain on WebKit — re-colouring the sample afterwards with the overlay's own
+        // `filter: url(#…)` works in Chromium but was measured on a real iPhone
+        // (2026-08-09) to do nothing at all: WebKit does not pass its backdrop image
+        // through the element's filter, so every heading stayed black-and-white.
+        // Брендовая цепочка ЗАКОДИРОВАЛА ОДНУ палитру (её коэффициенты фитованы под
+        // зелёный↔синий), поэтому она идёт только дефолтному фильтру. Чужая палитра
+        // (`ink`, `green`) получила бы на WebKit чужие цвета молча — ей достаётся mono,
+        // то есть ровно то ухудшение, которое описано выше: живой сэмпл сохраняется,
+        // теряется только тон. Гейта по палитре, погубившего телефоны 2026-08-08, это не
+        // воскрешает — дефолт, которым идёт вся страница, остаётся на брендовой цепочке.
+        const brandChain = filterId === BRAND_FILTER_ID && !monoDuotone
+        const builtinChain = brandChain ? BACKDROP_BUILTIN_BRAND : BACKDROP_BUILTIN
+        const chain = useBuiltin ? builtinChain : `grayscale(1) url(#${filterId})`
         overlay.style.setProperty('backdrop-filter', chain)
         overlay.style.setProperty('-webkit-backdrop-filter', chain)
         if (imageSrc) {

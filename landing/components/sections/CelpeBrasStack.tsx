@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
+import FeatureCardDecor from '@/components/ui/FeatureCardDecor'
+import { bloomOnTap } from '@/components/ui/tapBloom'
 
 interface CardConfig {
   icon: string
@@ -78,18 +80,26 @@ export default function CelpeBrasStack({ titles, cardConfig }: Props) {
               >
                 <div
                   data-adaptive-cover={cardConfig[i].bg}
-                  className={`glass flex items-center gap-[32px] w-fit max-w-full overflow-hidden rounded-[44px] px-[32px] py-[32px] hover:scale-[1.04] active:scale-[0.95] ${isActive ? 'is-center' : ''}`}
+                  /* A finger has no hover, and `:active` dies with the touch ~200ms
+                     before `.pill-decor` has finished opening — so a tap ARMS the card
+                     for TAP_BLOOM_MS instead and the plant answers to
+                     `group-data-tapped/card`. Same trick the header pills use. */
+                  onPointerDown={bloomOnTap}
+                  className={`group/card glass relative flex items-center gap-[32px] w-fit max-w-full overflow-hidden rounded-[44px] px-[32px] py-[32px] hover:scale-[1.04] active:scale-[0.95] ${isActive ? 'is-center' : ''}`}
                   style={{
                     '--glass-tint': cardConfig[i].tint,
                     '--glass-solid': cardConfig[i].bg,
-                    boxShadow: 'inset 0px 4px 4px 0px rgba(255,255,255,0.25), 0px 2px 4px 0px rgba(0,0,0,0.18)',
+                    /* Drop shadow only — FeatureCardDecor redraws the inner highlight
+                       above the plant, as the design paints it. */
+                    boxShadow: '0px 2px 4px 0px rgba(0,0,0,0.18)',
                   } as CSSProperties}
                 >
-                  <div className="shrink-0" style={{ width: 'clamp(48px, 6vw, 100px)', height: 'clamp(48px, 6vw, 100px)' }}>
+                  <FeatureCardDecor index={i} />
+                  <div className="relative shrink-0" style={{ width: 'clamp(48px, 6vw, 100px)', height: 'clamp(48px, 6vw, 100px)' }}>
                     <img src={cardConfig[i].icon} alt="" className="w-full h-full object-contain pointer-events-none" />
                   </div>
                   <p
-                    className="font-accent font-bold flex-1 min-w-0"
+                    className="relative font-accent font-bold flex-1 min-w-0"
                     style={{ fontSize: 'clamp(20px, 2vw, 36px)', lineHeight: '1.1', color: cardConfig[i].text, letterSpacing: '0.12em' }}
                   >
                     {title}

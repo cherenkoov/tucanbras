@@ -85,20 +85,30 @@ export default function PlanDecor({ plan, slot, variant = 'desktop', mask }: {
         } : null),
       } as CSSProperties}
     >
-      {plants.map((p, i) => (
+      {plants.map((p, i) => {
+        /* Путь с ведущим слэшем — готовый рендер инстанса из Figma (тарифы 1 и 4), он лежит
+           не на общей полке decor/ и подставляется как есть. Такой срез снят по окну своего
+           инстанса и по высоте равен контейнеру, поэтому потолок по ширине его обходит
+           стороной: `.plan-plant-slice` возвращает ему чистый `1cqh`. */
+        const isSlice = p.file.startsWith('/')
+        return (
         <img
           key={i}
-          /* Путь с ведущим слэшем — готовый рендер инстанса из Figma (тариф 4), он лежит
-             не на общей полке decor/ и подставляется как есть. */
-          src={p.file.startsWith('/') ? p.file : decorSrc(p.file)}
+          src={isSlice ? p.file : decorSrc(p.file)}
           alt=""
           data-plan-plant={`${plan}-${slot}${isMobile ? '-mobile' : ''}-${i}`}
-          className={`absolute h-auto max-w-none select-none pointer-events-none ${isPlate ? ZOOM_PLATE : ZOOM_BUTTON}`}
+          data-plan-slice={isSlice ? '' : undefined}
+          /* Пробел ПЕРЕД `${` обязателен: сканер Tailwind режет исходник по границам
+             кандидатов, и `pointer-events-none${isSlice` целиком кандидатом не является —
+             утилита из этого файла не извлекается вовсе. Сейчас она доезжает только потому,
+             что её пишут другие файлы (та же мина описана в FooterForm.tsx). */
+          className={`absolute h-auto max-w-none select-none pointer-events-none ${isSlice ? 'plan-plant-slice' : ''} ${isPlate ? ZOOM_PLATE : ZOOM_BUTTON}`}
           loading="lazy"
           decoding="async"
           style={planDecorStyle(p)}
         />
-      ))}
+        )
+      })}
     </div>
   )
 }

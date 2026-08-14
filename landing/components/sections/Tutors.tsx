@@ -545,12 +545,13 @@ export default function Tutors({ data, tutors, locale }: TutorsSectionProps) {
       <div className="flex flex-col gap-[64px] lg:gap-[80px] max-w-[1720px] mx-auto w-full">
 
         {/* ══ Headings row ══ */}
-        {/* staticFill: at phone widths these sit in the collage↔beach raise band where
-            the LIVE extracted sprites (roads/bushes, slid + swaying) no longer match
-            the baked fill art, so the layered static fill lands on the wrong duotone
-            side. The backdrop ground truth reads the LIGHT side here at every verified
-            width (390/1440); the desktop static path resolves it on its own. "ink" names
-            that light side of whatever palette is active — now green. */}
+        {/* staticFill: these sit in the collage↔beach raise band, where the LIVE extracted
+            sprites (roads/bushes, slid + swaying) no longer match the baked fill art, so
+            the layered static fill lands on the wrong duotone side. Since phones went back
+            to live sampling (see the engine gate in useAdaptiveText) this only applies
+            under reduced-motion and ?staticfill — the backdrop ignores it and reads the
+            LIGHT side here at every verified width (390/1440). "ink" names that light side
+            of whatever palette is active — now blue. */}
         <div className="flex flex-col lg:flex-row gap-[24px] lg:gap-[48px] items-start w-full">
           <AdaptiveText
             as="h2"

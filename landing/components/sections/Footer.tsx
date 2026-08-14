@@ -2,6 +2,7 @@ import type { FooterProps, FaqGroup as FaqGroupType } from '@/types'
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
 import FooterForm from '@/components/ui/FooterForm'
 import FooterTucan from '@/components/ui/FooterTucan'
+import FooterDecor from '@/components/ui/FooterDecor'
 import ComingSoonHint from '@/components/ui/ComingSoonHint'
 import { uiLabels } from '@/lib/uiLabels'
 
@@ -114,15 +115,20 @@ export default function Footer({ data, tutors, planNames, planPrices, locale }: 
         {/* ══ Footer content card — glass → solid on hover ══ */}
         <div
           data-glass-center
-          className="glass relative z-[2] rounded-[26px] overflow-hidden flex flex-col gap-[64px]"
+          className="glass relative z-[2] rounded-[48px] overflow-hidden flex flex-col gap-[64px]"
           style={{
             boxShadow: '0px 2px 4px 0px rgba(0,0,0,0.18), inset 0px 4px 4px 0px rgba(255,255,255,0.25)',
             padding: 'clamp(12px, 4vw, 36px)',
           }}
         >
 
+          <FooterDecor />
+
+          {/* Every block below is `relative` so it paints OVER the decor layer: an
+              absolutely positioned sibling outranks a static one whatever the DOM order. */}
+
           {/* ── Logo + description ── */}
-          <div className="flex flex-wrap items-center justify-center gap-[30px]">
+          <div className="relative flex flex-wrap items-center justify-center gap-[30px]">
             {/* Logo */}
             <div className="flex-1 min-w-[280px]">
               <img
@@ -144,7 +150,7 @@ export default function Footer({ data, tutors, planNames, planPrices, locale }: 
 
           {/* ── FAQ accordion — 3 columns ── */}
           {data.faqGroups.length > 0 && (
-            <div className="flex flex-wrap gap-[24px_16px] items-start justify-center w-full">
+            <div className="relative flex flex-wrap gap-[24px_16px] items-start justify-center w-full">
               {data.faqGroups.map((group, i) => (
                 <FaqAccordion key={i} group={group} />
               ))}
@@ -152,7 +158,7 @@ export default function Footer({ data, tutors, planNames, planPrices, locale }: 
           )}
 
           {/* ── Links row: Legal + Social ── */}
-          <div className="flex flex-wrap gap-[60px_30px] items-start justify-center w-full">
+          <div className="relative flex flex-wrap gap-[60px_30px] items-start justify-center w-full">
 
             {/* Legal / Policy links */}
             <div className="flex flex-col items-center text-center gap-[24px] flex-1 min-w-[276px] max-w-[320px] md:items-start md:text-left">
@@ -248,7 +254,7 @@ export default function Footer({ data, tutors, planNames, planPrices, locale }: 
           </div>
 
           {/* ── Bottom bar: stacked & centered when tight; copyright left / language right (32px gap) when wide ── */}
-          <div className="flex flex-col items-center gap-y-[20px] w-full sm:flex-row sm:items-center sm:justify-between sm:gap-x-[32px]">
+          <div className="relative flex flex-col items-center gap-y-[20px] w-full sm:flex-row sm:items-center sm:justify-between sm:gap-x-[32px]">
             {/* Copyright */}
             <div className="flex flex-col gap-[0] items-center sm:items-start">
               <p

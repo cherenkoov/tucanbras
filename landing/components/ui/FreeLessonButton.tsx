@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { uiLabels } from '@/lib/uiLabels'
+import { bloomOnTap } from '@/components/ui/tapBloom'
 
 /**
  * Сколько держится «Отменено» после снятия выбора. Карточка тутора мигает 600мс
@@ -77,6 +78,12 @@ export default function FreeLessonButton({ planName, locale, className, style }:
     <button
       type="button"
       onClick={handleClick}
+      // Тап = замена наведения: взводит `[data-tapped]` на 900мс, и на него отвечает
+      // антуриум в Hero (`peer-data-tapped`, tapBloom.ts). Обработчик живёт здесь, а
+      // не в Hero, потому что Hero — серверный компонент: функцию через границу не
+      // передать, а `peer`-селектору атрибут нужен именно на КНОПКЕ.
+      // На мыши `bloomOnTap` сам ничего не делает — там уже есть настоящий hover.
+      onPointerDown={bloomOnTap}
       aria-pressed={selected}
       className={className}
       style={style}

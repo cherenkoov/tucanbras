@@ -1,7 +1,7 @@
 'use client'
 
 import { useSyncExternalStore } from 'react'
-import { BACKDROP, BACKDROP_BUILTIN, supportsBackdrop, supportsBuiltinBackdrop } from './useAdaptiveText'
+import { BACKDROP, BACKDROP_BUILTIN, BACKDROP_BUILTIN_BRAND, isWebKit, supportsBackdrop, supportsBuiltinBackdrop } from './useAdaptiveText'
 
 // Shape counterpart of useAdaptiveText: the duotone for a SOLID element (carousel dot,
 // rule, marker) instead of glyphs. A transparent box with this chain in backdrop-filter
@@ -27,14 +27,22 @@ function probe(): string | null {
   const params = new URLSearchParams(location.search)
   if (params.has('noadaptive') || params.has('staticfill')) {
     cached = null
-  } else if (window.matchMedia('(hover: none)').matches) {
-    // Touch/iOS: WebKit parses then DROPS url(#) reference filters inside backdrop-filter,
-    // so it gets the built-in-function equivalent (near-white/near-black, device-validated
-    // on a real iPhone).
-    cached = supportsBuiltinBackdrop() ? BACKDROP_BUILTIN : null
+  } else if (isWebKit() || params.has('duowk')) {
+    // WebKit parses then DROPS url(#) reference filters inside backdrop-filter, so it gets
+    // the built-in-function chain — which now carries the full brand palette via a clamp
+    // barrier (see BACKDROP_BUILTIN_BRAND). dimDuotone still appends opacity() cleanly: it
+    // fades the finished image, it does not re-enter the chain. Levers move the dots WITH
+    // the headings; a lever the shapes ignored would quietly compare two different builds.
+    // Keyed on the ENGINE, not on `(hover: none)` as before: that proxy denied non-WebKit
+    // phones the exact palette they render fine, and left desktop Safari on a chain it
+    // paints as NOTHING — for a shape, whose only paint IS the filtered backdrop, that
+    // means an invisible dot.
+    const chain = params.has('duomono') ? BACKDROP_BUILTIN : BACKDROP_BUILTIN_BRAND
+    cached = supportsBuiltinBackdrop() ? chain : null
   } else {
-    // Desktop: the exact ink/cream reference filter, when the engine parses it at all —
-    // otherwise nothing, and the caller's fallback colour stands.
+    // Everything else (incl. Chromium/Gecko phones): the exact palette reference filter,
+    // when the engine parses it at all — otherwise nothing, and the caller's fallback
+    // colour stands.
     cached = supportsBackdrop() ? BACKDROP : null
   }
   return cached

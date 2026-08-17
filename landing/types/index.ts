@@ -82,22 +82,6 @@ export interface TutorsData {
   selectLabel: string; // "Выбрать" / "Select" / "Selecionar"
 }
 
-// ─── FreeLessonModal strings ──────────────────────────────────────────────────
-export interface FreeLessonModalStrings {
-  title: string;
-  tutorPh: string;
-  namePh: string;
-  telegramPh: string;
-  emailPh: string;
-  submit: string;
-  successMsg: string;
-  errorMsg: string;
-  nameError: string;
-  telegramError: string;
-  contactError: string; // shown when neither telegram nor email is filled
-  emailError: string;   // shown when email format is invalid
-}
-
 export interface TutorsProps {
   data: TutorsData;
 }

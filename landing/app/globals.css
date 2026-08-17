@@ -364,6 +364,52 @@ html.noanim * {
 .btn-press-tighten:hover  { transform: scale(1.04) translateY(calc(2cqw - 2%)); border-radius: 26px; }
 .btn-press-tighten:active { transform: scale(0.95); }
 
+/* Footer form fields — the standard press, gentler by 1.6× (growth 0.04 → 0.025).
+   They are the widest controls on the page, and a scale spends its growth on the
+   width: at 1.04 each side swings out by 2% of that width, i.e. most of the 20px
+   inset to the form edge, and the two fields lunge at each other across their
+   16px gap. 1.025 pushes 1.25% of the width — the same number the CTA below
+   swells by, so the whole form breathes at one rate. */
+.btn-press-field {
+  transition: transform 120ms ease-out;
+}
+.btn-press-field:hover  { transform: scale(1.025); }
+.btn-press-field:active { transform: scale(0.95); }
+
+/* Footer form CTA — the hero's even-gap idea (left, right and bottom gaps to the
+   card all close by the same amount), reached by GROWING the button instead of
+   sliding it. A scale can't do it: it pushes the sides out by a share of the
+   width and the bottom by that share of the much smaller height, so the side gap
+   closes while the bottom one barely moves; .btn-press-hero buys the balance back
+   with a translateY, which drops the whole button and opens the gap above it. Here
+   the box itself gets taller — padding-bottom adds the missing height, and since
+   the label hangs off padding-TOP it does not move a pixel. The negative margins
+   are what keep this from being a layout change: the button swells into the form's
+   20px inset while the form's own height and the fields above stay put.
+   --swell is 1.25% of the button's width, so the wrapper must be an `@container`;
+   the 36px is the button's rest `py-[36px]` — keep the two in step.
+
+   The corners follow the same nested formula the hero CTA is built on,
+   R_inner = R_outer − gap: at rest 48 − 20 = 28px (the form's radius minus its
+   inset, which is where `rounded-[28px]` comes from), and the swell eats that
+   inset, so concentricity wants 48 − (20 − swell) = 28px + swell. No /scale
+   correction like .btn-press-hero needs — nothing here is scaled, the box really
+   is that size, so the radius is drawn at face value. */
+.btn-press-swell {
+  --swell: 1.25cqw;
+  transition: width 120ms ease-out, margin 120ms ease-out,
+              padding-bottom 120ms ease-out, border-radius 120ms ease-out,
+              transform 120ms ease-out;
+}
+.btn-press-swell:hover {
+  width: calc(100% + 2 * var(--swell));
+  margin-inline: calc(-1 * var(--swell));
+  margin-bottom: calc(-1 * var(--swell));
+  padding-bottom: calc(36px + var(--swell));
+  border-radius: calc(28px + var(--swell));
+}
+.btn-press-swell:active { transform: scale(0.95); }
+
 /* Header desktop plate fill — frosted (translucent) → solid when the pointer is
    on the plate. Driven by `.cover-hot` on the bar, not by `:hover`: the drum's
    column is a DOM child of the bar but hangs BELOW it, so a descendant hover lit
@@ -382,13 +428,27 @@ html.noanim * {
   .btn-press,
   .btn-press-hero,
   .btn-press-tighten,
+  .btn-press-field,
+  .btn-press-swell,
   .header-plate { transition: none; }
   .btn-press:hover,
   .btn-press:active,
   .btn-press-hero:hover,
   .btn-press-hero:active,
   .btn-press-tighten:hover,
-  .btn-press-tighten:active { transform: none; }
+  .btn-press-tighten:active,
+  .btn-press-field:hover,
+  .btn-press-field:active,
+  .btn-press-swell:active { transform: none; }
+  /* The swell is motion too — hold the button at its rest box, corners included:
+     the gap never closes, so the concentric radius stays at 48 − 20 = 28px. */
+  .btn-press-swell:hover {
+    width: 100%;
+    margin-inline: 0;
+    margin-bottom: 0;
+    padding-bottom: 36px;
+    border-radius: 28px;
+  }
   /* No scale → the button never grows, so the gap stays 12px and the radius
      stays at its concentric rest value (26px). Don't apply the hover bump. */
   .btn-press-hero:hover { border-radius: 26px; }
@@ -491,9 +551,24 @@ html.noanim * {
 .logo-sm   { display: none; }
 .logo-full { display: none; }
 
+/* The optical nudge that lifts the wordmark off the bar's exact centre, moved here
+   from an inline style so a breakpoint can switch it off. It is -0.1em of the
+   WRAPPER's font-size, and that clamp sits on its own 28px floor until 597px — so
+   the nudge is a flat 2.8px on every phone. From 460px up the visible spelling
+   renders at that same 28px (or larger, once the clamp lifts), so -0.1em really is
+   the tenth of the glyph height it means to be. Below 460px .logo-xs scales itself
+   down to 20–26.5px while the nudge stays 2.8px: measured at 390px the wordmark
+   ended up 3.6px above the bar's centre — 12% of its own height instead of 10% —
+   with 24.4px of air above the caps and 31.6px below, which is what read as the
+   logotype "sitting high" on phones. Zero is the right value there, not a smaller
+   nudge: the caps' ink box is itself ~0.8px above the line box's centre, so with no
+   transform at all the word lands centred (27.2 / 28.8). */
+.logo-lift { transform: none; }
+
 @media (min-width: 460px) {
   .logo-xs   { display: none; }
   .logo-mob  { display: inline; }
+  .logo-lift { transform: translateY(-0.1em); }
 }
 
 @media (min-width: 1024px) {
@@ -504,6 +579,175 @@ html.noanim * {
 @media (min-width: 1366px) {
   .logo-sm   { display: none; }
   .logo-full { display: inline; }
+}
+
+/* ── Декор тарифов ──────────────────────────────────────────────────────────
+   Единица одна и та же на всех ширинах — процент ВЫСОТЫ своего контейнера. Прежде тут
+   стоял переключатель на `1cqw` ниже lg: мобильных чисел не было, и десктопные
+   приходилось читать от ширины, чтобы арт не раздувало на высокой карточке. Теперь у
+   мобилки собственная таблица из собственного макета (PLAN_DECOR_MOBILE), посчитанная
+   против высот мобильных плашек, — и подмена опорной стороны больше не нужна.
+
+   Медиазапрос остаётся ради МАСКИ: силуэт плашки на телефоне другой. Он здесь, а не в
+   инлайн-стиле: инлайн медиазапрос не умеет, а Tailwind генерирует правило только для
+   литерального имени класса.
+
+   Значения маски обязаны совпадать с frost-слоем в PlanSectionShared: разъедься они, и
+   клип разойдётся с окрашенной плашкой. URL приходят инлайном в переменных, потому что
+   зависят от индекса тарифа.                                                      */
+
+.plan-decor-plate {
+  --plan-u: 1cqh;
+  -webkit-mask-image: var(--plan-mask-mobile);
+  mask-image: var(--plan-mask-mobile);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+/* Кнопка — та же единица, но высота берётся ОДНОСТРОЧНАЯ, а не фактическая.
+   Композиция снята с макетной кнопки 518×99: широкая низкая полоса, в которую листья
+   входят с двух концов. На узком экране длинная подпись переносится на вторую строку,
+   кнопка растёт 96→128px, и `1cqh` раздувает каждое растение на треть — в коробке,
+   которая при этом стала только УЖЕ. Два листа по 486px сходятся посередине 278-пиксельной
+   кнопки и сливаются в кашу (репорт владельца — «после 422 и меньше»).
+
+   Медиазапросом это не лечится: порог зависит не от ширины экрана, а от того, влезла ли
+   подпись, — и у каждой локали он свой. Замерено бисекцией, подпись в две строки при
+   ширине окна ≤: тариф 4 — en 411, ru 415, pt 456; тариф 3 — en 442; тариф 2 — en 372,
+   ru 336, pt 364; тариф 1 не переносится нигде вплоть до 320.
+
+   Вторая строка текста — это не лишний холст под рисунок, поэтому декор её игнорирует:
+   выше порога переноса ничего не меняется вообще, ниже — растения остаются ровно того
+   размера, что и на один пиксель шире.
+
+   0.96px = 1% от 96px: `paddingTop` 32 + `paddingBottom` 32 + `lineHeight` 32 у кнопки в
+   PlanSectionShared.tsx. Меняются те числа — меняется и это; `npm run verify:plan-decor`
+   считает порог из живых паддингов и упадёт на расхождении.
+
+   ── Второй потолок: по ШИРИНЕ, только в мобильной раскладке ──
+
+   Одного потолка по высоте не хватило: он убирает скачок на переносе, но не трогает то,
+   что композиция вообще перестаёт помещаться, когда кнопка узкая. Числа таблицы — доли
+   ВЫСОТЫ, а высота кнопки постоянна (96px), поэтому растение сохраняет абсолютный размер,
+   пока кнопка сужается с 688px до 208px: доля закрытой ширины растёт с 0.58 на 1920 до
+   1.65 на 320, и композиция «листья входят с двух концов» превращается в сплошную заливку.
+
+   `1cqw / 5.232` держит долю макетной: 5.232 = 518/99, пропорция кнопки в Figma. Потолок
+   читается как «растение не крупнее, чем на кнопке макетных пропорций такой же ширины».
+   Он непрерывен — ни одного порога, за которым размер прыгает.
+
+   ЖИВЁТ ТОЛЬКО НИЖЕ lg, и это не косметика. Ниже lg кнопка тянется во всю карточку
+   (ширина = окно − 112), выше — делит строку с колонкой цены и на 1024 составляет всего
+   380px. Общий потолок ужал бы десктоп на ноутбучных ширинах (1024 → 76%, 1100 → 83%),
+   куда претензии не было. Мобильная же ветка на своих широких окнах инертна (768 → кнопка
+   656px, потолок не задевает), поэтому на самом брейкпоинте разрыва нет.
+
+   Срезы из Figma (`.plan-plant-slice`) этот потолок обходят — см. правило ниже. */
+.plan-decor-button {
+  --plan-u: min(1cqh, 0.96px, 1cqw / 5.232);
+}
+
+@media (min-width: 1024px) {
+  .plan-decor-button {
+    --plan-u: min(1cqh, 0.96px);
+  }
+}
+
+/* Срез инстанса из Figma снят по ОКНУ инстанса: его аспект равен аспекту окна, и по высоте
+   он ровно кнопка (замерено: 252×96 при кнопке 96px). Потолок по ширине укоротил бы и
+   высоту — на 390 срез стал бы 53px вместо 96 и открыл 43px голой кнопки сверху и снизу.
+   Такому растению единица нужна своя: объявление на самой картинке бьёт унаследованное со
+   слоя, а `1cqh` всё так же меряется от слоя — контейнером картинка не является. */
+.plan-plant-slice {
+  --plan-u: 1cqh;
+}
+
+@media (min-width: 1024px) {
+  .plan-decor-plate {
+    -webkit-mask-image: var(--plan-mask-desktop);
+    mask-image: var(--plan-mask-desktop);
+  }
+}
+
+/* ── Декор футера ───────────────────────────────────────────────────────────
+   Единица — процент КОРОТКОЙ стороны карточки: `1cqh` от lg, `1cqw` ниже. Карточка
+   футера в проде до 1696px шириной против макетных 939 при почти макетной высоте, так
+   что от ширины куст раздуло бы вдвое; на телефоне она становится узкой и очень высокой,
+   и короткая сторона у неё уже ширина. Подробнее — footerDecorPlants.ts.
+
+   Прозрачность повторяет саму `.glass` триггер в триггер: `:hover` там, где есть курсор,
+   и `.is-center` на тач (GlassCenterActivation). Инлайн-стиль так не умеет — нужны два
+   медиазапроса, — а Tailwind сгенерировал бы правило только для литерального имени
+   класса, так что связка живёт здесь, рядом с правилами самой `.glass`.
+
+   На тач переход выключен по той же причине, что и у `.glass`: карточка футера — одна
+   поверхность высотой в экран с лишним, и анимация по ней перекрашивает весь слой каждый
+   кадр.                                                                          */
+.footer-decor {
+  --footer-u: 1cqw;
+  opacity: 0.8;
+  transition: opacity 600ms ease;
+}
+
+/* Три мелких растения — розовый лист, синий лист и жёлтый цветок — на телефоне вчетверо
+   крупнее макетной доли (решение владельца 2026-08-14). Ниже lg единица переезжает на
+   ширину, а карточка там втрое уже макетной: лист в 13–17 таких единиц оседает в горошину
+   рядом с пальмой, которая осталась угловым срезом в три четверти карточки.
+
+   Порог у этого разрастания ГЕОМЕТРИЧЕСКИЙ, а не брейкпоинт, и это исправление 2026-08-14:
+   на множителе, включённом по `< lg`, доля выходила постоянной — 63% ширины карточки на
+   ЛЮБОЙ ширине ниже 1024. На телефоне это и есть решение владельца (карточка там вытянута
+   4.6:1, и куст в 63% ширины занимает седьмую часть её высоты), но на 1023 карточка уже
+   951×914, почти квадрат, — и те же 63% означали лист во весь её угол, втрое крупнее
+   пальмы по доле, а на 1024 он схлопывался в 21% одним пикселем ширины окна (замерено на
+   прод-сборке: 604px → 171px). Поэтому единица размера — МЕНЬШЕЕ из «телефонной» доли
+   ширины и обычной доли высоты: пока карточка выше своей ширины в PHONE_BLOOM раз и
+   больше, работает первая (390 и 430 дают ровно прежние числа), как только карточка
+   приосанивается — вторая, та же, что на десктопе. Переход непрерывный, на равенстве
+   сторон обе ветви совпадают, и медиазапрос для этого больше не нужен: на десктопных
+   ширинах `min()` сам всегда выбирает `1cqh`.
+
+   Единица объявлена НА КАРТИНКЕ, а не на слое: пальму она задевать не должна. И это
+   ОТДЕЛЬНАЯ переменная от `--footer-u` — та меряет смещения, расстояния до грани
+   карточки, которые растягиваться вместе с размером не должны (растение растёт от своего
+   якоря внутрь). Число обязано совпадать с `PHONE_BLOOM` в footerDecorPlants.ts — на нём
+   стоит `npm run verify:footer-decor`.                                             */
+.footer-plant-big { --footer-su: min(4cqw, 1cqh); }
+
+/* Подъём и поворот — ОДИН трансформ, потому что `transform` одно на элемент: два правила
+   не складываются, второе просто перебивает первое.
+
+   Подъём сдвигом, а не правкой якоря: якорь меряется в процентах ВЫСОТЫ карточки, а высота
+   на телефоне зависит от локали (FAQ переносится по-разному), и одни и те же пиксели
+   пришлось бы держать тремя разными процентами. Он ТОЛЬКО на телефоне — на десктопе
+   растения стоят по макету.
+
+   Поворот, наоборот, на всех ширинах: это ориентация самого рисунка, а не раскладка.
+   Порядок в списке важен: сдвиг снаружи, поворот внутри — растение уезжает на своё место и
+   там крутится вокруг собственного центра. Обратный порядок увёл бы его по дуге.
+
+   Величины приходят с картинки (`--footer-lift`, `--footer-rot` — таблица
+   footerDecorPlants.ts), медиазапрос живёт здесь: инлайн-стиль брейкпоинта не знает.  */
+.footer-plant-tf {
+  transform: translateY(calc(-1 * var(--footer-lift, 0px))) rotate(var(--footer-rot, 0deg));
+}
+
+@media (min-width: 1024px) {
+  .footer-decor { --footer-u: 1cqh; }
+  /* Разрастание мелких растений тут НЕ гасится правилом: на десктопных пропорциях
+     `min(4cqw, 1cqh)` и так всегда сходится к `1cqh` — карточка нигде не бывает вчетверо
+     выше своей ширины, — и растения идут ровно по Figma. */
+  /* Подъём гаснет, поворот остаётся. */
+  .footer-plant-tf { transform: rotate(var(--footer-rot, 0deg)); }
+}
+
+.glass:hover > .footer-decor { opacity: 1; }
+
+@media (hover: none) {
+  .footer-decor { transition: none; }
+  .glass.is-center > .footer-decor { opacity: 1; }
 }
 
 /* ── Christ Statue — star float ─────────────────────────────────────────── */

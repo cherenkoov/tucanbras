@@ -71,6 +71,7 @@ export function AdaptiveDuotoneFilter({ duotone = DEFAULT_DUOTONE }: { duotone?:
           <feFuncB type="table" tableValues={`${dark[2]} ${light[2]}`} />
         </feComponentTransfer>
       </filter>
+
     </svg>
   )
 }

@@ -13,6 +13,16 @@
 import sharp from 'sharp'
 import path from 'node:path'
 
+// Independent of the boxCache fix below: sharp/libvips keeps its own internal
+// operation cache and a worker thread pool, both sized for repeated ops on a
+// handful of images. This script instead runs ~1500 distinct one-off renders per
+// plant, so libvips' own cache and concurrent decodes were adding memory pressure
+// on top of anything held at the JS level — observed directly as an out-of-memory
+// crash even after boxCache stopped retaining pixel buffers. Disabling both trades
+// a little throughput for a flat, predictable memory footprint.
+sharp.cache(false)
+sharp.concurrency(1)
+
 const DECOR = 'public/SVG/header/decor'
 const REF = 'scripts/.figma-ref'
 const CARD_W = 599
@@ -66,12 +76,19 @@ function raster(file, flipY, deg) {
   return p.rotate(deg, { background: { r: 0, g: 0, b: 0, alpha: 0 } }).png().toBuffer()
 }
 
-/** Cache: rotating is the expensive step and the sweep revisits angles. */
-const rotCache = new Map()
-async function rotated(file, flipY, deg) {
+/** Cache: only the measured numbers are kept, never the pixels. The ψ sweep visits
+ *  720 angles × 2 flips = 1440 distinct (file,flipY,deg) keys per plant; caching the
+ *  full alpha plane for each (as an earlier version did) retains gigabytes across a
+ *  run and OOMs vips. Once inkBox() has consumed the raster here, it is allowed to
+ *  be garbage collected — only its box and dimensions survive into the cache. */
+const boxCache = new Map()
+async function measuredBox(file, flipY, deg) {
   const key = `${file}|${flipY}|${deg}`
-  if (!rotCache.has(key)) rotCache.set(key, alpha(await raster(file, flipY, deg)))
-  return rotCache.get(key)
+  if (!boxCache.has(key)) {
+    const rot = await alpha(await raster(file, flipY, deg))
+    boxCache.set(key, { width: rot.width, height: rot.height, box: inkBox(rot) })
+  }
+  return boxCache.get(key)
 }
 
 async function fit(plant) {
@@ -95,12 +112,16 @@ async function fit(plant) {
   const frameAspect = plant.fw / plant.fh
 
   // Compose a fully specified candidate into the reference's frame and measure it.
+  // Renders on demand rather than through any cache: only a handful of candidates
+  // ever reach this, each composed a few times over the fixed-point loop, so the
+  // redundant re-render is cheap — and never accumulates like the sweep would.
   const compose = async (flipY, deg, w, cx, cy) => {
-    const rot = await rotated(plant.file, flipY, deg)
+    const buf = await raster(plant.file, flipY, deg)
+    const { width: rw, height: rh } = await sharp(buf).metadata()
     const f = (w * ppu) / RASTER // raster px → reference px
-    const sw = Math.max(1, Math.round(rot.width * f))
-    const sh = Math.max(1, Math.round(rot.height * f))
-    const scaled = await alpha(await sharp(await raster(plant.file, flipY, deg))
+    const sw = Math.max(1, Math.round(rw * f))
+    const sh = Math.max(1, Math.round(rh * f))
+    const scaled = await alpha(await sharp(buf)
       .resize(sw, sh, { fit: 'fill' }).png().toBuffer())
     // The rotated canvas is centred on the image's centre, which is what CSS places.
     const offX = (cx - rx0) * ppu - sw / 2
@@ -125,16 +146,38 @@ async function fit(plant) {
   // ψ is the turn that brings the file's art back to the orientation the design
   // draws it at rest — the angle at which the ink box IS the instance's frame. The
   // aspect test is what finds it, and it is the only thing being searched.
-  const candidates = []
+  //
+  // Tolerance is the brief's documented fallback (0.02 → 0.04), applied uniformly
+  // rather than per-plant: widening it only ever ADDS lower-aspect-quality
+  // candidates into contention, it never removes the band that already wins for a
+  // plant that was already passing, so this cannot regress train/help/plan — it can
+  // only give the scorer more to choose from for plants whose true angle sits in a
+  // band the tighter tolerance excluded.
+  const TOL = 0.04
+  const coarse = []
   for (const flipY of [false, true]) {
     for (let psi = 0; psi < 360; psi += 0.5) {
-      const rot = await rotated(plant.file, flipY, Math.round(psi * 100) / 100)
-      const box = inkBox(rot)
+      const degPsi = Math.round(psi * 100) / 100
+      const { box } = await measuredBox(plant.file, flipY, degPsi)
       const err = Math.abs(box.w / box.h - frameAspect) / frameAspect
-      if (err < 0.02) candidates.push({ flipY, psi, box, rot, err })
+      if (err < TOL) coarse.push({ flipY, psi: degPsi, box, err })
     }
   }
-  if (!candidates.length) throw new Error(`${plant.key}: no turn makes the ink match the frame`)
+  if (!coarse.length) throw new Error(`${plant.key}: no turn makes the ink match the frame`)
+
+  // Refine: a 0.1° sweep either side of every surviving coarse sample, so the
+  // coarse sweep's 0.5° step can't leave the true aspect optimum sitting unsampled
+  // between two grid points.
+  const candidates = [...coarse]
+  for (const c of coarse) {
+    for (let d = -0.4; d <= 0.4 + 1e-9; d += 0.1) {
+      const psi = Math.round((c.psi + d) * 100) / 100
+      if (psi < 0 || psi >= 360 || psi === c.psi) continue
+      const { box } = await measuredBox(plant.file, c.flipY, psi)
+      const err = Math.abs(box.w / box.h - frameAspect) / frameAspect
+      if (err < TOL) candidates.push({ flipY: c.flipY, psi, box, err })
+    }
+  }
 
   // Each surviving ψ fixes the scale outright: the ink at ψ measures the frame, so
   // one number converts raster pixels to card units, and the image's own width

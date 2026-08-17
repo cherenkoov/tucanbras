@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WebKit backdrop-filter probe</title>
+<style>
+  html,body{margin:0;background:#888;font-family:-apple-system,system-ui,sans-serif}
+  #bg{position:fixed;inset:0;background:linear-gradient(to right,#111 0 50%,#eee 50% 100%);z-index:0}
+  #wrap{position:relative;z-index:1;padding:10px 0 40px}
+  .lbl{background:#fff;color:#000;font-size:12px;font-weight:600;line-height:1.35;padding:5px 8px;margin:14px 6px 3px}
+  .lbl b{color:#b00}
+  .strip{height:52px}
+  .grad{position:relative;height:52px;margin:0 6px}
+  .gradbg{position:absolute;inset:0;background:linear-gradient(to right,#000,#fff)}
+  .strip2{position:relative;height:52px}
+  .ref{display:flex;margin:4px 6px}
+  .ref div{flex:1;height:44px;display:flex;align-items:center;justify-content:center;
+           font-size:11px;font-weight:700;color:#000}
+  h1{background:#fff;margin:0;padding:10px 8px;font-size:14px;line-height:1.4}
+</style>
+</head>
+<body>
+<div id="bg"></div>
+<div id="wrap">
+
+<h1>Проба backdrop-filter на этом устройстве.<br>
+Слева фон ТЁМНЫЙ, справа СВЕТЛЫЙ. Сфотографируйте всю страницу целиком.</h1>
+
+<div class="lbl">1. invert(1) — <b>работает ли backdrop-filter вообще</b><br>ждём: половины МЕНЯЮТСЯ местами (слева светлый, справа тёмный)</div>
+<div class="strip" style="backdrop-filter:invert(1);-webkit-backdrop-filter:invert(1)"></div>
+
+<div class="lbl">2. + brightness/contrast(50)/invert — <b>бинаризация</b><br>ждём: слева БЕЛЫЙ, справа ЧЁРНЫЙ</div>
+<div class="strip" style="backdrop-filter:grayscale(1) brightness(0.714) contrast(50) invert(1);-webkit-backdrop-filter:grayscale(1) brightness(0.714) contrast(50) invert(1)"></div>
+
+<div class="lbl">3. + contrast(0.16) — <b>сжатие полюсов</b><br>ждём: два СЕРЫХ (не белый и не чёрный!)</div>
+<div class="strip" style="backdrop-filter:grayscale(1) brightness(0.714) contrast(50) invert(1) contrast(0.16);-webkit-backdrop-filter:grayscale(1) brightness(0.714) contrast(50) invert(1) contrast(0.16)"></div>
+
+<div class="lbl">4. + sepia(1) — <b>тонирование</b><br>ждём: два КОРИЧНЕВАТЫХ</div>
+<div class="strip" style="backdrop-filter:grayscale(1) brightness(0.714) contrast(50) invert(1) contrast(0.16) sepia(1);-webkit-backdrop-filter:grayscale(1) brightness(0.714) contrast(50) invert(1) contrast(0.16) sepia(1)"></div>
+
+<div class="lbl">5. ПОЛНАЯ ЦЕПОЧКА (то, что сейчас на сайте)<br>ждём: слева СВЕТЛО-ЗЕЛЁНЫЙ, справа ТЁМНО-ЗЕЛЁНЫЙ</div>
+<div class="strip" style="backdrop-filter:grayscale(1) brightness(0.714) contrast(50) invert(1) contrast(0.16) sepia(1) saturate(1.2) hue-rotate(76deg) brightness(1.05);-webkit-backdrop-filter:grayscale(1) brightness(0.714) contrast(50) invert(1) contrast(0.16) sepia(1) saturate(1.2) hue-rotate(76deg) brightness(1.05)"></div>
+
+<div class="lbl">6. sepia(1) отдельно — <b>работает ли sepia в backdrop-filter</b><br>ждём: обе половины коричневатые</div>
+<div class="strip" style="backdrop-filter:sepia(1);-webkit-backdrop-filter:sepia(1)"></div>
+
+<div class="lbl">7. hue-rotate(90deg) отдельно — <b>работает ли hue-rotate</b><br>ждём: заметный сдвиг цвета</div>
+<div class="strip" style="backdrop-filter:sepia(1) saturate(3) hue-rotate(90deg);-webkit-backdrop-filter:sepia(1) saturate(3) hue-rotate(90deg)"></div>
+
+<div class="lbl">8. contrast(0.16) отдельно — <b>работает ли contrast меньше единицы</b><br>ждём: обе половины сходятся к одинаковому серому</div>
+<div class="strip" style="backdrop-filter:contrast(0.16);-webkit-backdrop-filter:contrast(0.16)"></div>
+
+<div class="lbl">9. ГРАДИЕНТ + бинаризация — <b>главный тест</b><br>ждём: РЕЗКУЮ границу чёрный|белый. Плавный переход = порог не срабатывает</div>
+<div class="grad">
+  <div class="gradbg"></div>
+  <div class="strip2" style="backdrop-filter:grayscale(1) brightness(0.714) contrast(50) invert(1);-webkit-backdrop-filter:grayscale(1) brightness(0.714) contrast(50) invert(1)"></div>
+</div>
+
+<div class="lbl">10. ГРАДИЕНТ + полная цепочка<br>ждём: ровно ДВА зелёных с резкой границей, без промежуточных оттенков</div>
+<div class="grad">
+  <div class="gradbg"></div>
+  <div class="strip2" style="backdrop-filter:grayscale(1) brightness(0.714) contrast(50) invert(1) contrast(0.16) sepia(1) saturate(1.2) hue-rotate(76deg) brightness(1.05);-webkit-backdrop-filter:grayscale(1) brightness(0.714) contrast(50) invert(1) contrast(0.16) sepia(1) saturate(1.2) hue-rotate(76deg) brightness(1.05)"></div>
+</div>
+
+<div class="lbl">11. ГРАДИЕНТ + УСИЛЕННЫЙ порог (contrast применён дважды)<br>если ряд 10 «размазан», а этот резкий — лечится именно так</div>
+<div class="grad">
+  <div class="gradbg"></div>
+  <div class="strip2" style="backdrop-filter:grayscale(1) brightness(0.714) contrast(50) contrast(50) invert(1) contrast(0.16) sepia(1) saturate(1.2) hue-rotate(76deg) brightness(1.05);-webkit-backdrop-filter:grayscale(1) brightness(0.714) contrast(50) contrast(50) invert(1) contrast(0.16) sepia(1) saturate(1.2) hue-rotate(76deg) brightness(1.05)"></div>
+</div>
+
+<div class="lbl">Эталоны для сравнения (обычная заливка, без фильтров):</div>
+<div class="ref">
+  <div style="background:#8fd096">#8fd096<br>зелёный</div>
+  <div style="background:#6a906e">#6a906e<br>тёмный</div>
+  <div style="background:#2e67b2;color:#fff">#2e67b2<br>синий</div>
+</div>
+
+</div>
+</body>
+</html>

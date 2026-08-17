@@ -1,10 +1,10 @@
-import type { CSSProperties } from 'react'
 import Image from 'next/image'
 import { CelpeBrasProps } from '@/types'
 import type { Locale } from '@/types'
 import CelpeBrasStack from '@/components/sections/CelpeBrasStack'
 import CelpeBrasCta from '@/components/sections/CelpeBrasCta'
 import AdaptiveText from '@/components/ui/AdaptiveText'
+import FeatureCard from '@/components/ui/FeatureCard'
 
 // ─── Passport intro (asset + localized quote — NOT from Notion) ──────────────
 const PASSPORT_IMG = '/PNG/celpe/brazil-passport.png'
@@ -33,36 +33,6 @@ const CARD_CONFIG = [
   { icon: '/SVG/celpe-bras/plan.svg',      bg: '#f26434', tint: 'rgba(242,100,52,0.72)',  text: '#fffce5' },
   { icon: '/SVG/celpe-bras/help.svg',      bg: '#ffd376', tint: 'rgba(255,211,118,0.72)', text: '#323031' },
 ]
-
-// ─── Feature card ─────────────────────────────────────────────────────────────
-function FeatureCard({ title, icon, bg, tint, text }: { title: string; icon: string; bg: string; tint: string; text: string }) {
-  return (
-    <div
-      data-glass-center
-      data-adaptive-cover={bg}
-      className="glass relative flex flex-1 items-center gap-[48px] min-w-[300px] overflow-hidden rounded-[44px] px-[32px] py-[32px] hover:scale-[1.04] active:scale-[0.95]"
-      style={{
-        minHeight: '164px',
-        '--glass-tint': tint,
-        '--glass-solid': bg,
-        boxShadow: 'inset 0px 4px 4px 0px rgba(255,255,255,0.25), 0px 2px 4px 0px rgba(0,0,0,0.18)',
-      } as CSSProperties}
-    >
-      {/* Icon */}
-      <div className="shrink-0" style={{ width: 'clamp(48px, 6vw, 100px)', height: 'clamp(48px, 6vw, 100px)' }}>
-        <img src={icon} alt="" className="w-full h-full object-contain pointer-events-none" />
-      </div>
-
-      {/* Label */}
-      <p
-        className="font-accent font-bold flex-1 min-w-0"
-        style={{ fontSize: 'clamp(20px, 2vw, 36px)', lineHeight: '1.1', color: text, letterSpacing: '0.12em' }}
-      >
-        {title}
-      </p>
-    </div>
-  )
-}
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
@@ -133,19 +103,19 @@ export default function CelpeBras({ data, locale }: CelpeBrasProps) {
 
           {/* Row 1 */}
           <div className="flex flex-row gap-[20px]">
-            <FeatureCard title={c0} icon={CARD_CONFIG[0].icon} text={CARD_CONFIG[0].text} bg={CARD_CONFIG[0].bg} tint={CARD_CONFIG[0].tint} />
-            <FeatureCard title={c1} icon={CARD_CONFIG[1].icon} text={CARD_CONFIG[1].text} bg={CARD_CONFIG[1].bg} tint={CARD_CONFIG[1].tint} />
+            <FeatureCard index={0} title={c0} icon={CARD_CONFIG[0].icon} text={CARD_CONFIG[0].text} bg={CARD_CONFIG[0].bg} tint={CARD_CONFIG[0].tint} />
+            <FeatureCard index={1} title={c1} icon={CARD_CONFIG[1].icon} text={CARD_CONFIG[1].text} bg={CARD_CONFIG[1].bg} tint={CARD_CONFIG[1].tint} />
           </div>
 
           {/* Row 2 */}
           <div className="flex flex-row gap-[20px]">
-            <FeatureCard title={c2} icon={CARD_CONFIG[2].icon} text={CARD_CONFIG[2].text} bg={CARD_CONFIG[2].bg} tint={CARD_CONFIG[2].tint} />
-            <FeatureCard title={c3} icon={CARD_CONFIG[3].icon} text={CARD_CONFIG[3].text} bg={CARD_CONFIG[3].bg} tint={CARD_CONFIG[3].tint} />
+            <FeatureCard index={2} title={c2} icon={CARD_CONFIG[2].icon} text={CARD_CONFIG[2].text} bg={CARD_CONFIG[2].bg} tint={CARD_CONFIG[2].tint} />
+            <FeatureCard index={3} title={c3} icon={CARD_CONFIG[3].icon} text={CARD_CONFIG[3].text} bg={CARD_CONFIG[3].bg} tint={CARD_CONFIG[3].tint} />
           </div>
 
           {/* Row 3: last card + quote */}
           <div className="flex flex-row gap-[20px]">
-            <FeatureCard title={c4} icon={CARD_CONFIG[4].icon} text={CARD_CONFIG[4].text} bg={CARD_CONFIG[4].bg} tint={CARD_CONFIG[4].tint} />
+            <FeatureCard index={4} title={c4} icon={CARD_CONFIG[4].icon} text={CARD_CONFIG[4].text} bg={CARD_CONFIG[4].bg} tint={CARD_CONFIG[4].tint} />
 
             {/* Quote */}
             <div className="flex flex-1 items-center min-w-[300px] px-[32px] py-[32px]">

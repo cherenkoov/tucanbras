@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react'
 import type { HeroProps } from "@/types";
 import FreeLessonButton from '@/components/ui/FreeLessonButton'
+import HeroHeading from '@/components/ui/HeroHeading'
 import { HERO_ANTHURIUM, decorSrc } from '@/components/ui/heroPlants'
 
 export default function Hero({ data, trialPlanName, locale }: HeroProps) {
@@ -20,17 +21,15 @@ export default function Hero({ data, trialPlanName, locale }: HeroProps) {
         } as CSSProperties}
       >
 
-        {/* Heading — H3: Involve Medium 72px */}
-        <h1
-          className="h-full px-s200 pt-s200 font-sans font-medium text-cream"
-          style={{
-            fontSize: 'clamp(24px, 3.75vw, 72px)',
-            lineHeight: '1.125',
-          }}
-        >
-          <span className="block whitespace-nowrap max-[335px]:whitespace-normal">{data.heading1}</span>
-          <span className="block whitespace-nowrap max-[335px]:whitespace-normal">{data.heading2}</span>
-        </h1>
+        {/* Heading — H3: Involve Medium 72px, and below 500px whatever size makes the
+            longer line span 80% of this card (HeroHeading owns both, the clamp and the
+            fit). `whitespace-normal` under 335px is the no-JS floor only: with the fit
+            running the line is sized to fit and never wraps. */}
+        <HeroHeading
+          line1={data.heading1}
+          line2={data.heading2}
+          className="h-full px-s200 pt-s200 font-sans font-medium text-cream whitespace-nowrap max-[335px]:whitespace-normal"
+        />
 
         {/* CTA button — wrapper is an @container so the button's hover translate can
             reference its own width (0.5cqw) for an even gap to the cover, and the
@@ -56,7 +55,18 @@ export default function Hero({ data, trialPlanName, locale }: HeroProps) {
               it. It answers to the button's own hover (`peer-hover`, which Tailwind
               already gates behind `hover: hover` so a tap cannot leave it stuck), on
               the header's `.pill-decor` timing: the button snaps to size in 120ms and
-              the greenery drifts in behind it for another 220. */}
+              the greenery drifts in behind it for another 220.
+
+              A tap plays the SAME lean, through `peer-data-tapped` — the header's
+              gesture (tapBloom.ts), armed on the button's pointerdown. Mirroring the
+              hover rules into `peer-active` instead would buy a twitch and not a lean:
+              `:active` lasts as long as the finger is down (~120ms) where the
+              transition needs 340ms, so the flower would start back before it ever
+              arrived. The timer holds it open, and the CTA is the one button on the
+              page that goes nowhere when pressed — nothing scrolls out from under the
+              gesture, so on a phone this is the only way the flower is ever seen to
+              move at all. Both sets of rules are spelled out separately because
+              Tailwind generates only what it can read literally. */}
           <img
             src={decorSrc(HERO_ANTHURIUM.file)}
             alt=""
@@ -72,8 +82,9 @@ export default function Hero({ data, trialPlanName, locale }: HeroProps) {
                beats the width and lands the flower at the wrong size and offset. */
             className="pill-decor absolute h-auto max-w-none select-none pointer-events-none
                        w-[25cqw] right-[calc(20px_-_12.8825cqw)] top-[calc(20px_-_15.0896cqw)]
-                       max-[500px]:w-[24cqw] max-[500px]:right-[calc(20px_-_12.3672cqw)] max-[500px]:top-[calc(20px_-_14.4860cqw)]
-                       motion-safe:peer-hover:translate-x-[-4%] motion-safe:peer-hover:scale-[1.08] motion-safe:peer-hover:rotate-[-5deg]"
+                       max-[500px]:w-[36cqw] max-[500px]:right-[calc(20px_-_18.5508cqw)] max-[500px]:top-[calc(20px_-_21.7290cqw)]
+                       motion-safe:peer-hover:translate-x-[-4%] motion-safe:peer-hover:scale-[1.08] motion-safe:peer-hover:rotate-[-5deg]
+                       motion-safe:peer-data-tapped:translate-x-[-4%] motion-safe:peer-data-tapped:scale-[1.08] motion-safe:peer-data-tapped:rotate-[-5deg]"
           />
         </div>
 

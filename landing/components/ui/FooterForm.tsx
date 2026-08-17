@@ -65,7 +65,7 @@ function TutorSelector({
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
-        className="btn-press flex items-center gap-[12px] w-full border-[3px] border-[#323031] rounded-[66px] px-[32px] py-[24px]"
+        className="btn-press-field flex items-center gap-[12px] w-full border-[3px] border-[#323031] rounded-[28px] px-[32px] py-[24px]"
       >
         {selected ? (
           <>
@@ -94,7 +94,7 @@ function TutorSelector({
 
       {open && allTutors.length > 0 && (
         <div
-          className="absolute left-0 right-0 bg-cream border-[3px] border-[#323031] rounded-[32px] overflow-auto z-20 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="absolute left-0 right-0 bg-cream border-[3px] border-[#323031] rounded-[28px] overflow-auto z-20 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           style={{ top: 'calc(100% + 8px)', maxHeight: 280, boxShadow: '0 4px 24px rgba(0,0,0,0.14)' }}
         >
           {allTutors.map((tutor, i) => (
@@ -106,7 +106,7 @@ function TutorSelector({
               style={{
                 // Panel radius minus its 3px border — the row has to hug the curve
                 // from the inside, otherwise the corners show a cream wedge.
-                borderRadius: i === 0 ? '29px 29px 0 0' : i === allTutors.length - 1 ? '0 0 29px 29px' : '0',
+                borderRadius: i === 0 ? '25px 25px 0 0' : i === allTutors.length - 1 ? '0 0 25px 25px' : '0',
               }}
             >
               {!isTeacherRoute(tutor) && <TutorAvatar tutor={tutor} size={36} />}
@@ -157,7 +157,7 @@ function PlanSelector({
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
-        className="btn-press flex items-center gap-[12px] w-full border-[3px] border-[#323031] rounded-[66px] px-[32px] py-[24px]"
+        className="btn-press-field flex items-center gap-[12px] w-full border-[3px] border-[#323031] rounded-[28px] px-[32px] py-[24px]"
       >
         <span
           className={`font-heading font-normal text-ink flex-1 min-w-0 text-left break-words${!selected ? ' opacity-50' : ''}`}
@@ -170,7 +170,7 @@ function PlanSelector({
 
       {open && planNames.length > 0 && (
         <div
-          className="absolute left-0 right-0 bg-cream border-[3px] border-[#323031] rounded-[32px] overflow-auto z-20 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="absolute left-0 right-0 bg-cream border-[3px] border-[#323031] rounded-[28px] overflow-auto z-20 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           style={{ top: 'calc(100% + 8px)', maxHeight: 280, boxShadow: '0 4px 24px rgba(0,0,0,0.14)' }}
         >
           {planNames.map((name, i) => (
@@ -178,20 +178,28 @@ function PlanSelector({
               key={name}
               type="button"
               onClick={() => { onChange(name); setOpen(false) }}
-              className="flex items-center justify-between gap-[16px] w-full px-[32px] py-[20px] hover:bg-[#f5f3d8] transition-colors text-left"
+              // Wrapping row: on a narrow screen the price drops to a second line
+              // (name left, price right) instead of squeezing the name until it
+              // breaks mid-word — "Adven / ced / course" was the bug.
+              className="flex flex-wrap items-center gap-x-[16px] gap-y-[2px] w-full px-[32px] py-[20px] hover:bg-[#f5f3d8] transition-colors text-left"
               style={{
-                borderRadius: i === 0 ? '29px 29px 0 0' : i === planNames.length - 1 ? '0 0 29px 29px' : '0',
+                borderRadius: i === 0 ? '25px 25px 0 0' : i === planNames.length - 1 ? '0 0 25px 25px' : '0',
               }}
             >
+              {/* flex-auto, NOT flex-1: `flex: 1 1 0%` gives the name a zero base
+                  size, so the line never overflows and the price never wraps. With
+                  an auto basis the row breaks exactly when the two stop fitting. */}
               <span
-                className="font-heading font-normal text-ink flex-1 min-w-0 break-words"
+                className="font-heading font-normal text-ink flex-auto min-w-0 break-words"
                 style={{ fontSize: 'clamp(18px, 2vw, 28px)', lineHeight: '1.3' }}
               >
                 {name}
               </span>
               {planPrices[name] && (
+                // ml-auto, not justify-between: alone on the wrapped line the price
+                // would sit at flex-start, i.e. left under the name.
                 <span
-                  className="font-heading font-normal text-ink opacity-70 shrink-0"
+                  className="font-heading font-normal text-ink opacity-70 shrink-0 ml-auto"
                   style={{ fontSize: 'clamp(16px, 1.6vw, 24px)', lineHeight: '1.3' }}
                 >
                   {planPrices[name]}
@@ -303,8 +311,12 @@ export default function FooterForm({ formTitle, tutors, planNames, planPrices, l
       onSubmit={handleContinue}
       noValidate
       data-glass-center
-      className="glass rounded-[26px] flex flex-col gap-[24px]"
-      style={{ padding: 'clamp(12px, 4vw, 36px)' }}
+      // Radius budget: this surface is 48px (--radius-2xl) and every nested inset
+      // spends from it — 48 − 20 = 28px (--radius-card) for the controls below.
+      // The padding can never exceed the radius; the old clamp(…, 4vw, 36px)
+      // against a 26px form went negative from 650px up, which is why nothing
+      // inside was concentric.
+      className="glass rounded-[48px] flex flex-col gap-[24px] p-[20px]"
     >
       {/* Title */}
       <div className="px-[8px]">
@@ -344,15 +356,16 @@ export default function FooterForm({ formTitle, tutors, planNames, planPrices, l
           <button
             type="submit"
             disabled={!canContinue}
-            // btn-press only while enabled: :hover/:active fire on disabled buttons too,
-            // and a dead button that still lifts under the cursor reads as clickable.
+            // btn-press-swell only while enabled: :hover/:active fire on disabled buttons
+            // too, and a dead button that still lifts under the cursor reads as clickable.
             // Disabled also hands the pointer to the wrapper below, which needs the
             // hover to place its hint chip.
             // Keep the space before `${`: Tailwind scans the raw source for candidates,
             // and an interpolation glued straight onto `py-[36px]` swallows the class —
-            // the button silently loses its 36px of vertical padding.
-            className={`flex items-center justify-center w-full rounded-[66px] px-[36px] py-[36px] ${
-              canContinue ? 'btn-press' : 'opacity-40 pointer-events-none'
+            // the button silently loses its 36px of vertical padding (which the swell
+            // in globals.css also names as its rest value).
+            className={`flex items-center justify-center w-full rounded-[28px] px-[36px] py-[36px] ${
+              canContinue ? 'btn-press-swell' : 'opacity-40 pointer-events-none'
             }`}
             style={{
               backgroundColor: '#323031',
@@ -370,10 +383,18 @@ export default function FooterForm({ formTitle, tutors, planNames, planPrices, l
 
         // Blocked: no crossed-out cursor — say what is missing, the same cursor chip
         // the footer's inactive links use.
-        return canContinue ? button : (
-          <ComingSoonHint label={blockedHint} className="block w-full">
-            {button}
-          </ComingSoonHint>
+        // @container: the swell measures itself in cqw off this wrapper, which is
+        // exactly the button's rest width. Layout containment doesn't clip, so the
+        // button is free to grow past it into the form's inset (same trick as the
+        // hero CTA's wrapper).
+        return (
+          <div className="@container">
+            {canContinue ? button : (
+              <ComingSoonHint label={blockedHint} className="block w-full">
+                {button}
+              </ComingSoonHint>
+            )}
+          </div>
         )
       })()}
     </form>

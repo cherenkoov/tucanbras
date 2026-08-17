@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { scrollToElement } from '@/components/ui/AnchorScrollHandler'
 import { uiLabels } from '@/lib/uiLabels'
+import { bloomOnTap } from '@/components/ui/tapBloom'
+import PlanDecor from '@/components/ui/PlanDecor'
 import type { PlanCard } from '@/types'
 
 export const BG = [
@@ -119,6 +121,9 @@ export function PlanSection({ plan, index, locale }: { plan: PlanCard; index: nu
   return (
     <div
       data-glass-center
+      /* Тап взводит `[data-tapped]` на 900ms — на телефоне это стенд-ин для hover, к
+         которому обращается декор плашки (см. ZOOM_PLATE в PlanDecor). Мышь тут no-op. */
+      onPointerDown={bloomOnTap}
       className={`group relative px-[32px] py-[64px] w-full overflow-hidden rounded-[28px] lg:overflow-visible lg:rounded-none ${isLast ? '' : 'mb-[-48px]'}`}
     >
       {/*
@@ -161,6 +166,12 @@ export function PlanSection({ plan, index, locale }: { plan: PlanCard; index: nu
           backgroundRepeat: 'no-repeat',
         }}
       />
+
+      {/* Декор плашки — над окрашенной плашкой, под контентом; клип по её силуэту */}
+      {/* Две композиции декора плашки: у мобилки свой макет (Price List 3498:46099), а не
+          пересчёт десктопной. Обе в разметке, выбор — брейкпоинтом внутри PlanDecor. */}
+      <PlanDecor plan={index} slot="plate" mask={{ mobile: MOBILE_BG[index], desktop: BG[index] }} />
+      <PlanDecor plan={index} slot="plate" variant="mobile" mask={{ mobile: MOBILE_BG[index], desktop: BG[index] }} />
 
       <div className={`relative z-10 flex ${rowClass} items-center justify-between gap-[0px] w-full`}>
 
@@ -215,7 +226,14 @@ export function PlanSection({ plan, index, locale }: { plan: PlanCard; index: nu
             type="button"
             onClick={handleCtaClick}
             aria-pressed={selected}
-            className="btn-press relative flex items-center justify-center w-full overflow-hidden rounded-[28px] cursor-pointer"
+            /* `relative` — контейнер для слоя декора: без него `absolute inset-0`
+               отсчитывается от ближайшего позиционированного предка, и лист рисуется
+               размером с колонку, а не с кнопку. На вид самой кнопки не влияет. */
+            /* `group/btn` — своё имя группы: листья внутри кнопки должны отвечать на
+               наведение НА КНОПКУ, а не на карточку целиком. Тап взводится тем же
+               bloomOnTap; он всплывает и до карточки, поэтому плашка отвечает заодно. */
+            onPointerDown={bloomOnTap}
+            className="btn-press group/btn relative flex items-center justify-center w-full overflow-hidden rounded-[28px] cursor-pointer"
             style={{
               backgroundColor: cfg.accent,
               paddingTop: '32px',
@@ -229,19 +247,27 @@ export function PlanSection({ plan, index, locale }: { plan: PlanCard; index: nu
                 : '0px 1px 4px 0px rgba(0,0,0,0.18), inset 0px 1px 2px 0px rgba(255,255,255,0.18)',
             }}
           >
-            {index === 0 && TRY_FLOWERS.map(f => (
-              <div
-                key={f.src}
-                aria-hidden
-                className="absolute pointer-events-none"
-                style={{
-                  ...f.pos,
-                  backgroundImage: `url(${f.src})`,
-                  backgroundSize: '100% 100%',
-                  backgroundRepeat: 'no-repeat',
-                }}
-              />
-            ))}
+            {/* Кнопка первого тарифа — СВОЯ композиция (`TRY_FLOWERS` выше), а не общий
+                слой `PlanDecor`: у неё цветы поверх плиты по узлу 3483:45258, с запечённой
+                подложкой акцента под multiply-тени. Прежние срезы `p0-btn-*` из таблицы
+                убраны — иначе на кнопке рисовались бы обе композиции сразу. */}
+            {index === 0
+              ? TRY_FLOWERS.map(f => (
+                <div
+                  key={f.src}
+                  aria-hidden
+                  className="absolute pointer-events-none"
+                  style={{
+                    ...f.pos,
+                    backgroundImage: `url(${f.src})`,
+                    backgroundSize: '100% 100%',
+                    backgroundRepeat: 'no-repeat',
+                  }}
+                />
+              ))
+              : <PlanDecor plan={index} slot="button" />}
+
+            {/* `relative` — иначе абсолютный слой декора нарисуется поверх лейбла */}
             <span
               className="relative font-sans font-bold text-center"
               style={{ fontSize: 'clamp(24px, 2.5vw, 48px)', lineHeight: '32px', color: cfg.btnText ?? 'var(--color-cream)' }}

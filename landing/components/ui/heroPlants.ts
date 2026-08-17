@@ -94,18 +94,28 @@ export const HERO_ANTHURIUM = {
 /**
  * The anthurium below 500px, where the card stops being `w-fit` and fills the page.
  *
- * Same corner, same anchor point — only smaller. A phone card's right edge is very
- * nearly the viewport's, so a flower scaled from the desktop ratio spends most of
- * itself off-screen; and the CTA's label is centred in a ~334px button, which puts
- * "Бесплатный урок" within ~80px of that edge. 24cqw is what leaves both alone.
+ * Same corner, same anchor point — a bigger bloom. 36cqw is one and a half times the 24
+ * this used to be, asked for directly: on the phone the flower is meant to read as
+ * decoration of the card, not as a detail on the button.
  *
- * Nothing here is about preventing a scrollbar — `main` is `overflow-x: clip`, so the
- * overhang could never make one. This is composition.
+ * That trades away what 24 was protecting. The phone card's right edge is very nearly
+ * the viewport's, so the tail now runs a few px past the page edge (cropped, never a
+ * scrollbar — `main` is `overflow-x: clip`), and the bloom reaches further left over a
+ * CTA label that is centred in a ~318px button. `verify:hero-plants` measures both; see
+ * SM_OVERHANG_OK there for what is signed off and what is still a failure.
+ *
+ * Kept as a number rather than folded into HERO_ANTHURIUM because the offsets in
+ * Hero.tsx are `anthuriumOffsets(36)` spelled out as literals — Tailwind cannot read a
+ * computed arbitrary value, so this is the one place the two halves are tied together.
  */
-export const HERO_ANTHURIUM_SM = { w: 24 } as const
+export const HERO_ANTHURIUM_SM = { w: 36 } as const
 
 /**
- * What hovering the CTA does to the flower, on the header's `.pill-decor` timing.
+ * What the CTA does to the flower — under a cursor, and under a finger. One lean, two
+ * triggers: `peer-hover` on a device that has hover, `peer-data-tapped` on one that does
+ * not (tapBloom.ts arms it for 900ms on pointerdown, because `:active` is gone in ~120ms
+ * and this transition takes 340). Both on the header's `.pill-decor` timing.
+ *
  * Spelled out here so `verify:hero-plants` can assert the values rather than merely
  * that something changed: at rest `scale` computes to the keyword `none`, so a check
  * that only compares before against after calls `none → 1` a movement and passes on a

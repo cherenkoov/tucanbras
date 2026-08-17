@@ -2,7 +2,6 @@
 
 import {
   useId,
-  useMemo,
   useRef,
   type CSSProperties,
   type ElementType,
@@ -100,15 +99,10 @@ export default function AdaptiveText({ as: Tag = 'p', className, style, children
   const maskId = `adaptive-mask-${useId().replace(/:/g, '')}`
   const textRef = useRef<HTMLElement>(null)
   const overlayRef = useRef<HTMLSpanElement>(null)
-  // The two tone layers of the stacked WebKit path (?duostack=1). Rendered always, hidden
-  // unless that path runs — cheap, and the alternative is remounting mid-effect.
-  const tone1Ref = useRef<HTMLSpanElement>(null)
-  const tone2Ref = useRef<HTMLSpanElement>(null)
-  const toneRefs = useMemo(() => [tone1Ref, tone2Ref], [])
   const maskRef = useRef<SVGTextElement>(null)
 
   useAdaptiveText({
-    textRef, overlayRef, toneRefs, maskRef, maskId, staticFill,
+    textRef, overlayRef, maskRef, maskId, staticFill,
     filterId:   DUOTONES[duotone].id,
     lightColor: DUOTONES[duotone].lightColor,
     darkColor:  DUOTONES[duotone].darkColor,
@@ -135,28 +129,13 @@ export default function AdaptiveText({ as: Tag = 'p', className, style, children
         style={{ ...style, position: 'relative', color: `var(${DUOTONES[duotone].cssVar})` }}
       >
         {children}
-        {/* Overlay for backdrop mode (hidden in static mode); covers the text box.
-            The two that follow are the stacked path's tone layers: SIBLINGS, never nested
-            inside this one — a child of a backdrop-filter element samples nothing at all
-            (measured, /duostack-probe.html row A). DOM order is paint order here, so each
-            one filters what the previous painted, and that composite is the clamp the
-            single-string chain could only hope a blur() would give it. */}
+        {/* Overlay for backdrop mode (hidden in static mode); covers the text box. */}
         <span
           ref={overlayRef}
           aria-hidden="true"
           // Explicit longhands, NOT `inset:0`: the hook grows this box past the element to
           // stop iOS clipping the backdrop-filter at the glyph tops, and on real iOS Safari
           // an `inset` shorthand was winning over the hook's top/bottom override.
-          style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, pointerEvents: 'none', display: 'none' }}
-        />
-        <span
-          ref={tone1Ref}
-          aria-hidden="true"
-          style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, pointerEvents: 'none', display: 'none' }}
-        />
-        <span
-          ref={tone2Ref}
-          aria-hidden="true"
           style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, pointerEvents: 'none', display: 'none' }}
         />
       </Tag>

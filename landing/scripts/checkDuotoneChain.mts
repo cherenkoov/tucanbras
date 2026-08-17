@@ -22,7 +22,7 @@
 // useAdaptiveText.ts saying otherwise have to move with it.
 //
 //   npm run check:duotone-chain
-import { BACKDROP_BUILTIN, BACKDROP_BUILTIN_BRAND, LIGHT_GREEN, BLUE } from '../components/ui/useAdaptiveText'
+import { BACKDROP_BUILTIN, BACKDROP_BUILTIN_BRAND, BACKDROP_STACK, LIGHT_GREEN, BLUE } from '../components/ui/useAdaptiveText'
 
 type V3 = [number, number, number]
 type Bound = [number, number]
@@ -66,9 +66,9 @@ const hueRotate = (deg: number) => {
 // ever has to be evaluated at those — every backdrop luminance resolves to one of them.
 // `barriers` gives the semantics of each blur in order: they need not agree, and the pair
 // that reproduces the production report is exactly a mismatched one.
-function run(chain: string, pole: 0 | 1, barriers: Bound[]): V3 {
+function run(chain: string, pole: 0 | 1, barriers: Bound[], from?: V3): V3 {
   let bi = 0
-  let v: V3 = pole === 1 ? [1, 1, 1] : [0, 0, 0]
+  let v: V3 = from ?? (pole === 1 ? [1, 1, 1] : [0, 0, 0])
   for (const token of chain.trim().split(/\s+(?=[a-z-]+\()/)) {
     const m = token.match(/^([a-z-]+)\(([^)]*)\)$/)
     if (!m) throw new Error(`unparsable filter function: ${token}`)
@@ -137,6 +137,26 @@ function evaluate(name: string, chain: string) {
   return { stable, paletteAlways: rows.every(isPalette), paletteFitted: isPalette(fitted) }
 }
 
+// The stacked form: each stage is a separate ELEMENT, so the composite between them clamps
+// unconditionally. There is no blur to sweep — the semantics table does not apply, which is
+// the entire point, so this reports one outcome and it either is the palette or it is not.
+function evaluateStack(stages: readonly string[]) {
+  console.log('\nBACKDROP_STACK — one stage per stacked sibling (?duostack=1)')
+  const pole = (p: 0 | 1) => {
+    let v: V3 = p === 1 ? [1, 1, 1] : [0, 0, 0]
+    // Every stage ends at a composite, and compositing clamps — [0,1] between stages is not
+    // an assumption here, it is what painting an element does.
+    for (const s of stages) v = run(s, p, [], v).map(x => clamp(x, [0, 1])) as V3
+    return hex(v)
+  }
+  const dark = pole(0)
+  const light = pole(1)
+  const ok = near(dark, WANT.dark) && near(light, WANT.light)
+  console.log(`  no barriers to sweep   want: dark bg → ${WANT.dark}   light bg → ${WANT.light}`)
+  console.log(`  ${dark}  ${light}   ${ok ? 'PALETTE' : '       '}  clamp-INDEPENDENT by construction`)
+  return ok
+}
+
 const fails: string[] = []
 
 const mono = evaluate('BACKDROP_BUILTIN — the WebKit default (mono, no brand tint)', BACKDROP_BUILTIN)
@@ -160,6 +180,19 @@ if (!brand.paletteFitted) {
     'BACKDROP_BUILTIN_BRAND no longer reaches the palette even where every barrier clamps ' +
     '— the fit is stale against DUOTONES. Refit: npm run fit:duotone-chain',
   )
+}
+
+if (!evaluateStack(BACKDROP_STACK)) {
+  fails.push(
+    'BACKDROP_STACK does not reach the palette — the stacked path is the one whose clamps ' +
+    'are guaranteed, so if the arithmetic misses here the coefficients are simply stale ' +
+    'against DUOTONES. Refit: npm run fit:duotone-chain',
+  )
+}
+// The two forms must stay ONE set of numbers: the stack is the fitted chain with its blur
+// barriers replaced by element composites, not a second tuning.
+if (BACKDROP_STACK.join(' blur(0.5px) ') !== BACKDROP_BUILTIN_BRAND) {
+  fails.push('BACKDROP_STACK and BACKDROP_BUILTIN_BRAND have drifted apart — they must be the same stages')
 }
 
 console.log()

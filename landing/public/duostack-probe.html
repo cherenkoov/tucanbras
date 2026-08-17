@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Duotone: стопка слоёв вместо blur-барьера</title>
+<style>
+  html,body{margin:0;background:#888;font-family:-apple-system,system-ui,sans-serif}
+  #bg{position:fixed;inset:0;background:linear-gradient(to right,#111 0 50%,#eee 50% 100%);z-index:0}
+  #wrap{position:relative;z-index:1;padding:10px 0 40px}
+  .lbl{background:#fff;color:#000;font-size:12px;font-weight:600;line-height:1.35;padding:5px 8px;margin:14px 6px 3px}
+  .lbl b{color:#b00}
+  .strip{position:relative;height:52px}
+  .grad{position:relative;height:52px;margin:0 6px}
+  .gradbg{position:absolute;inset:0;background:linear-gradient(to right,#000,#fff)}
+  .ref{display:flex;margin:4px 6px}
+  .ref div{flex:1;height:44px;display:flex;align-items:center;justify-content:center;
+           font-size:11px;font-weight:700;color:#000}
+  h1{background:#fff;margin:0;padding:10px 8px;font-size:14px;line-height:1.4}
+  /* Every layer of a stack covers the same box; each one filters what is painted BELOW it,
+     so the bottom one sees the page and the others see their neighbour's output. */
+  .l{position:absolute;inset:0}
+</style>
+</head>
+<body>
+<div id="bg"></div>
+<div id="wrap">
+
+<h1>Дуотон СТОПКОЙ слоёв: зажим даёт композит, а не blur.<br>
+Слева фон ТЁМНЫЙ (ждём зелёный #8fd096), справа СВЕТЛЫЙ (ждём синий #2e67b2).</h1>
+
+<div class="lbl">A. Механика: сэмплирует ли верхний слой НИЖНИЙ<br>
+низ — invert(1), верх — invert(1). Два инвертирования подряд = исходный фон.<br>
+ждём: полосa как фон (слева тёмная, справа светлая). <b>Если инвертированная — верхний
+слой смотрит на страницу, а не на нижний, и вся затея не работает</b></div>
+<div class="strip">
+  <div class="l" style="backdrop-filter:invert(1);-webkit-backdrop-filter:invert(1)">
+    <div class="l" style="backdrop-filter:invert(1);-webkit-backdrop-filter:invert(1)"></div>
+  </div>
+</div>
+
+<div class="lbl">B. То же, но слои СОСЕДИ, а не вложены<br>
+ждём то же самое. Разница важна: у вложенного предок с backdrop-filter — свой backdrop
+root, у соседей нет</div>
+<div class="strip">
+  <div class="l" style="backdrop-filter:invert(1);-webkit-backdrop-filter:invert(1)"></div>
+  <div class="l" style="backdrop-filter:invert(1);-webkit-backdrop-filter:invert(1)"></div>
+</div>
+
+<div class="lbl">C. Бинаризация НИЖНИМ слоем + contrast(0.538) верхним — <b>тот же решающий
+тест, что ряд 13 в wk-probe, но зажим берётся с композита</b><br>
+ждём: два СЕРЫХ (эталоны под рядом). Чёрный и белый = композит не зажал (такого быть
+не должно ни на одном движке)</div>
+<div class="strip">
+  <div class="l" style="backdrop-filter:grayscale(1) brightness(0.714) contrast(50) contrast(50) invert(1);-webkit-backdrop-filter:grayscale(1) brightness(0.714) contrast(50) contrast(50) invert(1)"></div>
+  <div class="l" style="backdrop-filter:contrast(0.538);-webkit-backdrop-filter:contrast(0.538)"></div>
+</div>
+<div class="ref">
+  <div style="background:#c4c4c4">#c4c4c4<br>ждём слева</div>
+  <div style="background:#3b3b3b;color:#fff">#3b3b3b<br>ждём справа</div>
+</div>
+
+<div class="lbl">D. ПОЛНАЯ ПАЛИТРА СТОПКОЙ: бинаризация → ступень тона 1 → ступень тона 2,
+каждая своим слоем, ни одного blur<br>
+ждём: слева <b>#8fd096 зелёный</b>, справа <b>#2e67b2 синий</b></div>
+<div class="strip">
+  <div class="l" style="backdrop-filter:grayscale(1) brightness(0.714) contrast(50) contrast(50) invert(1);-webkit-backdrop-filter:grayscale(1) brightness(0.714) contrast(50) contrast(50) invert(1)"></div>
+  <div class="l" style="backdrop-filter:contrast(0.538) sepia(0.105) saturate(7.9) hue-rotate(115.5deg) brightness(1.697);-webkit-backdrop-filter:contrast(0.538) sepia(0.105) saturate(7.9) hue-rotate(115.5deg) brightness(1.697)"></div>
+  <div class="l" style="backdrop-filter:contrast(0.69) sepia(0.135) saturate(8) hue-rotate(75.5deg) brightness(0.857);-webkit-backdrop-filter:contrast(0.69) sepia(0.135) saturate(8) hue-rotate(75.5deg) brightness(0.857)"></div>
+</div>
+
+<div class="lbl">E. То же на ГРАДИЕНТЕ — <b>резкость порога</b><br>
+ждём ровно два цвета с резкой границей, без промежуточных</div>
+<div class="grad">
+  <div class="gradbg"></div>
+  <div class="strip">
+    <div class="l" style="backdrop-filter:grayscale(1) brightness(0.714) contrast(50) contrast(50) invert(1);-webkit-backdrop-filter:grayscale(1) brightness(0.714) contrast(50) contrast(50) invert(1)"></div>
+    <div class="l" style="backdrop-filter:contrast(0.538) sepia(0.105) saturate(7.9) hue-rotate(115.5deg) brightness(1.697);-webkit-backdrop-filter:contrast(0.538) sepia(0.105) saturate(7.9) hue-rotate(115.5deg) brightness(1.697)"></div>
+    <div class="l" style="backdrop-filter:contrast(0.69) sepia(0.135) saturate(8) hue-rotate(75.5deg) brightness(0.857);-webkit-backdrop-filter:contrast(0.69) sepia(0.135) saturate(8) hue-rotate(75.5deg) brightness(0.857)"></div>
+  </div>
+</div>
+
+<div class="lbl">F. Стопка + МАСКА на каждом слое (как у настоящих глифов)<br>
+маска — круг по центру каждого слоя. ждём: круг тех же двух цветов, что ряд D.
+<b>Если круг пустой/серый — маска ломает сэмпл соседа, и в хук это нести нельзя</b></div>
+<div class="strip">
+  <div class="l" style="backdrop-filter:grayscale(1) brightness(0.714) contrast(50) contrast(50) invert(1);-webkit-backdrop-filter:grayscale(1) brightness(0.714) contrast(50) contrast(50) invert(1);mask:radial-gradient(circle at 50% 50%,#000 0 40px,transparent 41px);-webkit-mask:radial-gradient(circle at 50% 50%,#000 0 40px,transparent 41px)"></div>
+  <div class="l" style="backdrop-filter:contrast(0.538) sepia(0.105) saturate(7.9) hue-rotate(115.5deg) brightness(1.697);-webkit-backdrop-filter:contrast(0.538) sepia(0.105) saturate(7.9) hue-rotate(115.5deg) brightness(1.697);mask:radial-gradient(circle at 50% 50%,#000 0 40px,transparent 41px);-webkit-mask:radial-gradient(circle at 50% 50%,#000 0 40px,transparent 41px)"></div>
+  <div class="l" style="backdrop-filter:contrast(0.69) sepia(0.135) saturate(8) hue-rotate(75.5deg) brightness(0.857);-webkit-backdrop-filter:contrast(0.69) sepia(0.135) saturate(8) hue-rotate(75.5deg) brightness(0.857);mask:radial-gradient(circle at 50% 50%,#000 0 40px,transparent 41px);-webkit-mask:radial-gradient(circle at 50% 50%,#000 0 40px,transparent 41px)"></div>
+</div>
+
+<div class="lbl">Эталоны (обычная заливка, без фильтров):</div>
+<div class="ref">
+  <div style="background:#8fd096">#8fd096<br>зелёный</div>
+  <div style="background:#2e67b2;color:#fff">#2e67b2<br>синий</div>
+  <div style="background:#c4c4c4">#c4c4c4<br>серый C</div>
+</div>
+
+</div>
+</body>
+</html>

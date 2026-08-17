@@ -158,10 +158,34 @@ export const BACKDROP_BUILTIN = 'grayscale(1) brightness(0.714) contrast(50) inv
 // exactly (colour is right, the sample can drift). Re-test this chain on a device with
 // ?duobrand=1 (and /wk-probe.html, which shows the barrier stage by stage); if it holds
 // there, that is a measurement, not a reason to flip the default back on its own.
-export const BACKDROP_BUILTIN_BRAND =
-  'grayscale(1) brightness(0.714) contrast(50) contrast(50) invert(1) blur(0.5px) ' +
-  'contrast(0.538) sepia(0.105) saturate(7.9) hue-rotate(115.5deg) brightness(1.697) blur(0.5px) ' +
-  'contrast(0.69) sepia(0.135) saturate(8) hue-rotate(75.5deg) brightness(0.857)'
+// The three pieces of that map, kept apart so ONE set of numbers serves both ways of
+// separating them — the blur barriers below, and the layer stack after it.
+const DUO_BINARISE = 'grayscale(1) brightness(0.714) contrast(50) contrast(50) invert(1)'
+const DUO_TONE_1 = 'contrast(0.538) sepia(0.105) saturate(7.9) hue-rotate(115.5deg) brightness(1.697)'
+const DUO_TONE_2 = 'contrast(0.69) sepia(0.135) saturate(8) hue-rotate(75.5deg) brightness(0.857)'
+export const BACKDROP_BUILTIN_BRAND = `${DUO_BINARISE} blur(0.5px) ${DUO_TONE_1} blur(0.5px) ${DUO_TONE_2}`
+
+// THE SAME MAP, SPLIT ACROSS STACKED ELEMENTS — bottom layer first. This is the answer to
+// the barrier problem rather than a workaround for it: what the fitted chain needs is a
+// clamp between the stages, and COMPOSITING an element clamps by definition, on every
+// engine. There is nothing left to detect, and `npm run check:duotone-chain` confirms the
+// arithmetic is the clamp-independent one (the `full+full` row, reachable no other way).
+//
+// Measured in Chromium via /duostack-probe.html (rows A–F), and each row is there because
+// it constrains the markup:
+//   • SIBLINGS chain — the upper layer's backdrop includes the lower layer's painted
+//     output, so layer 2 filters layer 1's result (row B: invert∘invert returns the page).
+//   • NESTING DOES NOT (row A: only one inversion survives). An ancestor carrying
+//     backdrop-filter is a backdrop root, so a child of it samples nothing at all. Hence
+//     three FLAT siblings in AdaptiveText, never one wrapped in another.
+//   • The glyph mask on every layer is fine (row F): inside the mask the palette comes
+//     out, outside it the page shows through untouched.
+//   • No blur anywhere, and row E keeps the threshold pixel-sharp on a gradient.
+// What still wants a device: whether iOS chains siblings the same way. The prior note in
+// CLAUDE.md — «два слоя backdrop-filter друг над другом дают верхнему сэмпл НИЖНЕГО» —
+// says it does, but that was measured for a different purpose, so ?duostack=1 stays opt-in
+// until someone looks at /duostack-probe.html on a real iPhone.
+export const BACKDROP_STACK: readonly string[] = [DUO_BINARISE, DUO_TONE_1, DUO_TONE_2]
 const FIND_TIMEOUT_FRAMES = 300
 const SVGNS = 'http://www.w3.org/2000/svg'
 
@@ -264,6 +288,7 @@ function measureLines(el: HTMLElement): {
 export function useAdaptiveText({
   textRef,
   overlayRef,
+  toneRefs,
   maskRef,
   maskId,
   imageSrc,
@@ -275,6 +300,11 @@ export function useAdaptiveText({
 }: {
   textRef: RefObject<HTMLElement | null>
   overlayRef: RefObject<HTMLSpanElement | null>
+  // The two extra SIBLING overlays the layer stack needs (BACKDROP_STACK, ?duostack=1):
+  // each one filters what the previous painted, which is where the clamp comes from. They
+  // must be siblings of `overlayRef`, not children of it — a child of a backdrop-filter
+  // element samples nothing (measured, /duostack-probe.html row A). Absent = no stack.
+  toneRefs?: readonly RefObject<HTMLSpanElement | null>[]
   maskRef?: RefObject<SVGTextElement | null>
   maskId?: string
   // Icon mode: the "glyphs" are the alpha of this image (CSS mask) instead of text; the
@@ -310,9 +340,13 @@ export function useAdaptiveText({
     // is trustworthy unattended: ?duobrand=1 asks for the fitted brand chain (correct only
     // where the blur barrier clamps — see BACKDROP_BUILTIN_BRAND), ?duomono=1 for the plain
     // near-white/near-black pair (always renders, but has no brand colour in it).
+    // ?duostack=1 is the third option and the one meant to become the default: the same
+    // brand palette, split across stacked sibling overlays so the clamp comes from real
+    // composites instead of a blur that may or may not rasterise (see BACKDROP_STACK).
     const forceWebkitPath = params.has('duowk')
     const monoDuotone = params.has('duomono')
     const brandDuotone = params.has('duobrand')
+    const stackDuotone = params.has('duostack')
     const text = textRef.current
     const overlay = overlayRef.current
     const maskText = maskRef?.current ?? null
@@ -365,12 +399,22 @@ export function useAdaptiveText({
     // inside backdrop-filter, they were never the engine with the problem.
     const webkit = isWebKit() || forceWebkitPath
     const useBuiltin = webkit && supportsBuiltinBackdrop() && (brandDuotone || monoDuotone)
+    // The stack needs its two extra sibling overlays and a real glyph mask, and its
+    // coefficients are the default palette's — an icon (image mask) or another palette gets
+    // no stack, same rule as the single-string chain.
+    const tones = (toneRefs ?? []).map(r => r.current).filter((el): el is HTMLSpanElement => !!el)
+    const useStack = webkit && supportsBuiltinBackdrop() && stackDuotone &&
+      filterId === BRAND_FILTER_ID && !imageSrc && tones.length + 1 >= BACKDROP_STACK.length
     // Icons: image-mask + backdrop-filter renders NOTHING on WebKit (the VS vanished on a
     // real iPhone), and touch icons kept that fallback before this change — hold both.
     const iconStatic = !!imageSrc && (webkit || touch)
     const canBackdrop = !reduced && !forceStatic && !iconStatic && (
-      useBuiltin || (!webkit && supportsBackdrop())
+      useStack || useBuiltin || (!webkit && supportsBackdrop())
     )
+    // Every overlay the running mode paints through, bottom first. Only the stack uses more
+    // than one; the rest of the machinery (mask, glyph-overflow growth, teardown) walks this
+    // list so it does not have to know which mode it is in.
+    const layers = useStack ? [overlay, ...tones].slice(0, BACKDROP_STACK.length) : [overlay]
 
     // Manual override (staticFill prop): paint the requested duotone side directly and
     // skip the whole fill machinery — no observers, no per-frame work.
@@ -407,16 +451,21 @@ export function useAdaptiveText({
       text.style.removeProperty('-webkit-mask')
       text.style.filter = ''
       if (img) img.style.visibility = ''
-      overlay.style.removeProperty('backdrop-filter')
-      overlay.style.removeProperty('-webkit-backdrop-filter')
-      overlay.style.removeProperty('filter')
-      overlay.style.removeProperty('mask')
-      overlay.style.removeProperty('-webkit-mask')
-      // Undo any glyph-overflow growth so a later icon/static pass starts flush with the
-      // element box. Reset to 0 (not removeProperty — the JSX sets these longhands inline).
-      overlay.style.top = '0'
-      overlay.style.bottom = '0'
-      overlay.style.display = 'none'
+      // Clear EVERY overlay, not just the ones this mode used: switching modes (or palettes
+      // between renders) must not leave a stack layer painting on its own.
+      for (const el of [overlay, ...(toneRefs ?? []).map(r => r.current)]) {
+        if (!el) continue
+        el.style.removeProperty('backdrop-filter')
+        el.style.removeProperty('-webkit-backdrop-filter')
+        el.style.removeProperty('filter')
+        el.style.removeProperty('mask')
+        el.style.removeProperty('-webkit-mask')
+        // Undo any glyph-overflow growth so a later icon/static pass starts flush with the
+        // element box. Reset to 0 (not removeProperty — the JSX sets these longhands inline).
+        el.style.top = '0'
+        el.style.bottom = '0'
+        el.style.display = 'none'
+      }
       text.style.color = ''
       dbgEl?.remove()
       dbgEl = null
@@ -623,7 +672,7 @@ export function useAdaptiveText({
       if (w === 0 || h === 0) return false
       if (mode !== 'backdrop') {
         clearAll()
-        overlay.style.display = ''
+        for (const el of layers) el.style.display = ''
         // Built-in-function chain on WebKit (it drops the url reference); url(#) chain on
         // engines that render it exactly. The brand hue has to live INSIDE the backdrop
         // chain on WebKit — re-colouring the sample afterwards with the overlay's own
@@ -637,17 +686,29 @@ export function useAdaptiveText({
         // покрасилась бы чужими цветами молча, ей идёт mono.
         const brandChain = brandDuotone && filterId === BRAND_FILTER_ID
         const builtinChain = brandChain ? BACKDROP_BUILTIN_BRAND : BACKDROP_BUILTIN
-        const chain = useBuiltin ? builtinChain : `grayscale(1) url(#${filterId})`
-        overlay.style.setProperty('backdrop-filter', chain)
-        overlay.style.setProperty('-webkit-backdrop-filter', chain)
+        // One chain per layer, bottom first. Everything except the stack is a single layer,
+        // so the loop below is the general form of what used to be two assignments.
+        const chains = useStack
+          ? BACKDROP_STACK
+          : [useBuiltin ? builtinChain : `grayscale(1) url(#${filterId})`]
+        layers.forEach((el, i) => {
+          el.style.setProperty('backdrop-filter', chains[i])
+          el.style.setProperty('-webkit-backdrop-filter', chains[i])
+          if (imageSrc) {
+            el.style.setProperty('mask', imageMask)
+            el.style.setProperty('-webkit-mask', imageMask)
+          } else {
+            // The SAME mask element on every layer: they share one box, so one userSpace
+            // origin serves all of them. Masking each one matters — an unmasked lower layer
+            // would paint its binarised rectangle over the page (probe row F).
+            el.style.setProperty('mask', `url(#${maskId})`)
+            el.style.setProperty('-webkit-mask', `url(#${maskId})`)
+          }
+        })
         if (imageSrc) {
-          overlay.style.setProperty('mask', imageMask)
-          overlay.style.setProperty('-webkit-mask', imageMask)
           // Hide the fallback img so the backdrop samples the page background, not it.
           if (img) img.style.visibility = 'hidden'
         } else {
-          overlay.style.setProperty('mask', `url(#${maskId})`)
-          overlay.style.setProperty('-webkit-mask', `url(#${maskId})`)
           text.style.color = 'transparent'
         }
         mode = 'backdrop'
@@ -674,8 +735,12 @@ export function useAdaptiveText({
       const floorPad = Math.ceil(parseFloat(cs.fontSize) * 0.4)
       const padT = Math.max(padTop, floorPad)
       const padB = Math.max(padBottom, floorPad)
-      overlay.style.top = `${-padT}px`
-      overlay.style.bottom = `${-padB}px`
+      // All layers grow together — they must keep sharing one box, or the upper one would
+      // sample the lower one's edge instead of its glyphs.
+      for (const el of layers) {
+        el.style.top = `${-padT}px`
+        el.style.bottom = `${-padB}px`
+      }
       if (lines.length === 0) {
         // No measurable text node (e.g. element children) → one centred line.
         maskText.setAttribute('text-anchor', 'middle')
@@ -798,5 +863,5 @@ export function useAdaptiveText({
       ro?.disconnect()
       clearAll()
     }
-  }, [textRef, overlayRef, maskRef, maskId, imageSrc, imageRef, staticFill, filterId, lightColor, darkColor])
+  }, [textRef, overlayRef, toneRefs, maskRef, maskId, imageSrc, imageRef, staticFill, filterId, lightColor, darkColor])
 }

@@ -69,6 +69,41 @@
   <div class="strip2" style="backdrop-filter:grayscale(1) brightness(0.714) contrast(50) contrast(50) invert(1) contrast(0.16) sepia(1) saturate(1.2) hue-rotate(76deg) brightness(1.05);-webkit-backdrop-filter:grayscale(1) brightness(0.714) contrast(50) contrast(50) invert(1) contrast(0.16) sepia(1) saturate(1.2) hue-rotate(76deg) brightness(1.05)"></div>
 </div>
 
+<h1>Барьер: зажимает ли blur() значения (репорт 2026-08-17)</h1>
+<div class="lbl">На сайте после PR #13 у WebKit была цепочка, которая держится на ОДНОМ
+допущении: <b>blur() растеризует буфер, а растеризация зажимает значения в [0,1]</b>.
+Бинаризация выдаёт не 0 и 1, а примерно −1250 и +1250; если зажима нет, этот перелёт
+доезжает до тонирующих матриц и цвет получается любой. Владелец увидел в проде
+<b>чёрный и светло-синий</b> вместо синего и зелёного — ряды ниже показывают, на каком
+именно шаге ломается. Сфотографируйте ряды 12–16.</div>
+
+<div class="lbl">12. ПОЛНАЯ БРЕНДОВАЯ ЦЕПОЧКА (то, что уехало в прод в PR #13)<br>
+ждём: слева <b>#8fd096 зелёный</b>, справа <b>#2e67b2 синий</b> (эталоны в самом низу).<br>
+если слева голубой, а справа чёрный — барьер на этом устройстве НЕ зажимает</div>
+<div class="strip" style="backdrop-filter:grayscale(1) brightness(0.714) contrast(50) contrast(50) invert(1) blur(0.5px) contrast(0.538) sepia(0.105) saturate(7.9) hue-rotate(115.5deg) brightness(1.697) blur(0.5px) contrast(0.69) sepia(0.135) saturate(8) hue-rotate(75.5deg) brightness(0.857);-webkit-backdrop-filter:grayscale(1) brightness(0.714) contrast(50) contrast(50) invert(1) blur(0.5px) contrast(0.538) sepia(0.105) saturate(7.9) hue-rotate(115.5deg) brightness(1.697) blur(0.5px) contrast(0.69) sepia(0.135) saturate(8) hue-rotate(75.5deg) brightness(0.857)"></div>
+
+<div class="lbl">13. РЕШАЮЩИЙ ТЕСТ — барьер blur(0.5px), дальше только contrast(0.538)<br>
+ждём при работающем барьере: два СЕРЫХ (эталоны прямо под рядом).<br>
+<b>белый и чёрный вместо серых = барьер не сработал</b>, перелёт прошёл насквозь</div>
+<div class="strip" style="backdrop-filter:grayscale(1) brightness(0.714) contrast(50) contrast(50) invert(1) blur(0.5px) contrast(0.538);-webkit-backdrop-filter:grayscale(1) brightness(0.714) contrast(50) contrast(50) invert(1) blur(0.5px) contrast(0.538)"></div>
+<div class="ref">
+  <div style="background:#c4c4c4">#c4c4c4<br>ждём слева</div>
+  <div style="background:#3b3b3b;color:#fff">#3b3b3b<br>ждём справа</div>
+</div>
+
+<div class="lbl">14. То же, но барьер blur(<b>1px</b>) — <b>чинит ли более крупное размытие</b><br>
+ждём: те же два серых. Если ряд 13 чёрно-белый, а этот серый — барьер лечится радиусом</div>
+<div class="strip" style="backdrop-filter:grayscale(1) brightness(0.714) contrast(50) contrast(50) invert(1) blur(1px) contrast(0.538);-webkit-backdrop-filter:grayscale(1) brightness(0.714) contrast(50) contrast(50) invert(1) blur(1px) contrast(0.538)"></div>
+
+<div class="lbl">15. То же, но барьер opacity(0.999) вместо blur — <b>другой способ растеризовать</b><br>
+ждём: те же два серых</div>
+<div class="strip" style="backdrop-filter:grayscale(1) brightness(0.714) contrast(50) contrast(50) invert(1) opacity(0.999) contrast(0.538);-webkit-backdrop-filter:grayscale(1) brightness(0.714) contrast(50) contrast(50) invert(1) opacity(0.999) contrast(0.538)"></div>
+
+<div class="lbl">16. То же БЕЗ всякого барьера — <b>контроль</b><br>
+ждём: чёрный и белый (зажима нет ни на каком движке, перелёт всегда проходит).<br>
+если ряд 13 выглядит ТАК ЖЕ, как этот — барьер не делает ничего</div>
+<div class="strip" style="backdrop-filter:grayscale(1) brightness(0.714) contrast(50) contrast(50) invert(1) contrast(0.538);-webkit-backdrop-filter:grayscale(1) brightness(0.714) contrast(50) contrast(50) invert(1) contrast(0.538)"></div>
+
 <div class="lbl">Эталоны для сравнения (обычная заливка, без фильтров):</div>
 <div class="ref">
   <div style="background:#8fd096">#8fd096<br>зелёный</div>

@@ -108,9 +108,11 @@ export const BACKDROP = `grayscale(1) url(#${BRAND_FILTER_ID})`
 // Mono near-white/near-black — device-validated on a real iPhone (2026-07-19) and kept as
 // the ?duomono=1 escape hatch. No longer the WebKit default: see BACKDROP_BUILTIN_BRAND.
 export const BACKDROP_BUILTIN = 'grayscale(1) brightness(0.714) contrast(50) invert(1)'
-// WebKit DEFAULT — the full brand palette from a live sample, no SVG filter anywhere.
-// Renders #8fd096 over a dark backdrop and #2e68b1 over a light one (targets --color-green
-// #8fd096 and --color-blue #2e67b2; the blue is 1/255 off, invisible).
+// The brand palette from a live sample on WebKit, no SVG filter anywhere. Renders #8fd096
+// over a dark backdrop and #2e68b1 over a light one (targets --color-green #8fd096 and
+// --color-blue #2e67b2; the blue is 1/255 off, invisible) — BUT ONLY IF THE BARRIER BELOW
+// CLAMPS. It does not on every WebKit build, so this is NO LONGER THE DEFAULT: it lives
+// behind ?duobrand=1. See the "NOT THE DEFAULT" note under the barrier explanation.
 //
 // THE CLAMP IS THE WHOLE TRICK. WebKit does not clamp between filter functions (Chromium
 // does), so contrast(50) leaves ±20-ish values that ride the rest of the chain and only
@@ -134,6 +136,28 @@ export const BACKDROP_BUILTIN = 'grayscale(1) brightness(0.714) contrast(50) inv
 //
 // The parameters ENCODE THE PALETTE. Change DUOTONES and this string is stale — refit with
 // `npm run fit:duotone-chain` and re-measure. Guard: npm run verify:adaptive-mode.
+//
+// ── NOT THE DEFAULT ANYMORE (2026-08-17, owner report from prod) ──────────────────────
+// «надо чтобы были синий и зелёный, а вместо них чёрный и светло-синий». That is this
+// chain, on a WebKit build where `blur(0.5px)` does NOT clamp the way the fit assumed.
+// The whole construction rests on the barrier restoring [0,1] at TWO points; the binarise
+// hands it ±20…±1250, and where that overshoot survives, the tint matrices mix garbage.
+// `npm run check:duotone-chain` sweeps both barriers over every clamp semantics — the
+// palette survives 4 of the 16, and the rest are exactly the reported colours:
+//
+//   barrier 1 + 2   dark bg              light bg
+//   full+full       #8fd097 green ✓      #2e68b2 blue ✓       ← what was fitted
+//   high+low        #5cffff light blue   #1a261c near-black   ← the prod report
+//   high+none       #5cffff light blue   #000000 black        ← the prod report
+//   none+none       #ffffff white        #000000 black        ← the plain mono pair
+//
+// Nothing in JS can tell those apart: the compositor's output is unreadable from script,
+// which is why the choice was UA-based to begin with. A palette whose correctness depends
+// on an undetectable, unspecified engine detail cannot be the thing every iPhone gets by
+// default — so WebKit now takes the static path, whose `filter: url(#…)` it renders
+// exactly (colour is right, the sample can drift). Re-test this chain on a device with
+// ?duobrand=1 (and /wk-probe.html, which shows the barrier stage by stage); if it holds
+// there, that is a measurement, not a reason to flip the default back on its own.
 export const BACKDROP_BUILTIN_BRAND =
   'grayscale(1) brightness(0.714) contrast(50) contrast(50) invert(1) blur(0.5px) ' +
   'contrast(0.538) sepia(0.105) saturate(7.9) hue-rotate(115.5deg) brightness(1.697) blur(0.5px) ' +
@@ -282,10 +306,13 @@ export function useAdaptiveText({
     const fillDebug = params.has('filldebug')
     // WebKit levers. ?duowk=1 forces the WebKit path on ANY engine (Playwright WebKit
     // renders no backdrop-filter at all, headless or headed, so this is the only way to
-    // measure that chain locally); ?duomono=1 drops back to the plain near-white/near-black
-    // pair, the escape hatch if the brand chain ever misbehaves on a device.
+    // measure that chain locally). The two built-in chains are now OPT-IN, because neither
+    // is trustworthy unattended: ?duobrand=1 asks for the fitted brand chain (correct only
+    // where the blur barrier clamps — see BACKDROP_BUILTIN_BRAND), ?duomono=1 for the plain
+    // near-white/near-black pair (always renders, but has no brand colour in it).
     const forceWebkitPath = params.has('duowk')
     const monoDuotone = params.has('duomono')
+    const brandDuotone = params.has('duobrand')
     const text = textRef.current
     const overlay = overlayRef.current
     const maskText = maskRef?.current ?? null
@@ -318,16 +345,26 @@ export function useAdaptiveText({
     // the CELPE-BRAS heading reconstructing L=0.78 where the live background is L=0.13 —
     // a full flip across the 0.70 threshold, i.e. glyphs coloured from the wrong region.
     //
-    // So the gate no longer decides whether to SAMPLE — only which chain does it, and the
-    // sample is never given up: `BACKDROP_BUILTIN_BRAND` since 2026-08-09 reproduces the
-    // default palette out of built-in functions alone (blur barrier + two tone stages), so
-    // WebKit gets the same green↔blue as everyone else. A caller that asks for one of the
-    // OTHER palettes falls back to the mono chain instead — see the choice at
-    // `builtinChain` — because that string's coefficients encode one palette and nothing
-    // refits them per call. Chromium/Gecko render every palette exactly through url(#);
-    // they were never the engine with the problem.
+    // WHY WEBKIT IS BACK ON STATIC (2026-08-17) — and why that is not the 08-08 regression
+    // above coming back. That one was silent and engine-wide: the sample was given up on
+    // EVERY phone by accident, with nothing said about it. This is a deliberate trade on
+    // ONE engine, taken because the alternative was measured wrong IN PRODUCTION: the
+    // fitted built-in chain painted light blue over dark backgrounds and near-black over
+    // light ones on the owner's device (report + the arithmetic under
+    // BACKDROP_BUILTIN_BRAND, reproducible with `npm run check:duotone-chain`).
+    //
+    // The two failure modes are not equal, which is what decides it:
+    //   static path  → ALWAYS a palette colour, occasionally the wrong SIDE of the
+    //                  threshold, because the composite is reconstructed from geometry;
+    //   brand chain  → the right side every time, in colours that are not the brand's at
+    //                  all on an engine we cannot detect.
+    // A heading that is green where it should be blue still reads as the site; one that is
+    // black or cyan does not. So WebKit keeps `filter: url(#…)` — which it renders exactly
+    // — and gives up the live sample until the chain is re-measured on a device.
+    // Chromium/Gecko (desktop AND phones) are untouched: they render the reference filter
+    // inside backdrop-filter, they were never the engine with the problem.
     const webkit = isWebKit() || forceWebkitPath
-    const useBuiltin = webkit && supportsBuiltinBackdrop()
+    const useBuiltin = webkit && supportsBuiltinBackdrop() && (brandDuotone || monoDuotone)
     // Icons: image-mask + backdrop-filter renders NOTHING on WebKit (the VS vanished on a
     // real iPhone), and touch icons kept that fallback before this change — hold both.
     const iconStatic = !!imageSrc && (webkit || touch)
@@ -593,13 +630,12 @@ export function useAdaptiveText({
         // `filter: url(#…)` works in Chromium but was measured on a real iPhone
         // (2026-08-09) to do nothing at all: WebKit does not pass its backdrop image
         // through the element's filter, so every heading stayed black-and-white.
-        // Брендовая цепочка ЗАКОДИРОВАЛА ОДНУ палитру (её коэффициенты фитованы под
-        // зелёный↔синий), поэтому она идёт только дефолтному фильтру. Чужая палитра
-        // (`ink`, `green`) получила бы на WebKit чужие цвета молча — ей достаётся mono,
-        // то есть ровно то ухудшение, которое описано выше: живой сэмпл сохраняется,
-        // теряется только тон. Гейта по палитре, погубившего телефоны 2026-08-08, это не
-        // воскрешает — дефолт, которым идёт вся страница, остаётся на брендовой цепочке.
-        const brandChain = filterId === BRAND_FILTER_ID && !monoDuotone
+        // Обе built-in-цепочки теперь ПОД РЫЧАГОМ (`useBuiltin` выше), так что сюда
+        // попадают только `?duobrand=1` и `?duomono=1`. Брендовая цепочка ЗАКОДИРОВАЛА
+        // ОДНУ палитру (коэффициенты фитованы под зелёный↔синий), поэтому даже по рычагу
+        // она достаётся только дефолтному фильтру: чужая палитра (`ink`, `green`)
+        // покрасилась бы чужими цветами молча, ей идёт mono.
+        const brandChain = brandDuotone && filterId === BRAND_FILTER_ID
         const builtinChain = brandChain ? BACKDROP_BUILTIN_BRAND : BACKDROP_BUILTIN
         const chain = useBuiltin ? builtinChain : `grayscale(1) url(#${filterId})`
         overlay.style.setProperty('backdrop-filter', chain)

@@ -15,7 +15,8 @@
 // input type (WebKit is the only one that drops url(#) inside backdrop-filter, and a
 // Chromium phone renders the exact palette) — so a touch viewport still expects the
 // palette. To check the chain iOS gets, append ?duowk=1 to the URL, which forces the
-// WebKit path on any engine; expectations below follow that flag.
+// WebKit path on any engine; expectations below follow that flag, and ?duobrand=1 with it
+// asks for the fitted brand chain that is no longer the WebKit default.
 //
 // ?noanim=1 is forced: the two screenshots (dots shown / hidden) must see the SAME
 // background, and the collage sprites move on their own otherwise.
@@ -32,14 +33,25 @@ const TOUCH = process.argv.includes('touch')
 
 // The duotone's two outputs. Engines that render url(#) inside backdrop-filter run the
 // default palette (AdaptiveText DUOTONES.blue, which BACKDROP names): blue over a light
-// scene, light green over a dark one. WebKit rebuilds the SAME pair out of built-in
-// functions (BACKDROP_BUILTIN_BRAND) — its blue lands 1/255 off, hence the separate hex.
+// scene, light green over a dark one.
+// WebKit cannot: it drops url(#) inside backdrop-filter, and the built-in chain that
+// rebuilt the same pair is only correct where its blur barrier clamps — which production
+// showed it does not everywhere (2026-08-17, see BACKDROP_BUILTIN_BRAND). A SHAPE has no
+// static fallback to escape to, unlike the headings, so WebKit keeps the live sample in
+// MONO: near-white over a dark scene, near-black over a light one. Dots on iOS are
+// therefore black/white while the headings are palette-coloured — that is the trade, not
+// a bug. ?duobrand=1 puts the fitted pair back for a device re-measurement.
 const BLUE = [0x2e, 0x67, 0xb2]
 const LIGHT_GREEN = [0x8f, 0xd0, 0x96]
 const WK_BLUE = [0x2e, 0x68, 0xb1]
+const MONO_LIGHT = [0xff, 0xff, 0xff]
+const MONO_DARK = [0x00, 0x00, 0x00]
 const WEBKIT_PATH = BASE.includes('duowk')
+const BRAND_LEVER = BASE.includes('duobrand')
 const SIDES: [string, number[]][] = WEBKIT_PATH
-  ? [['blue (webkit)', WK_BLUE], ['light green (webkit)', LIGHT_GREEN]]
+  ? BRAND_LEVER
+    ? [['blue (webkit, ?duobrand)', WK_BLUE], ['light green (webkit, ?duobrand)', LIGHT_GREEN]]
+    : [['near-black (webkit mono)', MONO_DARK], ['near-white (webkit mono)', MONO_LIGHT]]
   : [['blue', BLUE], ['light green', LIGHT_GREEN]]
 const DUOTONE_TOL = 32
 // A dimmed dot composites `opacity(a)` of the duotone over the real backdrop; at a=0.2

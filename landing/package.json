@@ -15,6 +15,7 @@
     "verify:staticfill": "tsx scripts/verifyStaticFill.ts",
     "verify:adaptive-mode": "tsx scripts/verifyAdaptiveMode.ts",
     "fit:duotone-chain": "tsx scripts/fitBuiltinDuotone.ts",
+    "check:duotone-chain": "tsx scripts/checkDuotoneChain.mts",
     "gen:front-fill": "tsx scripts/generateFrontFill.ts",
     "gen:pill-art": "tsx scripts/generatePillArt.ts",
     "gen:plan-decor-art": "node scripts/genPlanDecorArt.mjs",

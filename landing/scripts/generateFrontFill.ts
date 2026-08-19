@@ -24,6 +24,7 @@ import { join } from 'node:path'
 import { prepareBeachSvg } from '../components/ui/background/prepareBeachSvg'
 import { injectStaticSea } from '../components/ui/background/beachWaves'
 import { BEACH_ART_H } from '../components/ui/background/waveQueueLayout'
+import { OCEAN_WAVE_IDS } from '../components/ui/background/oceanWaves'
 
 const SRC = join('public', 'SVG', 'background', 'background-collage.svg')
 const OUT = join('public', 'SVG', 'background', 'collage-front-fill.svg')
@@ -45,6 +46,10 @@ const BEACH_OUT = join('public', 'SVG', 'background', 'main2-fill.svg')
 const PRESERVE_NONE = 'preserveAspectRatio="none"'
 const withPreserveNone = (svg: string) =>
   svg.includes('preserveAspectRatio') ? svg : svg.replace('<svg ', `<svg ${PRESERVE_NONE} `)
+
+// Remove the baked-in type-1 wave groups (the ones the live conveyor replaces).
+const stripBakedSurf = (svg: string) =>
+  OCEAN_WAVE_IDS.reduce((acc, id) => extractGroup(acc, `b2-${id}`).without, svg)
 
 function extractGroup(svgString: string, groupId: string): { inner: string; without: string } {
   const start = svgString.indexOf(`<g id="${groupId}"`)
@@ -94,6 +99,17 @@ console.log(`${OUT}: ${(svg.length / 1024).toFixed(0)} KB`)
 
 // The beach fill: current art, prepared like the live base, with the static water
 // plane baked in. viewBox stays 1027×BEACH_ART_H — the artW/artH the hook declares.
-const beach = withPreserveNone(injectStaticSea(prepareBeachSvg(readFileSync(BEACH_SRC, 'utf8')), BEACH_ART_H))
+// …and then STRIPPED of the baked type-1 waves, because the live page does not paint them.
+// injectWaveSurfAnimation — what a default phone actually runs — removes exactly these
+// groups and replaces them with the animated queue over a sea rect. injectStaticSea (used
+// here, and live only on the balanced/lite tiers and under reduced-motion) keeps them, so
+// the fill was showing the art's pale original waves (#d3e5ed, L=0.85) where the live surf reads
+// mid-blue. Measured under the CELPE-BRAS CTA at 390px: live luminance stayed in
+// 0.42…0.53 across a whole 6-second cycle — never near the 0.70 threshold — while the fill
+// claimed 0.852, i.e. a stable wrong side, not an animation phase. Stripping them lets the
+// #2982B6 sea rect show, which is what the conveyor paints behind its waves anyway.
+// Order matters: strip AFTER injectStaticSea, or its anchor (the first type-1 group) is
+// gone and the sea rect lands at the end of the document, on top of the type-2 foam.
+const beach = withPreserveNone(stripBakedSurf(injectStaticSea(prepareBeachSvg(readFileSync(BEACH_SRC, 'utf8')), BEACH_ART_H)))
 writeFileSync(BEACH_OUT, beach)
 console.log(`${BEACH_OUT}: ${(beach.length / 1024).toFixed(0)} KB`)

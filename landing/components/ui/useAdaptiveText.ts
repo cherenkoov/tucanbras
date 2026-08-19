@@ -58,6 +58,19 @@ const SOURCES = [
 // literally render their --glass-solid color (globals.css strips the blur there).
 const COVER_ATTR = 'data-adaptive-cover'
 const COVER_Z_ATTR = 'data-adaptive-cover-z'
+// A cover that is a PICTURE, not a plate: `data-adaptive-cover-src="<url>"` paints that
+// image at the element's live box instead of a solid rect. Decor needs this — the header
+// flowers under the logotype, the CELPE flower, the palms — because a flower is mostly
+// TRANSPARENT inside its box, and a solid rect over that box would tell the fill the whole
+// area is flower-coloured. With the image, the transparent parts keep showing whatever is
+// layered below, exactly as on screen.
+// Same reason the art slices are images rather than colours. The rect is read per frame
+// like every other cover, so a decor element that MOVES is followed for free — what it
+// needs on top of that is something to re-run the fill while it moves, see LIVE_ATTR.
+const COVER_SRC_ATTR = 'data-adaptive-cover-src'
+// Marks a cover whose box moves on its own (a sprite animation, not scroll). Texts it
+// overlaps re-run the fill on a slow tick while they are on screen — see LIVE_TICK_MS.
+const COVER_LIVE_ATTR = 'data-adaptive-cover-live'
 const COVER_DEFAULT_Z = 100
 const ART_Z = 10
 // The collage's front sprites (roads, houses, humans, front set, bushes, big tree —
@@ -461,11 +474,22 @@ export function useAdaptiveText({
     // attribute-selector scan walks the huge collage SVG DOM; rects ARE read per frame
     // (cards move with scroll/stack animation). Document order is kept as the
     // paint-order tie-break for equal z (later paints above).
-    let covers: { el: HTMLElement; color: string; z: number }[] = []
+    let covers: { el: HTMLElement; color: string; src: string; live: boolean; z: number }[] = []
     const collectCovers = () => {
-      covers = Array.from(document.querySelectorAll<HTMLElement>(`[${COVER_ATTR}]`)).map(el => ({
+      // DECOR IS NOT PICKED UP WHOLESALE, and that is a measured decision, not caution.
+      // Taking every `img.pill-decor` (all 106 of them) as an image cover made the fill
+      // WORSE: mean |Δ| 0.084 → 0.102 and side disagreements 2 → 3, because most plants are
+      // CLIPPED by their container — the plate's silhouette mask, the button's overflow, a
+      // card's rounded box — and a CSS background layer cannot be clipped per layer, so the
+      // fill painted whole flowers where the screen shows a sliver. Decor therefore has to
+      // be marked one by one, and only where it paints unclipped over a text.
+      covers = Array.from(
+        document.querySelectorAll<HTMLElement>(`[${COVER_ATTR}], [${COVER_SRC_ATTR}]`),
+      ).map(el => ({
         el,
         color: el.getAttribute(COVER_ATTR) || 'transparent',
+        src: el.getAttribute(COVER_SRC_ATTR) || '',
+        live: el.hasAttribute(COVER_LIVE_ATTR),
         z: Number(el.getAttribute(COVER_Z_ATTR) ?? COVER_DEFAULT_Z),
       }))
     }
@@ -524,7 +548,7 @@ export function useAdaptiveText({
       // Covers intersecting the text box. A cover is skipped while its own or its direct
       // wrapper's inline opacity fades it below 0.5 — the stack sections (CelpeBras/
       // Plans) hide past cards with inline opacity on the slot wrapper, not the card.
-      const hits: { color: string; z: number; i: number; r: DOMRect }[] = []
+      const hits: { color: string; src: string; live: boolean; z: number; i: number; r: DOMRect }[] = []
       for (let i = 0; i < covers.length; i++) {
         const c = covers[i]
         const own = c.el.style.opacity
@@ -533,15 +557,22 @@ export function useAdaptiveText({
         const r = c.el.getBoundingClientRect()
         if (r.width === 0 || r.height === 0) continue
         if (r.right <= hr.left || r.left >= hr.right || r.bottom <= hr.top || r.top >= hr.bottom) continue
-        hits.push({ color: c.color, z: c.z, i, r })
+        hits.push({ color: c.color, src: c.src, live: c.live, z: c.z, i, r })
       }
+      // Does anything that moves ON ITS OWN sit over this text right now? The parallax is
+      // scroll-driven and the follow loop already covers it; this is for sprites — the
+      // bushes sliding in, the palms turning — which change the background with the page
+      // standing still, and nothing else would ever re-run the fill for them.
+      liveCoverOver = hits.some(h => h.live)
       hits.sort((a, b) => b.z - a.z || b.i - a.i)
 
       const images: string[] = []
       const sizes: string[] = []
       const positions: string[] = []
-      const pushCover = (h: { color: string; r: DOMRect }) => {
-        images.push(`linear-gradient(${h.color}, ${h.color})`)
+      const pushCover = (h: { color: string; src: string; r: DOMRect }) => {
+        // An image cover keeps its own alpha, so the layers below it stay visible through
+        // the gaps — a plate is a flat rect, a flower is not.
+        images.push(h.src ? `url("${h.src}")` : `linear-gradient(${h.color}, ${h.color})`)
         sizes.push(`${h.r.width}px ${h.r.height}px`)
         positions.push(`${h.r.left - hr.left}px ${h.r.top - hr.top}px`)
       }
@@ -698,7 +729,11 @@ export function useAdaptiveText({
     }
 
     // Returns true once a mode has actually been applied (so polling can stop).
-    const decide = (): boolean => (canBackdrop ? applyBackdrop() : applyStatic())
+    const decide = (): boolean => {
+      const applied = canBackdrop ? applyBackdrop() : applyStatic()
+      kickLive()   // the first static apply is what discovers a moving cover overhead
+      return applied
+    }
 
     let cancelled = false
     let rafId: number | null = null
@@ -713,6 +748,22 @@ export function useAdaptiveText({
     // by applyStatic from the picked art's rect; the loop runs until it stops moving.
     let lastArtTop = 0
     let followFrames = 0
+    // ── the sprite tick ──────────────────────────────────────────────────────────────
+    // Everything else that re-runs the fill is driven by SCROLL (the scroll listener, the
+    // follow loop chasing the eased parallax, the observers). A sprite animation is not:
+    // the bushes slide in and the palms turn while the page stands still, so without this
+    // the glyphs keep the colour they had when the sprite was somewhere else. Reported by
+    // the owner for exactly those two — the bushes under the Comparison/Tutors headings and
+    // the palm under the CELPE CTA.
+    // A SLOW tick on purpose (not rAF): the duotone only asks which side of 0.70 a pixel is
+    // on, and that answer changes on the scale of a sprite crossing a glyph, not of a frame.
+    // 8 ticks a second is invisible to the eye and ~7× cheaper than following every frame on
+    // the phone that this whole static path exists for. It runs ONLY while a moving cover
+    // actually overlaps this text (liveCoverOver) and the text is on screen (near), so a
+    // page with nothing moving under it pays nothing at all.
+    const LIVE_TICK_MS = 125
+    let liveCoverOver = false
+    let liveTickId: number | null = null
     const FOLLOW_CAP = 300 // safety bound (~5s) against a jittering rect
     const follow = () => {
       rafId = null
@@ -727,8 +778,19 @@ export function useAdaptiveText({
       followFrames = 0
       if (rafId === null) rafId = requestAnimationFrame(follow)
     }
+    const liveTick = () => {
+      liveTickId = null
+      if (mode !== 'static' || !near) return
+      applyStatic()          // re-reads every cover's live box, which is the whole point
+      kickLive()
+    }
+    const kickLive = () => {
+      if (liveTickId === null && liveCoverOver && near && mode === 'static') {
+        liveTickId = window.setTimeout(liveTick, LIVE_TICK_MS)
+      }
+    }
     const onScroll = () => {
-      if (near && mode === 'static') kickFollow()
+      if (near && mode === 'static') { kickFollow(); kickLive() }
     }
 
     const attach = () => {
@@ -743,7 +805,7 @@ export function useAdaptiveText({
           // transitions into one callback — only the LAST entry is the current state;
           // reading the first left `near` stuck false and froze a stale mid-scroll fill.
           near = entries[entries.length - 1].isIntersecting
-          if (near && mode === 'static') kickFollow()
+          if (near && mode === 'static') { kickFollow(); kickLive() }
         },
         { threshold: 0, rootMargin: '300px 0px' },
       )
@@ -793,6 +855,7 @@ export function useAdaptiveText({
       cancelled = true
       window.removeEventListener('scroll', onScroll)
       if (rafId !== null) cancelAnimationFrame(rafId)
+      if (liveTickId !== null) window.clearTimeout(liveTickId)
       if (pollId !== null) window.clearInterval(pollId)
       io?.disconnect()
       ro?.disconnect()

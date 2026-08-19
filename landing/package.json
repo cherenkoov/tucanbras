@@ -34,7 +34,8 @@
     "verify:z-order": "tsx scripts/verifyCollageZOrder.ts",
     "gen:plan-tier-art": "node scripts/genPlanTierArt.mjs",
     "gen:footer-flower": "node scripts/genFooterFlowerYellow.mjs",
-    "gen:feature-plant-art": "node scripts/genFeaturePlantArt.mjs"
+    "gen:feature-plant-art": "node scripts/genFeaturePlantArt.mjs",
+    "verify:fill-assets": "tsx scripts/verifyFillAssets.mts"
   },
   "dependencies": {
     "@notionhq/client": "^5.17.0",

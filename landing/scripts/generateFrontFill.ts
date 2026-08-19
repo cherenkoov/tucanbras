@@ -31,6 +31,21 @@ const BEACH_SRC = join('public', 'SVG', 'background', 'main 2.svg')
 const BEACH_OUT = join('public', 'SVG', 'background', 'main2-fill.svg')
 
 // Verbatim copy of extractGroup in components/ui/background/BackgroundCanvas.tsx.
+// THE ONE ATTRIBUTE THESE FILES CANNOT SHIP WITHOUT (2026-08-19).
+// A fill asset is never painted at its own aspect: useAdaptiveText sizes it
+// `rect.width × rect.height × artFrac`, and on phones the background container carries
+// scaleY(MOBILE_VSTRETCH), so that box is ~1.2× taller than the art. An SVG defaults to
+// preserveAspectRatio="xMidYMid meet", which REFUSES to stretch — it fits by width and
+// CENTRES what is left, so the art silently slides down by half the leftover height.
+// Measured on the live page at 390px: the beach fill landed 569px low, and the Comparison
+// heading was coloured from sand (#ecdbb5, L=0.76) while the real background behind it was
+// #3d1817 at L=0.24 — a full flip across the 0.70 threshold, i.e. a blue heading over a
+// dark scene. Desktop never showed it because vScale is 1 there and the aspects agree.
+// Guard: npm run verify:fill-assets.
+const PRESERVE_NONE = 'preserveAspectRatio="none"'
+const withPreserveNone = (svg: string) =>
+  svg.includes('preserveAspectRatio') ? svg : svg.replace('<svg ', `<svg ${PRESERVE_NONE} `)
+
 function extractGroup(svgString: string, groupId: string): { inner: string; without: string } {
   const start = svgString.indexOf(`<g id="${groupId}"`)
   if (start === -1) return { inner: '', without: svgString }
@@ -72,12 +87,13 @@ const bush01 = take('bush 01')
 const bigTree = take('Big tree')
 
 const inner = roads + houses + humans + front + bush02 + bush01 + bigTree
-const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 2047">${inner}</svg>`
+// preserveAspectRatio="none" is NOT decoration — see the note on PRESERVE_NONE below.
+const svg = `<svg xmlns="http://www.w3.org/2000/svg" ${PRESERVE_NONE} viewBox="0 0 800 2047">${inner}</svg>`
 writeFileSync(OUT, svg)
 console.log(`${OUT}: ${(svg.length / 1024).toFixed(0)} KB`)
 
 // The beach fill: current art, prepared like the live base, with the static water
 // plane baked in. viewBox stays 1027×BEACH_ART_H — the artW/artH the hook declares.
-const beach = injectStaticSea(prepareBeachSvg(readFileSync(BEACH_SRC, 'utf8')), BEACH_ART_H)
+const beach = withPreserveNone(injectStaticSea(prepareBeachSvg(readFileSync(BEACH_SRC, 'utf8')), BEACH_ART_H))
 writeFileSync(BEACH_OUT, beach)
 console.log(`${BEACH_OUT}: ${(beach.length / 1024).toFixed(0)} KB`)

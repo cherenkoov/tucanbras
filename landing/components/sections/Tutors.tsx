@@ -545,19 +545,20 @@ export default function Tutors({ data, tutors, locale }: TutorsSectionProps) {
       <div className="flex flex-col gap-[64px] lg:gap-[80px] max-w-[1720px] mx-auto w-full">
 
         {/* ══ Headings row ══ */}
-        {/* staticFill: these sit in the collage↔beach raise band, where the LIVE extracted
-            sprites (roads/bushes, slid + swaying) no longer match the baked fill art, so
-            the layered static fill lands on the wrong duotone side. Since phones went back
-            to live sampling (see the engine gate in useAdaptiveText) this only applies
-            under reduced-motion and ?staticfill — the backdrop ignores it and reads the
-            LIGHT side here at every verified width (390/1440). "ink" names that light side
-            of whatever palette is active — now blue. */}
+        {/* These sit in the collage↔beach raise band. They used to carry staticFill="ink",
+            pinned there because the LIVE extracted sprites (roads/bushes, slid + swaying)
+            did not match the baked fill art and the static fill landed on the wrong duotone
+            side. That pin is gone (2026-08-19, owner report «тексты не реагируют на кусты»):
+            the sprites now declare themselves to the fill at their LIVE boxes
+            (data-adaptive-cover-src / -live in BackgroundCanvas), so the reconstruction
+            follows them instead of guessing. The pin mattered more than it looks — it does
+            not just override a colour, it returns from the hook early: no observers, no
+            covers, no tick. Under it these headings could never react to anything. */}
         <div className="flex flex-col lg:flex-row gap-[24px] lg:gap-[48px] items-start w-full">
           <AdaptiveText
             as="h2"
             className="font-heading font-bold flex-1"
             style={{ fontSize: 'clamp(32px, 4vw, 64px)', lineHeight: '1.1' }}
-            staticFill="ink"
           >
             {data.heading1}
           </AdaptiveText>
@@ -565,7 +566,6 @@ export default function Tutors({ data, tutors, locale }: TutorsSectionProps) {
             as="h2"
             className="font-heading font-bold flex-1 text-right"
             style={{ fontSize: 'clamp(32px, 4vw, 64px)', lineHeight: '1.1' }}
-            staticFill="ink"
           >
             {data.heading2}
           </AdaptiveText>

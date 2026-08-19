@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import ChristScene, { CHRIST_SCENE, christBoxHeight } from './ChristScene'
 import { injectRailPath, injectCloudAnimation } from './utils/injectRailPath'
 import { useTrainAnimation } from './useTrainAnimation'
@@ -36,6 +36,58 @@ type SpriteLayer = { svg: string; box: SpriteBox }
 
 // The collage's own viewBox (matches wrapSvg / background-collage.svg).
 const COLLAGE_VB = { x: 0, y: 0, w: 800, h: 2047 } as const
+
+// ── making a moving sprite visible to the ADAPTIVE TEXT ───────────────────────────────
+// The static fill (useAdaptiveText) rebuilds what is behind the glyphs out of CSS layers.
+// A sprite that animates on its own — the bushes sliding in, the palms swaying — is baked
+// into the fill assets at its REST position, so the text keeps colouring itself from where
+// the sprite used to be. Owner report: the headings over bush 01/02 and the CELPE CTA under
+// the palm do not follow them.
+// The fix is to hand the fill the sprite's OWN markup at its LIVE box. The markup already
+// exists (wrapSvgBounded built it), so a Blob URL of that exact string is byte-identical to
+// what is on screen — no second asset to generate and nothing to keep in sync when the art
+// is re-exported. `data-adaptive-cover-live` tells the hook this box moves, which is what
+// starts its slow re-fill tick; without it nothing would re-run while the page stands still.
+// z 50 mirrors the real zIndex of these layers: above the collage art and the front-fill
+// slice, below the content plates (z100).
+const SPRITE_COVER_Z = 50
+
+function useSpriteFillUrl(svg: string | undefined): string | undefined {
+  // Built in useMemo, not in an effect: the URL must exist on the SAME render that puts it
+  // in the attribute, or the first fill pass reads an empty src and the sprite is missing
+  // from the stack until something else re-runs. The effect only revokes it.
+  const url = useMemo(
+    () => (svg ? URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' })) : undefined),
+    [svg],
+  )
+  useEffect(() => () => { if (url) URL.revokeObjectURL(url) }, [url])
+  return url
+}
+
+/** A bounded sprite overlay that also declares itself to the adaptive text. */
+function AdaptiveSpriteLayer(
+  { svg, style, spinId, hostRef }: {
+    svg: string
+    style: CSSProperties
+    spinId?: string
+    // The animation hooks drive these layers by ref (sway, walk, spin) — the marking must
+    // not take the ref away from them, so it is passed through.
+    hostRef?: React.RefObject<HTMLDivElement | null>
+  },
+) {
+  const fill = useSpriteFillUrl(svg)
+  return (
+    <div
+      ref={hostRef}
+      data-spin-id={spinId}
+      data-adaptive-cover-src={fill}
+      data-adaptive-cover-live=""
+      data-adaptive-cover-z={SPRITE_COVER_Z}
+      style={style}
+      dangerouslySetInnerHTML={{ __html: svg }}
+    />
+  )
+}
 
 function parseViewBox(str: string | null): { x: number; y: number; w: number; h: number } | null {
   if (!str) return null
@@ -319,6 +371,8 @@ export default function BackgroundCanvas() {
   const [bigTreeLayer, setBigTreeLayer] = useState<SpriteLayer | null>(null)
   const [bush01Layer, setBush01Layer] = useState<SpriteLayer | null>(null)
   const [bush02Layer, setBush02Layer] = useState<SpriteLayer | null>(null)
+  const bush01FillUrl = useSpriteFillUrl(bush01Layer?.svg)
+  const bush02FillUrl = useSpriteFillUrl(bush02Layer?.svg)
   const [roadsLayer, setRoadsLayer] = useState<SpriteLayer | null>(null)
   const [house4Layer, setHouse4Layer] = useState<SpriteLayer | null>(null)
   const [house5Layer, setHouse5Layer] = useState<SpriteLayer | null>(null)
@@ -1004,11 +1058,11 @@ export default function BackgroundCanvas() {
             >
               {spinnerLayers.map((layer, i) =>
                 layer ? (
-                  <div
+                  <AdaptiveSpriteLayer
                     key={BEACH_SPINNERS[i].id}
-                    data-spin-id={BEACH_SPINNERS[i].id}
+                    spinId={BEACH_SPINNERS[i].id}
+                    svg={layer.svg}
                     style={boundedLayerStyle(layer.box, beachVB)}
-                    dangerouslySetInnerHTML={{ __html: layer.svg }}
                   />
                 ) : null,
               )}
@@ -1106,11 +1160,11 @@ export default function BackgroundCanvas() {
           {/* human 1–4 — own animated layers (baseZ from HUMANS; hook drives transform + z) */}
           {humanLayers.map((layer, i) =>
             layer ? (
-              <div
+              <AdaptiveSpriteLayer
                 key={HUMANS[i].id}
-                ref={humanRefs[i]}
+                hostRef={humanRefs[i]}
+                svg={layer.svg}
                 style={{ ...boundedLayerStyle(layer.box, COLLAGE_VB), zIndex: HUMANS[i].baseZ }}
-                dangerouslySetInnerHTML={{ __html: layer.svg }}
               />
             ) : null
           )}
@@ -1135,6 +1189,11 @@ export default function BackgroundCanvas() {
           {bush02Layer && (
             <div
               ref={bush02Ref}
+              // Declared to the adaptive text like the spinners — this layer SLIDES IN, and
+              // the fill assets have it baked where it comes to rest. See AdaptiveSpriteLayer.
+              data-adaptive-cover-src={bush02FillUrl}
+              data-adaptive-cover-live=""
+              data-adaptive-cover-z={SPRITE_COVER_Z}
               style={{ ...boundedLayerStyle(bush02Layer.box, COLLAGE_VB), zIndex: 50 }}
               dangerouslySetInnerHTML={{ __html: bush02Layer.svg }}
             />
@@ -1142,16 +1201,21 @@ export default function BackgroundCanvas() {
           {bush01Layer && (
             <div
               ref={bush01Ref}
+              // Declared to the adaptive text like the spinners — this layer SLIDES IN, and
+              // the fill assets have it baked where it comes to rest. See AdaptiveSpriteLayer.
+              data-adaptive-cover-src={bush01FillUrl}
+              data-adaptive-cover-live=""
+              data-adaptive-cover-z={SPRITE_COVER_Z}
               style={{ ...boundedLayerStyle(bush01Layer.box, COLLAGE_VB), zIndex: 50 }}
               dangerouslySetInnerHTML={{ __html: bush01Layer.svg }}
             />
           )}
           {/* Big tree — on top of the front-set; the sway rotates this div */}
           {bigTreeLayer && (
-            <div
-              ref={bigTreeRef}
+            <AdaptiveSpriteLayer
+              hostRef={bigTreeRef}
+              svg={bigTreeLayer.svg}
               style={{ ...boundedLayerStyle(bigTreeLayer.box, COLLAGE_VB), zIndex: 50 }}
-              dangerouslySetInnerHTML={{ __html: bigTreeLayer.svg }}
             />
           )}
         </div>

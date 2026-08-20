@@ -71,6 +71,17 @@ const COVER_SRC_ATTR = 'data-adaptive-cover-src'
 // Marks a cover whose box moves on its own (a sprite animation, not scroll). Texts it
 // overlaps re-run the fill on a slow tick while they are on screen — see LIVE_TICK_MS.
 const COVER_LIVE_ATTR = 'data-adaptive-cover-live'
+// Marks a cover that its PARENT CLIPS: the element's box is bigger than what the screen
+// shows of it (the header flowers are ~3.6 bar heights tall inside an 85px bar). A CSS
+// background layer cannot be clipped per layer, so such a cover is honoured only for a
+// text that sits ENTIRELY inside the clipping box — there every painted pixel is a pixel
+// the screen shows too, and outside it the cover is skipped rather than painting art that
+// was cut away. That is the exact failure the blanket `.pill-decor` sweep was measured
+// into (see collectCovers), reduced to a per-element promise the markup can make.
+// The clip box is read as the parent's border box, so a rounded/notched silhouette is
+// approximated by its rect — good enough to decide a side of the 0.70 threshold, and the
+// texts this serves sit well inside the corners.
+const COVER_CLIP_ATTR = 'data-adaptive-cover-clip'
 const COVER_DEFAULT_Z = 100
 const ART_Z = 10
 // The collage's front sprites (roads, houses, humans, front set, bushes, big tree —
@@ -474,7 +485,7 @@ export function useAdaptiveText({
     // attribute-selector scan walks the huge collage SVG DOM; rects ARE read per frame
     // (cards move with scroll/stack animation). Document order is kept as the
     // paint-order tie-break for equal z (later paints above).
-    let covers: { el: HTMLElement; color: string; src: string; live: boolean; z: number }[] = []
+    let covers: { el: HTMLElement; color: string; src: string; live: boolean; clip: HTMLElement | null; z: number }[] = []
     const collectCovers = () => {
       // DECOR IS NOT PICKED UP WHOLESALE, and that is a measured decision, not caution.
       // Taking every `img.pill-decor` (all 106 of them) as an image cover made the fill
@@ -490,6 +501,7 @@ export function useAdaptiveText({
         color: el.getAttribute(COVER_ATTR) || 'transparent',
         src: el.getAttribute(COVER_SRC_ATTR) || '',
         live: el.hasAttribute(COVER_LIVE_ATTR),
+        clip: el.hasAttribute(COVER_CLIP_ATTR) ? el.parentElement : null,
         z: Number(el.getAttribute(COVER_Z_ATTR) ?? COVER_DEFAULT_Z),
       }))
     }
@@ -557,7 +569,25 @@ export function useAdaptiveText({
         const r = c.el.getBoundingClientRect()
         if (r.width === 0 || r.height === 0) continue
         if (r.right <= hr.left || r.left >= hr.right || r.bottom <= hr.top || r.top >= hr.bottom) continue
-        hits.push({ color: c.color, src: c.src, live: c.live, z: c.z, i, r })
+        // Clipped decor: paint it only where the whole text is inside what the screen
+        // actually shows of this cover (COVER_CLIP_ATTR). A heading scrolling UNDER the
+        // header is the case this rejects — the flowers reach 200px past the plate in
+        // their own box, and the plate cuts every one of those pixels.
+        if (c.clip) {
+          const cr = c.clip.getBoundingClientRect()
+          if (hr.left < cr.left || hr.right > cr.right || hr.top < cr.top || hr.bottom > cr.bottom) continue
+        }
+        // Re-read the PAINT off the element, don't trust the snapshot: a cover's colour and
+        // its image can both change after collection without the set itself changing. The
+        // header plate swaps `#fffce5` ↔ `rgba(255,252,229,0.72)` on hover, and a mirrored
+        // plant declares its flipped copy only once the blob is built. A cached value there
+        // is a fill painted from something that is no longer on screen; two getAttribute
+        // calls per cover are nothing next to the getBoundingClientRect above them.
+        hits.push({
+          color: c.el.getAttribute(COVER_ATTR) || c.color,
+          src: c.el.getAttribute(COVER_SRC_ATTR) || '',
+          live: c.live, z: c.z, i, r,
+        })
       }
       // Does anything that moves ON ITS OWN sit over this text right now? The parallax is
       // scroll-driven and the follow loop already covers it; this is for sprites — the
@@ -740,6 +770,7 @@ export function useAdaptiveText({
     let near = true
     let ro: ResizeObserver | null = null
     let io: IntersectionObserver | null = null
+    let mo: MutationObserver | null = null
     // Static mode re-aligns / may switch source on scroll; backdrop auto-updates.
     // The re-align FOLLOWS THROUGH after the last scroll event: the background's
     // parallax is an eased rAF loop that keeps sliding the art (without firing any
@@ -810,6 +841,20 @@ export function useAdaptiveText({
         { threshold: 0, rootMargin: '300px 0px' },
       )
       io.observe(text)
+      // Cover MARKUP can appear or change after the set was collected, and neither the
+      // resize nor the scroll path would ever notice: an element only joins `covers` if it
+      // carried one of the attributes at collect time. Two live cases — the header plate
+      // swapping its colour on hover, and a mirrored plant declaring its flipped copy once
+      // the blob is built (a fetch, so always after mount). Without this the logotype keeps
+      // a fill assembled from art that is no longer what the screen shows, until something
+      // unrelated happens to re-collect. `attributeFilter` is native, so a page that never
+      // touches these attributes pays nothing.
+      mo = new MutationObserver(() => { collectCovers(); if (mode === 'static') applyStatic(); else decide() })
+      mo.observe(document.body, {
+        attributes: true,
+        subtree: true,
+        attributeFilter: [COVER_ATTR, COVER_SRC_ATTR, COVER_LIVE_ATTR, COVER_Z_ATTR],
+      })
       window.addEventListener('scroll', onScroll, { passive: true })
     }
 
@@ -859,6 +904,7 @@ export function useAdaptiveText({
       if (pollId !== null) window.clearInterval(pollId)
       io?.disconnect()
       ro?.disconnect()
+      mo?.disconnect()
       clearAll()
     }
   }, [textRef, overlayRef, maskRef, maskId, imageSrc, imageRef, staticFill, filterId, lightColor, darkColor])

@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Логотип: почему чёрный и белый вместо зелёного и синего</title>
+<style>
+  html,body{margin:0;background:#888;font-family:-apple-system,system-ui,sans-serif}
+  /* Левая половина ТЁМНАЯ (ждём зелёный #8fd096), правая СВЕТЛАЯ — цвет плашки хедера
+     (ждём синий #2e67b2). Ровно две стороны порога 0.70, как на сайте. */
+  #bg{position:fixed;inset:0;background:linear-gradient(to right,#1b2a1b 0 50%,#fffce5 50% 100%);z-index:0}
+  #wrap{position:relative;z-index:1;padding:8px 0 40px}
+  h1{background:#fff;margin:0;padding:10px 8px;font-size:14px;line-height:1.45}
+  .lbl{background:#fff;color:#000;font-size:12px;font-weight:600;line-height:1.4;padding:6px 8px;margin:14px 6px 4px}
+  .lbl b{color:#b00}
+  /* Слово ровно во всю ширину, чтобы обе половины фона попали под глифы —
+     на сайте логотип целиком на плашке, здесь нужны обе стороны сразу. */
+  .word{font:800 40px/1.15 -apple-system,system-ui,sans-serif;letter-spacing:-.01em;
+        text-align:center;margin:0 6px;padding:2px 0;position:relative}
+  /* Точная копия того, что хук ставит элементу в static-режиме: слои фона в координатах
+     элемента, клип по глифам, прозрачный цвет и дуотон-фильтр НА САМОМ ЭЛЕМЕНТЕ. */
+  .fill{background-image:linear-gradient(to right,#1b2a1b 0 50%,#fffce5 50% 100%);
+        background-size:100% 100%;background-position:0 0;background-repeat:no-repeat;
+        -webkit-background-clip:text;background-clip:text;color:transparent}
+  .duo{filter:url(#adaptive-duotone-blue);-webkit-filter:url(#adaptive-duotone-blue)}
+  .ov{position:absolute;top:-8px;right:0;bottom:-8px;left:0;pointer-events:none}
+  .ref{display:flex;margin:4px 6px}
+  .ref div{flex:1;height:40px;display:flex;align-items:center;justify-content:center;
+           font:700 11px/1.25 -apple-system,system-ui,sans-serif;color:#000;text-align:center}
+</style>
+</head>
+<body>
+<div id="bg"></div>
+
+<!-- Дуотон-фильтр — байт-в-байт тот же, что рисует AdaptiveText:
+     обесцветить → ЖЁСТКИЙ порог по яркости 0.70 (discrete, без полосы перехода) →
+     развести на два цвета палитры, тёмный фон → светлый цвет и наоборот. -->
+<svg width="0" height="0" aria-hidden="true" style="position:absolute">
+  <filter id="adaptive-duotone-blue" color-interpolation-filters="sRGB">
+    <feColorMatrix type="saturate" values="0"/>
+    <feComponentTransfer>
+      <feFuncR type="discrete" tableValues="0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1"/>
+      <feFuncG type="discrete" tableValues="0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1"/>
+      <feFuncB type="discrete" tableValues="0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1"/>
+    </feComponentTransfer>
+    <feComponentTransfer>
+      <feFuncR type="table" tableValues="0.560784 0.180392"/>
+      <feFuncG type="table" tableValues="0.815686 0.403922"/>
+      <feFuncB type="table" tableValues="0.588235 0.698039"/>
+    </feComponentTransfer>
+  </filter>
+  <mask id="wordmask" maskContentUnits="userSpaceOnUse">
+    <text id="wordmasktext" fill="#fff" x="0" y="0" text-anchor="middle" dominant-baseline="central">TucanBRAS</text>
+  </mask>
+</svg>
+
+<div id="wrap">
+
+<h1>Логотип выходит ЧЁРНЫМ и БЕЛЫМ вместо зелёного и синего.<br>
+Чёрный и белый — это не цвета палитры, их не может выдать дуотон-фильтр: у него ровно два
+исхода, #8fd096 и #2e67b2. Значит на телефоне отваливается последний шаг — тонирование.
+Ниже пять способов покрасить одно и то же слово. <b>Нужен один снимок всей страницы:
+на каком ряду цвета правильные, а какой выглядит как логотип на сайте.</b></h1>
+
+<div class="lbl">1. ТО, ЧТО СЕЙЧАС ЕДЕТ НА iPhone (static-fill): фон слоями → клип по глифам →
+<code>filter: url(#…)</code> на самом элементе<br>
+ждём: слева <b>зелёный</b>, справа <b>синий</b>, резкая граница посередине буквы.
+<b>Если тут чёрный и белый — WebKit не применяет фильтр к элементу с background-clip:text,
+и это ровно ваш баг</b></div>
+<div class="word fill duo">TucanBRAS</div>
+
+<div class="lbl">2. КОНТРОЛЬ: то же самое, но фильтр СНЯТ — так выглядит заливка без тонирования.
+Половины фона в буквах намеренно перевёрнуты, иначе буквы слились бы с фоном и ряд был бы
+пустым<br>
+ждём: слева буквы <b>БЕЛЫЕ</b>, справа <b>ЧЁРНЫЕ</b> — то есть ровно «чёрный и белый», как
+вы описали логотип. <b>Похож ли ряд 1 на этот — главный вопрос страницы</b></div>
+<div class="word fill duo-off" style="background-image:linear-gradient(to right,#fffce5 0 50%,#1b2a1b 50% 100%)">TucanBRAS</div>
+
+<div class="lbl">3. Фильтр на ОБЫЧНОМ тексте, без background-clip<br>
+слева буквы почти чёрные (#141414), справа почти белые (#f0f0f0) — фильтр обязан их
+перекрасить.<br>ждём: <b>слева зелёный, справа синий</b>. Если тут правильно, а в ряду 1
+нет — виноват именно background-clip:text, а не сам фильтр</div>
+<div class="word duo" style="color:#141414;background:none">Tucan<span style="color:#f0f0f0">BRAS</span></div>
+
+<div class="lbl">4. Живой сэмпл (desktop-путь): <code>backdrop-filter: grayscale(1) url(#…)</code>
+через маску-глифы<br>
+ждём на Chrome/Firefox: зелёный и синий. <b>На WebKit ждём ЧЁРНЫЙ и БЕЛЫЙ</b> — он парсит
+цепочку, но url(#…) выкидывает, и остаётся один grayscale. Если логотип на сайте выглядит
+как ЭТОТ ряд — значит движок не опознан как WebKit и ему выдали цепочку, которую он не
+умеет</div>
+<div class="word" style="color:transparent">TucanBRAS
+  <span class="ov" id="ov" style="backdrop-filter:grayscale(1) url(#adaptive-duotone-blue);-webkit-backdrop-filter:grayscale(1) url(#adaptive-duotone-blue)"></span>
+</div>
+
+<div class="lbl">5. Эталоны палитры — обычная заливка, без всяких фильтров</div>
+<div class="word" style="color:#8fd096">TucanBRAS</div>
+<div class="word" style="color:#2e67b2">TucanBRAS</div>
+<div class="ref">
+  <div style="background:#8fd096">#8fd096<br>зелёный (на тёмном)</div>
+  <div style="background:#2e67b2;color:#fff">#2e67b2<br>синий (на светлом)</div>
+</div>
+
+<div class="lbl" id="ua"></div>
+
+</div>
+<script>
+  // Маска ряда 4 — тот же текст теми же метриками, что рисует строка, иначе backdrop
+  // проступит прямоугольником, а не буквами.
+  var w = document.getElementById('ov').parentElement
+  var t = document.getElementById('wordmasktext')
+  var cs = getComputedStyle(w)
+  var r = w.getBoundingClientRect()
+  t.setAttribute('font-family', cs.fontFamily)
+  t.setAttribute('font-size', cs.fontSize)
+  t.setAttribute('font-weight', cs.fontWeight)
+  t.setAttribute('letter-spacing', cs.letterSpacing)
+  t.setAttribute('x', r.width / 2)
+  t.setAttribute('y', (r.height + 16) / 2)
+  var ov = document.getElementById('ov')
+  ov.style.setProperty('mask', 'url(#wordmask)')
+  ov.style.setProperty('-webkit-mask', 'url(#wordmask)')
+  // Что именно решил бы хук на ЭТОМ устройстве — чтобы снимок отвечал и на это тоже.
+  var ua = navigator.userAgent
+  var webkit = /iPhone|iPad|iPod/.test(ua) ||
+    (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) ||
+    (/AppleWebKit/.test(ua) && !/Chrome|Chromium|Edg|OPR|SamsungBrowser|Firefox/.test(ua))
+  document.getElementById('ua').textContent =
+    'Хук считает движок: ' + (webkit ? 'WebKit → static-fill (ряд 1)' : 'НЕ WebKit → живой сэмпл (ряд 4)') +
+    '   |   touch: ' + matchMedia('(hover: none)').matches +
+    '   |   ' + ua
+</script>
+</body>
+</html>

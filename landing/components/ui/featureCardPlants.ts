@@ -44,7 +44,7 @@ export { decorSrc } from '@/components/ui/heroPlants'
  * Three files are recoloured copies — the design tints its instances, and the drawings
  * are not flat, so a CSS filter cannot stand in. See `scripts/genFeaturePlantArt.mjs`.
  *
- * Indexed to `data.cards` from Notion, which is NOT the order the variants are stacked
+ * Indexed to `data.cards` from the CMS, which is NOT the order the variants are stacked
  * in Figma: the node runs Learn, Practice, Train, Help, Plan; the content runs Learn,
  * Practice, Train, **Plan, Help**.
  */

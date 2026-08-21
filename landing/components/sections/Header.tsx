@@ -281,7 +281,7 @@ function PillArt({ art }: { art: string }) {
   )
 }
 
-// Anchor hrefs are hardcoded — labels come from Notion via page.tsx
+// Anchor hrefs are hardcoded — labels come from the CMS via page.tsx
 
 // Inner shadow overlay used on nav pills (from Figma "Round Inner" effect → --shadow-round-inner)
 const PILL_INNER_SHADOW = 'var(--shadow-round-inner)'

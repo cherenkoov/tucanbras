@@ -47,11 +47,6 @@ const ok: string[] = []
 async function main() {
   const browser = await chromium.launch()
   const page = await browser.newPage({ viewport: VIEWPORT, deviceScaleFactor: 1 })
-  // Same reason as verifyHeroPlants: without Notion credentials NotionRetry reloads the
-  // page three times, and every measurement lands at a random point inside those loads.
-  await page.addInitScript(() => {
-    try { sessionStorage.setItem('notion_retry', '99') } catch { /* storage blocked */ }
-  })
   await page.goto(BASE, { waitUntil: 'load', timeout: 60_000 })
   // The layers are fetched + extracted client-side; the humans are the last ones placed.
   await page.waitForSelector('[id="human 1"]', { timeout: 30_000 })

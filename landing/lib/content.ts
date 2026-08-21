@@ -55,8 +55,8 @@ async function getSection<K extends SectionKey>(
 }
 
 // ─── Геттеры секций ──────────────────────────────────────────────────────────
-// Сигнатуры повторяют старый lib/notion.ts один в один: page.tsx меняет только
-// путь импорта. ctaHref в CMS не хранится — на лендинге все CTA якорные.
+// Сигнатуры повторяют геттеры, которые лендинг использовал до миграции, один в
+// один. ctaHref в CMS не хранится — на лендинге все CTA якорные.
 
 export async function getHeaderData(locale: Locale): Promise<HeaderData> {
   return await getSection('header', locale) as HeaderData

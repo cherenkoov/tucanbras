@@ -48,8 +48,27 @@ const COLLAGE_VB = { x: 0, y: 0, w: 800, h: 2047 } as const
 // what is on screen — no second asset to generate and nothing to keep in sync when the art
 // is re-exported. `data-adaptive-cover-live` tells the hook this box moves, which is what
 // starts its slow re-fill tick; without it nothing would re-run while the page stands still.
-// z 50 mirrors the real zIndex of these layers: above the collage art and the front-fill
-// slice, below the content plates (z100).
+// z 50 puts these over the beach art in the fill's numbering (ART_Z = 10), and that is what
+// the screen does — established by hiding one layer at a time on the page, not by reading the
+// CSS. The collage's sprites sit in a host whose wrapper is `z: auto`, and a positioned
+// z:auto box creates NO stacking context, so each sprite's own zIndex (50 on the bushes and
+// the big tree, 40 on the humans) competes with the beach block's 10 directly — and wins.
+// The collage ART is the one that loses: it has its own z:10 wrapper and gives the tie to the
+// beach by DOM order, which is why the wave band and the ground under it are ordered against
+// COLLAGE_ART_Z in useAdaptiveText and not against this.
+// The COPY has to be told to stretch, and only the copy. Live, the sprite's `<svg>` lays out
+// in untransformed coordinates — its box is exactly its viewBox's aspect — and the phones'
+// `scaleY(MOBILE_VSTRETCH)` stretches the PAINTED result afterwards, so the default
+// `xMidYMid meet` never bites. As a CSS background the same markup is handed the sprite's
+// on-SCREEN box, which carries that 1.2, and `meet` refuses to stretch: it fits by width and
+// centres, so the fill's copy of the bush is smaller than the bush and sits below it — the
+// shapes read right and land wrong. Same failure as the big fill assets (verify:fill-assets),
+// one layer down.
+const withPreserveNone = (svg: string): string =>
+  svg.includes('preserveAspectRatio')
+    ? svg
+    : svg.replace('<svg ', '<svg preserveAspectRatio="none" ')
+
 const SPRITE_COVER_Z = 50
 
 function useSpriteFillUrl(svg: string | undefined): string | undefined {
@@ -57,7 +76,10 @@ function useSpriteFillUrl(svg: string | undefined): string | undefined {
   // in the attribute, or the first fill pass reads an empty src and the sprite is missing
   // from the stack until something else re-runs. The effect only revokes it.
   const url = useMemo(
-    () => (svg ? URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' })) : undefined),
+    () =>
+      svg
+        ? URL.createObjectURL(new Blob([withPreserveNone(svg)], { type: 'image/svg+xml' }))
+        : undefined,
     [svg],
   )
   useEffect(() => () => { if (url) URL.revokeObjectURL(url) }, [url])
@@ -1008,6 +1030,10 @@ export default function BackgroundCanvas() {
         <div
           ref={brownRef}
           aria-hidden="true"
+          // Sized in JS, so the fill has to READ this box instead of assuming it equals the
+          // beach svg's: they differ by hundreds of px, and the fill was painting brown over
+          // stretches where the screen shows the collage. See useAdaptiveText.
+          data-adaptive-ground=""
           style={{ position: 'absolute', left: 0, width: '100%', backgroundColor: BEACH_GROUND_COLOR, zIndex: 8 }}
         />
       )}
@@ -1026,7 +1052,11 @@ export default function BackgroundCanvas() {
           // transparent sea gap — without this cover the glyph fill assumes the brown
           // ground (#77533E) and lands on the wrong duotone side. See useAdaptiveText.
           data-adaptive-cover="#ECDBB5"
-          data-adaptive-cover-z="9"
+          // z 2 for the fill, not 9: the band's own zIndex orders it against the canvas's
+          // other children, but in the FILL's numbering everything under the collage art
+          // sits below COLLAGE_ART_Z. The collage (z10) covers this band wherever they
+          // overlap; it shows through the beach art's transparent sea gap, below it.
+          data-adaptive-cover-z="2"
           style={{ position: 'absolute', left: 0, width: '100%', zIndex: 9 }}
         >
           <WavesAnimated fillParent />

@@ -83,7 +83,26 @@ const COVER_LIVE_ATTR = 'data-adaptive-cover-live'
 // texts this serves sit well inside the corners.
 const COVER_CLIP_ATTR = 'data-adaptive-cover-clip'
 const COVER_DEFAULT_Z = 100
-const ART_Z = 10
+// The background's paint order, MEASURED (2026-08-22), not assumed. The beach block sits in
+// a wrapper with `z-index: 10` inside the canvas; the collage host next to it is `z: auto`.
+// A positioned z:10 box paints above a positioned z:auto one, so the WHOLE beach block —
+// its ground, its art and the sprites lifted out of it — covers the WHOLE collage host,
+// bushes and big tree and humans included, wherever the two overlap. Their own z-indexes
+// (50 on the bushes, 40 on the humans) only order them INSIDE the collage host.
+// The canvas's real order, top DOWN, established by hiding one layer at a time on the page:
+//   sprites lifted out of either scene (z50/z40)  ← bushes, big tree, humans, palms, umbrellas
+//   beach block (z10, later in the DOM)           ← its art over the collage's
+//   collage art (z10, earlier)
+//   wave band (z9)                                ← through the beach art's transparent sea
+//   brown ground (z8)                             ← the base under the whole beach block
+// The sprites beat the beach block although their host sits beside it: that host's wrapper is
+// `z: auto`, which creates no stacking context, so each sprite's own z-index competes with the
+// beach's 10 directly. The collage ART does not — it has its own z:10 wrapper and loses the
+// tie by DOM order. The collage nonetheless sits ABOVE the wave band and the ground, which
+// used to be modelled the other way round. A cover's z is read against the two marks below.
+const ART_Z = 10        // at or above: over the beach art (beach sprites, content plates)
+const COLLAGE_ART_Z = 3 // at or above (and under ART_Z): over the collage art (its sprites)
+                        // below: under the collage art (the wave band, the ground)
 // The collage's front sprites (roads, houses, humans, front set, bushes, big tree —
 // everything BackgroundCanvas paints above z10) baked at their rest positions, the
 // rest of the canvas transparent. In the beach↔collage raise band those sprites hang
@@ -451,6 +470,23 @@ export function useAdaptiveText({
     // (top-anchored): 1 for the collage; artH/rewrittenH for the beach after the sea
     // injection extends its viewBox downward. Applied to the element's on-screen rect
     // so any container transforms (phones' scaleY stretch) are inherited correctly.
+    // The ART's OWN box has to be watched, not just the page's. A viewport-height change
+    // (the iOS toolbar collapsing is the everyday one) re-sizes the beach: the wave band is
+    // sized against the tallest viewport seen, the sea injection rewrites the svg's viewBox,
+    // and the block lands somewhere else — measured here at 390px wide, top −996 → +208 and
+    // height 6925 → 9296 for a 100px taller viewport. None of that fires a scroll, and the
+    // ResizeObserver on documentElement fires TOO EARLY: the page height changes first, the
+    // art re-lays out a moment later, so the one recompute it triggers reads the old box and
+    // the fill keeps painting the right shapes in the wrong place until the next scroll —
+    // the owner's report, «текст правильно читает изменения формы кустов, но немного в
+    // другом месте». Observing the art itself is what fires WHEN it actually moves.
+    const watchedArt = new Set<Element>()
+    const watchArt = (el: Element | null): void => {
+      if (!el || watchedArt.has(el)) return
+      watchedArt.add(el)
+      ro?.observe(el)
+    }
+
     const pickSource = (): { src: string | null; bg: string; rect: DOMRect; artFrac: number } | null => {
       const hr = text.getBoundingClientRect()
       // A hidden element (display:none breakpoint variant) measures 0×0 at (0,0) — its
@@ -460,6 +496,7 @@ export function useAdaptiveText({
       for (const s of SOURCES) {
         const el = document.querySelector<SVGSVGElement>(s.match)
         if (!el) continue
+        watchArt(el)
         const rect = el.getBoundingClientRect()
         if (rect.width > 0 && cy >= rect.top && cy <= rect.bottom) {
           const liveH = el.viewBox.baseVal.height
@@ -472,6 +509,7 @@ export function useAdaptiveText({
       // whole coverage deficit with it) fell back to solid ink on the dark sea.
       const term = document.querySelector<HTMLElement>('[data-adaptive-terminal]')
       if (term) {
+        watchArt(term)
         const rect = term.getBoundingClientRect()
         if (rect.width > 0 && cy >= rect.top && cy <= rect.bottom) {
           const bg = term.getAttribute('data-adaptive-terminal') || 'transparent'
@@ -538,7 +576,7 @@ export function useAdaptiveText({
         lastKey = ''
       }
       const hr = text.getBoundingClientRect()
-      lastArtTop = pick.rect.top
+      lastArtBox = { top: pick.rect.top, width: pick.rect.width, height: pick.rect.height }
 
       // Live geometry of BOTH arts. In the raise band the beach block paints OVER the
       // collage, and the collage's front sprites (bushes, big tree) paint over the
@@ -549,6 +587,7 @@ export function useAdaptiveText({
       const artInfo = (s: (typeof SOURCES)[number]) => {
         const el = document.querySelector<SVGSVGElement>(s.match)
         if (!el) return null
+        watchArt(el)
         const r = el.getBoundingClientRect()
         if (!overlap(r)) return null
         const liveH = el.viewBox.baseVal.height
@@ -612,19 +651,26 @@ export function useAdaptiveText({
         positions.push(`${r.left - hr.left}px ${r.top - hr.top}px`)
       }
       for (const h of hits) if (h.z >= ART_Z) pushCover(h)
-      // Front sprites are only ABOVE the stack when the beach separates them from the
-      // collage body; the collage slice below carries them baked otherwise.
+      // The collage's front sprites are over the beach, live ones by their own markup and the
+      // rest of them baked into this slice — see the note on the paint order above.
       if (beach && collage) pushImage(FRONT_FILL_SRC, collage.rect, collage.fillH)
       if (beach) pushImage(beach.src, beach.rect, beach.fillH)
-      // Wave band (z9) sits above the beach block's own brown ground (z8), both under
-      // the beach art; the collage body is under the whole beach block.
-      for (const h of hits) if (h.z < ART_Z) pushCover(h)
-      if (beach) {
-        images.push(`linear-gradient(${SOURCES[0].bg}, ${SOURCES[0].bg})`)
-        sizes.push(`${beach.rect.width}px ${beach.rect.height}px`)
-        positions.push(`${beach.rect.left - hr.left}px ${beach.rect.top - hr.top}px`)
-      }
+      for (const h of hits) if (h.z < ART_Z && h.z >= COLLAGE_ART_Z) pushCover(h)
       if (collage) pushImage(collage.src, collage.rect, collage.fillH)
+      // Below the collage: the wave band, then the brown ground. The ground is its OWN layer
+      // with its OWN box, sized in JS (BackgroundCanvas marks it `data-adaptive-ground`) —
+      // it is not the beach svg's box, and taking the latter painted a dark rect over
+      // stretches where the screen shows something else entirely.
+      for (const h of hits) if (h.z < COLLAGE_ART_Z) pushCover(h)
+      if (beach) {
+        const groundEl = document.querySelector<HTMLElement>('[data-adaptive-ground]')
+        watchArt(groundEl)
+        const gr = groundEl?.getBoundingClientRect()
+        const g = gr && gr.width > 0 && gr.height > 0 ? gr : beach.rect
+        images.push(`linear-gradient(${SOURCES[0].bg}, ${SOURCES[0].bg})`)
+        sizes.push(`${g.width}px ${g.height}px`)
+        positions.push(`${g.left - hr.left}px ${g.top - hr.top}px`)
+      }
 
       const key = `${images.join(',')}|${sizes.join(',')}|${positions.join(',')}|${pick.bg}`
       if (key !== lastKey) {
@@ -775,9 +821,13 @@ export function useAdaptiveText({
     // The re-align FOLLOWS THROUGH after the last scroll event: the background's
     // parallax is an eased rAF loop that keeps sliding the art (without firing any
     // scroll event) for up to ~a second after scrolling stops — a single re-align at
-    // the event would freeze the fill at a mid-ease position. lastArtTop is written
+    // the event would freeze the fill at a mid-ease position. lastArtBox is written
     // by applyStatic from the picked art's rect; the loop runs until it stops moving.
-    let lastArtTop = 0
+    // Not just the top: a resize moves the art AND changes its scale, and a fill aligned to
+    // the old height paints the art's shapes at the wrong size — the same wrong-place symptom
+    // as a stale position. All three numbers are written by applyStatic from the picked
+    // art's rect; the loop runs until every one of them stops moving.
+    let lastArtBox = { top: 0, width: 0, height: 0 }
     let followFrames = 0
     // ── the sprite tick ──────────────────────────────────────────────────────────────
     // Everything else that re-runs the fill is driven by SCROLL (the scroll listener, the
@@ -799,9 +849,13 @@ export function useAdaptiveText({
     const follow = () => {
       rafId = null
       if (mode !== 'static' || !near) return
-      const before = lastArtTop
+      const before = lastArtBox
       applyStatic()
-      if (Math.abs(lastArtTop - before) > 0.25 && ++followFrames < FOLLOW_CAP) {
+      const moved =
+        Math.abs(lastArtBox.top - before.top) > 0.25 ||
+        Math.abs(lastArtBox.width - before.width) > 0.25 ||
+        Math.abs(lastArtBox.height - before.height) > 0.25
+      if (moved && ++followFrames < FOLLOW_CAP) {
         rafId = requestAnimationFrame(follow)
       }
     }
@@ -823,13 +877,20 @@ export function useAdaptiveText({
     const onScroll = () => {
       if (near && mode === 'static') { kickFollow(); kickLive() }
     }
+    const onViewport = () => {
+      if (mode === 'static') { kickFollow(); kickLive() } else decide()
+    }
 
     const attach = () => {
       // documentElement resize also fires when late-fetched layers (beach svg, waves)
       // grow the page — refresh the cover set there, never in the scroll frame.
-      ro = new ResizeObserver(() => { collectCovers(); decide() })
+      // Fires for documentElement (late layers growing the page), for the text itself, and
+      // for every art element watchArt() hands over — the last one is what catches an art
+      // re-layout that no scroll and no page-height change announces.
+      ro = new ResizeObserver(() => { collectCovers(); decide(); kickFollow() })
       ro.observe(document.documentElement)
       ro.observe(text)
+      for (const el of watchedArt) ro.observe(el)
       io = new IntersectionObserver(
         entries => {
           // An instant scroll jump (anchor nav, scrollIntoView) can batch several
@@ -856,6 +917,10 @@ export function useAdaptiveText({
         attributeFilter: [COVER_ATTR, COVER_SRC_ATTR, COVER_LIVE_ATTR, COVER_Z_ATTR],
       })
       window.addEventListener('scroll', onScroll, { passive: true })
+      // iOS hides and shows its toolbars without a resize of the layout viewport and
+      // without a scroll event on window; visualViewport is where that arrives.
+      window.visualViewport?.addEventListener('resize', onViewport)
+      window.visualViewport?.addEventListener('scroll', onViewport)
     }
 
     // Observe BEFORE the first successful apply, not after it. An element that is
@@ -899,6 +964,8 @@ export function useAdaptiveText({
     return () => {
       cancelled = true
       window.removeEventListener('scroll', onScroll)
+      window.visualViewport?.removeEventListener('resize', onViewport)
+      window.visualViewport?.removeEventListener('scroll', onViewport)
       if (rafId !== null) cancelAnimationFrame(rafId)
       if (liveTickId !== null) window.clearTimeout(liveTickId)
       if (pollId !== null) window.clearInterval(pollId)

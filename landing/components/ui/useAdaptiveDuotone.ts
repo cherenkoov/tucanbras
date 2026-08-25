@@ -29,15 +29,20 @@ function probe(): string | null {
     cached = null
   } else if (isWebKit() || params.has('duowk')) {
     // WebKit parses then DROPS url(#) reference filters inside backdrop-filter, so it gets
-    // the built-in-function chain — which now carries the full brand palette via a clamp
-    // barrier (see BACKDROP_BUILTIN_BRAND). dimDuotone still appends opacity() cleanly: it
-    // fades the finished image, it does not re-enter the chain. Levers move the dots WITH
-    // the headings; a lever the shapes ignored would quietly compare two different builds.
+    // a built-in-function chain. MONO by default since 2026-08-17: the brand-palette chain
+    // is only correct where the blur barrier clamps, and on the owner's device it did not
+    // (see BACKDROP_BUILTIN_BRAND — it painted light blue and near-black in prod). It stays
+    // reachable with ?duobrand=1 for a device re-measurement.
+    // The shapes cannot follow the headings out to the static path — a solid box has no
+    // background-clip:text trick to reconstruct anything with — so here the choice is the
+    // live mono sample or a flat colour, and mono keeps the dot legible on a dark scene.
+    // dimDuotone still appends opacity() cleanly either way: it fades the finished image,
+    // it does not re-enter the chain.
     // Keyed on the ENGINE, not on `(hover: none)` as before: that proxy denied non-WebKit
     // phones the exact palette they render fine, and left desktop Safari on a chain it
     // paints as NOTHING — for a shape, whose only paint IS the filtered backdrop, that
     // means an invisible dot.
-    const chain = params.has('duomono') ? BACKDROP_BUILTIN : BACKDROP_BUILTIN_BRAND
+    const chain = params.has('duobrand') ? BACKDROP_BUILTIN_BRAND : BACKDROP_BUILTIN
     cached = supportsBuiltinBackdrop() ? chain : null
   } else {
     // Everything else (incl. Chromium/Gecko phones): the exact palette reference filter,

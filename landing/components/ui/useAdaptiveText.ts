@@ -58,8 +58,51 @@ const SOURCES = [
 // literally render their --glass-solid color (globals.css strips the blur there).
 const COVER_ATTR = 'data-adaptive-cover'
 const COVER_Z_ATTR = 'data-adaptive-cover-z'
+// A cover that is a PICTURE, not a plate: `data-adaptive-cover-src="<url>"` paints that
+// image at the element's live box instead of a solid rect. Decor needs this — the header
+// flowers under the logotype, the CELPE flower, the palms — because a flower is mostly
+// TRANSPARENT inside its box, and a solid rect over that box would tell the fill the whole
+// area is flower-coloured. With the image, the transparent parts keep showing whatever is
+// layered below, exactly as on screen.
+// Same reason the art slices are images rather than colours. The rect is read per frame
+// like every other cover, so a decor element that MOVES is followed for free — what it
+// needs on top of that is something to re-run the fill while it moves, see LIVE_ATTR.
+const COVER_SRC_ATTR = 'data-adaptive-cover-src'
+// Marks a cover whose box moves on its own (a sprite animation, not scroll). Texts it
+// overlaps re-run the fill on a slow tick while they are on screen — see LIVE_TICK_MS.
+const COVER_LIVE_ATTR = 'data-adaptive-cover-live'
+// Marks a cover that its PARENT CLIPS: the element's box is bigger than what the screen
+// shows of it (the header flowers are ~3.6 bar heights tall inside an 85px bar). A CSS
+// background layer cannot be clipped per layer, so such a cover is honoured only for a
+// text that sits ENTIRELY inside the clipping box — there every painted pixel is a pixel
+// the screen shows too, and outside it the cover is skipped rather than painting art that
+// was cut away. That is the exact failure the blanket `.pill-decor` sweep was measured
+// into (see collectCovers), reduced to a per-element promise the markup can make.
+// The clip box is read as the parent's border box, so a rounded/notched silhouette is
+// approximated by its rect — good enough to decide a side of the 0.70 threshold, and the
+// texts this serves sit well inside the corners.
+const COVER_CLIP_ATTR = 'data-adaptive-cover-clip'
 const COVER_DEFAULT_Z = 100
-const ART_Z = 10
+// The background's paint order, MEASURED (2026-08-22), not assumed. The beach block sits in
+// a wrapper with `z-index: 10` inside the canvas; the collage host next to it is `z: auto`.
+// A positioned z:10 box paints above a positioned z:auto one, so the WHOLE beach block —
+// its ground, its art and the sprites lifted out of it — covers the WHOLE collage host,
+// bushes and big tree and humans included, wherever the two overlap. Their own z-indexes
+// (50 on the bushes, 40 on the humans) only order them INSIDE the collage host.
+// The canvas's real order, top DOWN, established by hiding one layer at a time on the page:
+//   sprites lifted out of either scene (z50/z40)  ← bushes, big tree, humans, palms, umbrellas
+//   beach block (z10, later in the DOM)           ← its art over the collage's
+//   collage art (z10, earlier)
+//   wave band (z9)                                ← through the beach art's transparent sea
+//   brown ground (z8)                             ← the base under the whole beach block
+// The sprites beat the beach block although their host sits beside it: that host's wrapper is
+// `z: auto`, which creates no stacking context, so each sprite's own z-index competes with the
+// beach's 10 directly. The collage ART does not — it has its own z:10 wrapper and loses the
+// tie by DOM order. The collage nonetheless sits ABOVE the wave band and the ground, which
+// used to be modelled the other way round. A cover's z is read against the two marks below.
+const ART_Z = 10        // at or above: over the beach art (beach sprites, content plates)
+const COLLAGE_ART_Z = 3 // at or above (and under ART_Z): over the collage art (its sprites)
+                        // below: under the collage art (the wave band, the ground)
 // The collage's front sprites (roads, houses, humans, front set, bushes, big tree —
 // everything BackgroundCanvas paints above z10) baked at their rest positions, the
 // rest of the canvas transparent. In the beach↔collage raise band those sprites hang
@@ -108,9 +151,11 @@ export const BACKDROP = `grayscale(1) url(#${BRAND_FILTER_ID})`
 // Mono near-white/near-black — device-validated on a real iPhone (2026-07-19) and kept as
 // the ?duomono=1 escape hatch. No longer the WebKit default: see BACKDROP_BUILTIN_BRAND.
 export const BACKDROP_BUILTIN = 'grayscale(1) brightness(0.714) contrast(50) invert(1)'
-// WebKit DEFAULT — the full brand palette from a live sample, no SVG filter anywhere.
-// Renders #8fd096 over a dark backdrop and #2e68b1 over a light one (targets --color-green
-// #8fd096 and --color-blue #2e67b2; the blue is 1/255 off, invisible).
+// The brand palette from a live sample on WebKit, no SVG filter anywhere. Renders #8fd096
+// over a dark backdrop and #2e68b1 over a light one (targets --color-green #8fd096 and
+// --color-blue #2e67b2; the blue is 1/255 off, invisible) — BUT ONLY IF THE BARRIER BELOW
+// CLAMPS. It does not on every WebKit build, so this is NO LONGER THE DEFAULT: it lives
+// behind ?duobrand=1. See the "NOT THE DEFAULT" note under the barrier explanation.
 //
 // THE CLAMP IS THE WHOLE TRICK. WebKit does not clamp between filter functions (Chromium
 // does), so contrast(50) leaves ±20-ish values that ride the rest of the chain and only
@@ -134,6 +179,28 @@ export const BACKDROP_BUILTIN = 'grayscale(1) brightness(0.714) contrast(50) inv
 //
 // The parameters ENCODE THE PALETTE. Change DUOTONES and this string is stale — refit with
 // `npm run fit:duotone-chain` and re-measure. Guard: npm run verify:adaptive-mode.
+//
+// ── NOT THE DEFAULT ANYMORE (2026-08-17, owner report from prod) ──────────────────────
+// «надо чтобы были синий и зелёный, а вместо них чёрный и светло-синий». That is this
+// chain, on a WebKit build where `blur(0.5px)` does NOT clamp the way the fit assumed.
+// The whole construction rests on the barrier restoring [0,1] at TWO points; the binarise
+// hands it ±20…±1250, and where that overshoot survives, the tint matrices mix garbage.
+// `npm run check:duotone-chain` sweeps both barriers over every clamp semantics — the
+// palette survives 4 of the 16, and the rest are exactly the reported colours:
+//
+//   barrier 1 + 2   dark bg              light bg
+//   full+full       #8fd097 green ✓      #2e68b2 blue ✓       ← what was fitted
+//   high+low        #5cffff light blue   #1a261c near-black   ← the prod report
+//   high+none       #5cffff light blue   #000000 black        ← the prod report
+//   none+none       #ffffff white        #000000 black        ← the plain mono pair
+//
+// Nothing in JS can tell those apart: the compositor's output is unreadable from script,
+// which is why the choice was UA-based to begin with. A palette whose correctness depends
+// on an undetectable, unspecified engine detail cannot be the thing every iPhone gets by
+// default — so WebKit now takes the static path, whose `filter: url(#…)` it renders
+// exactly (colour is right, the sample can drift). Re-test this chain on a device with
+// ?duobrand=1 (and /wk-probe.html, which shows the barrier stage by stage); if it holds
+// there, that is a measurement, not a reason to flip the default back on its own.
 export const BACKDROP_BUILTIN_BRAND =
   'grayscale(1) brightness(0.714) contrast(50) contrast(50) invert(1) blur(0.5px) ' +
   'contrast(0.538) sepia(0.105) saturate(7.9) hue-rotate(115.5deg) brightness(1.697) blur(0.5px) ' +
@@ -282,10 +349,13 @@ export function useAdaptiveText({
     const fillDebug = params.has('filldebug')
     // WebKit levers. ?duowk=1 forces the WebKit path on ANY engine (Playwright WebKit
     // renders no backdrop-filter at all, headless or headed, so this is the only way to
-    // measure that chain locally); ?duomono=1 drops back to the plain near-white/near-black
-    // pair, the escape hatch if the brand chain ever misbehaves on a device.
+    // measure that chain locally). The two built-in chains are now OPT-IN, because neither
+    // is trustworthy unattended: ?duobrand=1 asks for the fitted brand chain (correct only
+    // where the blur barrier clamps — see BACKDROP_BUILTIN_BRAND), ?duomono=1 for the plain
+    // near-white/near-black pair (always renders, but has no brand colour in it).
     const forceWebkitPath = params.has('duowk')
     const monoDuotone = params.has('duomono')
+    const brandDuotone = params.has('duobrand')
     const text = textRef.current
     const overlay = overlayRef.current
     const maskText = maskRef?.current ?? null
@@ -318,16 +388,26 @@ export function useAdaptiveText({
     // the CELPE-BRAS heading reconstructing L=0.78 where the live background is L=0.13 —
     // a full flip across the 0.70 threshold, i.e. glyphs coloured from the wrong region.
     //
-    // So the gate no longer decides whether to SAMPLE — only which chain does it, and the
-    // sample is never given up: `BACKDROP_BUILTIN_BRAND` since 2026-08-09 reproduces the
-    // default palette out of built-in functions alone (blur barrier + two tone stages), so
-    // WebKit gets the same green↔blue as everyone else. A caller that asks for one of the
-    // OTHER palettes falls back to the mono chain instead — see the choice at
-    // `builtinChain` — because that string's coefficients encode one palette and nothing
-    // refits them per call. Chromium/Gecko render every palette exactly through url(#);
-    // they were never the engine with the problem.
+    // WHY WEBKIT IS BACK ON STATIC (2026-08-17) — and why that is not the 08-08 regression
+    // above coming back. That one was silent and engine-wide: the sample was given up on
+    // EVERY phone by accident, with nothing said about it. This is a deliberate trade on
+    // ONE engine, taken because the alternative was measured wrong IN PRODUCTION: the
+    // fitted built-in chain painted light blue over dark backgrounds and near-black over
+    // light ones on the owner's device (report + the arithmetic under
+    // BACKDROP_BUILTIN_BRAND, reproducible with `npm run check:duotone-chain`).
+    //
+    // The two failure modes are not equal, which is what decides it:
+    //   static path  → ALWAYS a palette colour, occasionally the wrong SIDE of the
+    //                  threshold, because the composite is reconstructed from geometry;
+    //   brand chain  → the right side every time, in colours that are not the brand's at
+    //                  all on an engine we cannot detect.
+    // A heading that is green where it should be blue still reads as the site; one that is
+    // black or cyan does not. So WebKit keeps `filter: url(#…)` — which it renders exactly
+    // — and gives up the live sample until the chain is re-measured on a device.
+    // Chromium/Gecko (desktop AND phones) are untouched: they render the reference filter
+    // inside backdrop-filter, they were never the engine with the problem.
     const webkit = isWebKit() || forceWebkitPath
-    const useBuiltin = webkit && supportsBuiltinBackdrop()
+    const useBuiltin = webkit && supportsBuiltinBackdrop() && (brandDuotone || monoDuotone)
     // Icons: image-mask + backdrop-filter renders NOTHING on WebKit (the VS vanished on a
     // real iPhone), and touch icons kept that fallback before this change — hold both.
     const iconStatic = !!imageSrc && (webkit || touch)
@@ -390,6 +470,23 @@ export function useAdaptiveText({
     // (top-anchored): 1 for the collage; artH/rewrittenH for the beach after the sea
     // injection extends its viewBox downward. Applied to the element's on-screen rect
     // so any container transforms (phones' scaleY stretch) are inherited correctly.
+    // The ART's OWN box has to be watched, not just the page's. A viewport-height change
+    // (the iOS toolbar collapsing is the everyday one) re-sizes the beach: the wave band is
+    // sized against the tallest viewport seen, the sea injection rewrites the svg's viewBox,
+    // and the block lands somewhere else — measured here at 390px wide, top −996 → +208 and
+    // height 6925 → 9296 for a 100px taller viewport. None of that fires a scroll, and the
+    // ResizeObserver on documentElement fires TOO EARLY: the page height changes first, the
+    // art re-lays out a moment later, so the one recompute it triggers reads the old box and
+    // the fill keeps painting the right shapes in the wrong place until the next scroll —
+    // the owner's report, «текст правильно читает изменения формы кустов, но немного в
+    // другом месте». Observing the art itself is what fires WHEN it actually moves.
+    const watchedArt = new Set<Element>()
+    const watchArt = (el: Element | null): void => {
+      if (!el || watchedArt.has(el)) return
+      watchedArt.add(el)
+      ro?.observe(el)
+    }
+
     const pickSource = (): { src: string | null; bg: string; rect: DOMRect; artFrac: number } | null => {
       const hr = text.getBoundingClientRect()
       // A hidden element (display:none breakpoint variant) measures 0×0 at (0,0) — its
@@ -399,6 +496,7 @@ export function useAdaptiveText({
       for (const s of SOURCES) {
         const el = document.querySelector<SVGSVGElement>(s.match)
         if (!el) continue
+        watchArt(el)
         const rect = el.getBoundingClientRect()
         if (rect.width > 0 && cy >= rect.top && cy <= rect.bottom) {
           const liveH = el.viewBox.baseVal.height
@@ -411,6 +509,7 @@ export function useAdaptiveText({
       // whole coverage deficit with it) fell back to solid ink on the dark sea.
       const term = document.querySelector<HTMLElement>('[data-adaptive-terminal]')
       if (term) {
+        watchArt(term)
         const rect = term.getBoundingClientRect()
         if (rect.width > 0 && cy >= rect.top && cy <= rect.bottom) {
           const bg = term.getAttribute('data-adaptive-terminal') || 'transparent'
@@ -424,11 +523,23 @@ export function useAdaptiveText({
     // attribute-selector scan walks the huge collage SVG DOM; rects ARE read per frame
     // (cards move with scroll/stack animation). Document order is kept as the
     // paint-order tie-break for equal z (later paints above).
-    let covers: { el: HTMLElement; color: string; z: number }[] = []
+    let covers: { el: HTMLElement; color: string; src: string; live: boolean; clip: HTMLElement | null; z: number }[] = []
     const collectCovers = () => {
-      covers = Array.from(document.querySelectorAll<HTMLElement>(`[${COVER_ATTR}]`)).map(el => ({
+      // DECOR IS NOT PICKED UP WHOLESALE, and that is a measured decision, not caution.
+      // Taking every `img.pill-decor` (all 106 of them) as an image cover made the fill
+      // WORSE: mean |Δ| 0.084 → 0.102 and side disagreements 2 → 3, because most plants are
+      // CLIPPED by their container — the plate's silhouette mask, the button's overflow, a
+      // card's rounded box — and a CSS background layer cannot be clipped per layer, so the
+      // fill painted whole flowers where the screen shows a sliver. Decor therefore has to
+      // be marked one by one, and only where it paints unclipped over a text.
+      covers = Array.from(
+        document.querySelectorAll<HTMLElement>(`[${COVER_ATTR}], [${COVER_SRC_ATTR}]`),
+      ).map(el => ({
         el,
         color: el.getAttribute(COVER_ATTR) || 'transparent',
+        src: el.getAttribute(COVER_SRC_ATTR) || '',
+        live: el.hasAttribute(COVER_LIVE_ATTR),
+        clip: el.hasAttribute(COVER_CLIP_ATTR) ? el.parentElement : null,
         z: Number(el.getAttribute(COVER_Z_ATTR) ?? COVER_DEFAULT_Z),
       }))
     }
@@ -465,7 +576,7 @@ export function useAdaptiveText({
         lastKey = ''
       }
       const hr = text.getBoundingClientRect()
-      lastArtTop = pick.rect.top
+      lastArtBox = { top: pick.rect.top, width: pick.rect.width, height: pick.rect.height }
 
       // Live geometry of BOTH arts. In the raise band the beach block paints OVER the
       // collage, and the collage's front sprites (bushes, big tree) paint over the
@@ -476,6 +587,7 @@ export function useAdaptiveText({
       const artInfo = (s: (typeof SOURCES)[number]) => {
         const el = document.querySelector<SVGSVGElement>(s.match)
         if (!el) return null
+        watchArt(el)
         const r = el.getBoundingClientRect()
         if (!overlap(r)) return null
         const liveH = el.viewBox.baseVal.height
@@ -487,7 +599,7 @@ export function useAdaptiveText({
       // Covers intersecting the text box. A cover is skipped while its own or its direct
       // wrapper's inline opacity fades it below 0.5 — the stack sections (CelpeBras/
       // Plans) hide past cards with inline opacity on the slot wrapper, not the card.
-      const hits: { color: string; z: number; i: number; r: DOMRect }[] = []
+      const hits: { color: string; src: string; live: boolean; z: number; i: number; r: DOMRect }[] = []
       for (let i = 0; i < covers.length; i++) {
         const c = covers[i]
         const own = c.el.style.opacity
@@ -496,15 +608,40 @@ export function useAdaptiveText({
         const r = c.el.getBoundingClientRect()
         if (r.width === 0 || r.height === 0) continue
         if (r.right <= hr.left || r.left >= hr.right || r.bottom <= hr.top || r.top >= hr.bottom) continue
-        hits.push({ color: c.color, z: c.z, i, r })
+        // Clipped decor: paint it only where the whole text is inside what the screen
+        // actually shows of this cover (COVER_CLIP_ATTR). A heading scrolling UNDER the
+        // header is the case this rejects — the flowers reach 200px past the plate in
+        // their own box, and the plate cuts every one of those pixels.
+        if (c.clip) {
+          const cr = c.clip.getBoundingClientRect()
+          if (hr.left < cr.left || hr.right > cr.right || hr.top < cr.top || hr.bottom > cr.bottom) continue
+        }
+        // Re-read the PAINT off the element, don't trust the snapshot: a cover's colour and
+        // its image can both change after collection without the set itself changing. The
+        // header plate swaps `#fffce5` ↔ `rgba(255,252,229,0.72)` on hover, and a mirrored
+        // plant declares its flipped copy only once the blob is built. A cached value there
+        // is a fill painted from something that is no longer on screen; two getAttribute
+        // calls per cover are nothing next to the getBoundingClientRect above them.
+        hits.push({
+          color: c.el.getAttribute(COVER_ATTR) || c.color,
+          src: c.el.getAttribute(COVER_SRC_ATTR) || '',
+          live: c.live, z: c.z, i, r,
+        })
       }
+      // Does anything that moves ON ITS OWN sit over this text right now? The parallax is
+      // scroll-driven and the follow loop already covers it; this is for sprites — the
+      // bushes sliding in, the palms turning — which change the background with the page
+      // standing still, and nothing else would ever re-run the fill for them.
+      liveCoverOver = hits.some(h => h.live)
       hits.sort((a, b) => b.z - a.z || b.i - a.i)
 
       const images: string[] = []
       const sizes: string[] = []
       const positions: string[] = []
-      const pushCover = (h: { color: string; r: DOMRect }) => {
-        images.push(`linear-gradient(${h.color}, ${h.color})`)
+      const pushCover = (h: { color: string; src: string; r: DOMRect }) => {
+        // An image cover keeps its own alpha, so the layers below it stay visible through
+        // the gaps — a plate is a flat rect, a flower is not.
+        images.push(h.src ? `url("${h.src}")` : `linear-gradient(${h.color}, ${h.color})`)
         sizes.push(`${h.r.width}px ${h.r.height}px`)
         positions.push(`${h.r.left - hr.left}px ${h.r.top - hr.top}px`)
       }
@@ -514,19 +651,26 @@ export function useAdaptiveText({
         positions.push(`${r.left - hr.left}px ${r.top - hr.top}px`)
       }
       for (const h of hits) if (h.z >= ART_Z) pushCover(h)
-      // Front sprites are only ABOVE the stack when the beach separates them from the
-      // collage body; the collage slice below carries them baked otherwise.
+      // The collage's front sprites are over the beach, live ones by their own markup and the
+      // rest of them baked into this slice — see the note on the paint order above.
       if (beach && collage) pushImage(FRONT_FILL_SRC, collage.rect, collage.fillH)
       if (beach) pushImage(beach.src, beach.rect, beach.fillH)
-      // Wave band (z9) sits above the beach block's own brown ground (z8), both under
-      // the beach art; the collage body is under the whole beach block.
-      for (const h of hits) if (h.z < ART_Z) pushCover(h)
-      if (beach) {
-        images.push(`linear-gradient(${SOURCES[0].bg}, ${SOURCES[0].bg})`)
-        sizes.push(`${beach.rect.width}px ${beach.rect.height}px`)
-        positions.push(`${beach.rect.left - hr.left}px ${beach.rect.top - hr.top}px`)
-      }
+      for (const h of hits) if (h.z < ART_Z && h.z >= COLLAGE_ART_Z) pushCover(h)
       if (collage) pushImage(collage.src, collage.rect, collage.fillH)
+      // Below the collage: the wave band, then the brown ground. The ground is its OWN layer
+      // with its OWN box, sized in JS (BackgroundCanvas marks it `data-adaptive-ground`) —
+      // it is not the beach svg's box, and taking the latter painted a dark rect over
+      // stretches where the screen shows something else entirely.
+      for (const h of hits) if (h.z < COLLAGE_ART_Z) pushCover(h)
+      if (beach) {
+        const groundEl = document.querySelector<HTMLElement>('[data-adaptive-ground]')
+        watchArt(groundEl)
+        const gr = groundEl?.getBoundingClientRect()
+        const g = gr && gr.width > 0 && gr.height > 0 ? gr : beach.rect
+        images.push(`linear-gradient(${SOURCES[0].bg}, ${SOURCES[0].bg})`)
+        sizes.push(`${g.width}px ${g.height}px`)
+        positions.push(`${g.left - hr.left}px ${g.top - hr.top}px`)
+      }
 
       const key = `${images.join(',')}|${sizes.join(',')}|${positions.join(',')}|${pick.bg}`
       if (key !== lastKey) {
@@ -593,13 +737,12 @@ export function useAdaptiveText({
         // `filter: url(#…)` works in Chromium but was measured on a real iPhone
         // (2026-08-09) to do nothing at all: WebKit does not pass its backdrop image
         // through the element's filter, so every heading stayed black-and-white.
-        // Брендовая цепочка ЗАКОДИРОВАЛА ОДНУ палитру (её коэффициенты фитованы под
-        // зелёный↔синий), поэтому она идёт только дефолтному фильтру. Чужая палитра
-        // (`ink`, `green`) получила бы на WebKit чужие цвета молча — ей достаётся mono,
-        // то есть ровно то ухудшение, которое описано выше: живой сэмпл сохраняется,
-        // теряется только тон. Гейта по палитре, погубившего телефоны 2026-08-08, это не
-        // воскрешает — дефолт, которым идёт вся страница, остаётся на брендовой цепочке.
-        const brandChain = filterId === BRAND_FILTER_ID && !monoDuotone
+        // Обе built-in-цепочки теперь ПОД РЫЧАГОМ (`useBuiltin` выше), так что сюда
+        // попадают только `?duobrand=1` и `?duomono=1`. Брендовая цепочка ЗАКОДИРОВАЛА
+        // ОДНУ палитру (коэффициенты фитованы под зелёный↔синий), поэтому даже по рычагу
+        // она достаётся только дефолтному фильтру: чужая палитра (`ink`, `green`)
+        // покрасилась бы чужими цветами молча, ей идёт mono.
+        const brandChain = brandDuotone && filterId === BRAND_FILTER_ID
         const builtinChain = brandChain ? BACKDROP_BUILTIN_BRAND : BACKDROP_BUILTIN
         const chain = useBuiltin ? builtinChain : `grayscale(1) url(#${filterId})`
         overlay.style.setProperty('backdrop-filter', chain)
@@ -662,28 +805,57 @@ export function useAdaptiveText({
     }
 
     // Returns true once a mode has actually been applied (so polling can stop).
-    const decide = (): boolean => (canBackdrop ? applyBackdrop() : applyStatic())
+    const decide = (): boolean => {
+      const applied = canBackdrop ? applyBackdrop() : applyStatic()
+      kickLive()   // the first static apply is what discovers a moving cover overhead
+      return applied
+    }
 
     let cancelled = false
     let rafId: number | null = null
     let near = true
     let ro: ResizeObserver | null = null
     let io: IntersectionObserver | null = null
+    let mo: MutationObserver | null = null
     // Static mode re-aligns / may switch source on scroll; backdrop auto-updates.
     // The re-align FOLLOWS THROUGH after the last scroll event: the background's
     // parallax is an eased rAF loop that keeps sliding the art (without firing any
     // scroll event) for up to ~a second after scrolling stops — a single re-align at
-    // the event would freeze the fill at a mid-ease position. lastArtTop is written
+    // the event would freeze the fill at a mid-ease position. lastArtBox is written
     // by applyStatic from the picked art's rect; the loop runs until it stops moving.
-    let lastArtTop = 0
+    // Not just the top: a resize moves the art AND changes its scale, and a fill aligned to
+    // the old height paints the art's shapes at the wrong size — the same wrong-place symptom
+    // as a stale position. All three numbers are written by applyStatic from the picked
+    // art's rect; the loop runs until every one of them stops moving.
+    let lastArtBox = { top: 0, width: 0, height: 0 }
     let followFrames = 0
+    // ── the sprite tick ──────────────────────────────────────────────────────────────
+    // Everything else that re-runs the fill is driven by SCROLL (the scroll listener, the
+    // follow loop chasing the eased parallax, the observers). A sprite animation is not:
+    // the bushes slide in and the palms turn while the page stands still, so without this
+    // the glyphs keep the colour they had when the sprite was somewhere else. Reported by
+    // the owner for exactly those two — the bushes under the Comparison/Tutors headings and
+    // the palm under the CELPE CTA.
+    // A SLOW tick on purpose (not rAF): the duotone only asks which side of 0.70 a pixel is
+    // on, and that answer changes on the scale of a sprite crossing a glyph, not of a frame.
+    // 8 ticks a second is invisible to the eye and ~7× cheaper than following every frame on
+    // the phone that this whole static path exists for. It runs ONLY while a moving cover
+    // actually overlaps this text (liveCoverOver) and the text is on screen (near), so a
+    // page with nothing moving under it pays nothing at all.
+    const LIVE_TICK_MS = 125
+    let liveCoverOver = false
+    let liveTickId: number | null = null
     const FOLLOW_CAP = 300 // safety bound (~5s) against a jittering rect
     const follow = () => {
       rafId = null
       if (mode !== 'static' || !near) return
-      const before = lastArtTop
+      const before = lastArtBox
       applyStatic()
-      if (Math.abs(lastArtTop - before) > 0.25 && ++followFrames < FOLLOW_CAP) {
+      const moved =
+        Math.abs(lastArtBox.top - before.top) > 0.25 ||
+        Math.abs(lastArtBox.width - before.width) > 0.25 ||
+        Math.abs(lastArtBox.height - before.height) > 0.25
+      if (moved && ++followFrames < FOLLOW_CAP) {
         rafId = requestAnimationFrame(follow)
       }
     }
@@ -691,28 +863,64 @@ export function useAdaptiveText({
       followFrames = 0
       if (rafId === null) rafId = requestAnimationFrame(follow)
     }
+    const liveTick = () => {
+      liveTickId = null
+      if (mode !== 'static' || !near) return
+      applyStatic()          // re-reads every cover's live box, which is the whole point
+      kickLive()
+    }
+    const kickLive = () => {
+      if (liveTickId === null && liveCoverOver && near && mode === 'static') {
+        liveTickId = window.setTimeout(liveTick, LIVE_TICK_MS)
+      }
+    }
     const onScroll = () => {
-      if (near && mode === 'static') kickFollow()
+      if (near && mode === 'static') { kickFollow(); kickLive() }
+    }
+    const onViewport = () => {
+      if (mode === 'static') { kickFollow(); kickLive() } else decide()
     }
 
     const attach = () => {
       // documentElement resize also fires when late-fetched layers (beach svg, waves)
       // grow the page — refresh the cover set there, never in the scroll frame.
-      ro = new ResizeObserver(() => { collectCovers(); decide() })
+      // Fires for documentElement (late layers growing the page), for the text itself, and
+      // for every art element watchArt() hands over — the last one is what catches an art
+      // re-layout that no scroll and no page-height change announces.
+      ro = new ResizeObserver(() => { collectCovers(); decide(); kickFollow() })
       ro.observe(document.documentElement)
       ro.observe(text)
+      for (const el of watchedArt) ro.observe(el)
       io = new IntersectionObserver(
         entries => {
           // An instant scroll jump (anchor nav, scrollIntoView) can batch several
           // transitions into one callback — only the LAST entry is the current state;
           // reading the first left `near` stuck false and froze a stale mid-scroll fill.
           near = entries[entries.length - 1].isIntersecting
-          if (near && mode === 'static') kickFollow()
+          if (near && mode === 'static') { kickFollow(); kickLive() }
         },
         { threshold: 0, rootMargin: '300px 0px' },
       )
       io.observe(text)
+      // Cover MARKUP can appear or change after the set was collected, and neither the
+      // resize nor the scroll path would ever notice: an element only joins `covers` if it
+      // carried one of the attributes at collect time. Two live cases — the header plate
+      // swapping its colour on hover, and a mirrored plant declaring its flipped copy once
+      // the blob is built (a fetch, so always after mount). Without this the logotype keeps
+      // a fill assembled from art that is no longer what the screen shows, until something
+      // unrelated happens to re-collect. `attributeFilter` is native, so a page that never
+      // touches these attributes pays nothing.
+      mo = new MutationObserver(() => { collectCovers(); if (mode === 'static') applyStatic(); else decide() })
+      mo.observe(document.body, {
+        attributes: true,
+        subtree: true,
+        attributeFilter: [COVER_ATTR, COVER_SRC_ATTR, COVER_LIVE_ATTR, COVER_Z_ATTR],
+      })
       window.addEventListener('scroll', onScroll, { passive: true })
+      // iOS hides and shows its toolbars without a resize of the layout viewport and
+      // without a scroll event on window; visualViewport is where that arrives.
+      window.visualViewport?.addEventListener('resize', onViewport)
+      window.visualViewport?.addEventListener('scroll', onViewport)
     }
 
     // Observe BEFORE the first successful apply, not after it. An element that is
@@ -756,10 +964,14 @@ export function useAdaptiveText({
     return () => {
       cancelled = true
       window.removeEventListener('scroll', onScroll)
+      window.visualViewport?.removeEventListener('resize', onViewport)
+      window.visualViewport?.removeEventListener('scroll', onViewport)
       if (rafId !== null) cancelAnimationFrame(rafId)
+      if (liveTickId !== null) window.clearTimeout(liveTickId)
       if (pollId !== null) window.clearInterval(pollId)
       io?.disconnect()
       ro?.disconnect()
+      mo?.disconnect()
       clearAll()
     }
   }, [textRef, overlayRef, maskRef, maskId, imageSrc, imageRef, staticFill, filterId, lightColor, darkColor])

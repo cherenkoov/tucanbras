@@ -15,6 +15,7 @@
     "verify:staticfill": "tsx scripts/verifyStaticFill.ts",
     "verify:adaptive-mode": "tsx scripts/verifyAdaptiveMode.ts",
     "fit:duotone-chain": "tsx scripts/fitBuiltinDuotone.ts",
+    "check:duotone-chain": "tsx scripts/checkDuotoneChain.mts",
     "gen:front-fill": "tsx scripts/generateFrontFill.ts",
     "gen:pill-art": "tsx scripts/generatePillArt.ts",
     "gen:plan-decor-art": "node scripts/genPlanDecorArt.mjs",
@@ -33,7 +34,8 @@
     "verify:z-order": "tsx scripts/verifyCollageZOrder.ts",
     "gen:plan-tier-art": "node scripts/genPlanTierArt.mjs",
     "gen:footer-flower": "node scripts/genFooterFlowerYellow.mjs",
-    "gen:feature-plant-art": "node scripts/genFeaturePlantArt.mjs"
+    "gen:feature-plant-art": "node scripts/genFeaturePlantArt.mjs",
+    "verify:fill-assets": "tsx scripts/verifyFillAssets.mts"
   },
   "dependencies": {
     "@notionhq/client": "^5.17.0",

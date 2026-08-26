@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import type { CSSProperties } from 'react'
 import type { HeaderProps } from '@/types'
 import { uiLabels, BECOME_TEACHER_ID } from '@/lib/uiLabels'
@@ -144,6 +144,10 @@ const COVER_DECOR = {
   mid:   'motion-safe:scale-[1.15]',
 } as const
 
+// Where the cover plants sit in the static fill's layer stack: above the plate they are
+// painted on (`data-adaptive-cover-z="200"` on both plates), below nothing else here.
+const COVER_PLANT_Z = 210
+
 /**
  * The bar's plants: one <img> per file from `public/SVG/header/decor`, sized off the
  * bar's height and pinned to an edge (see coverPlants.ts). No window, no bleed —
@@ -152,17 +156,88 @@ const COVER_DECOR = {
 function CoverPlants({ plants, u, hot }: { plants: readonly Plant[]; u: number; hot: boolean }) {
   return (
     <>
-      {plants.map(p => (
+      {plants.map(p => <CoverPlant key={p.file} p={p} u={u} hot={hot} />)}
+    </>
+  )
+}
+
+/**
+ * A mirrored plant (`flipY`) shows the file turned over, and a CSS background layer —
+ * which is what the static fill paints a cover with — has no way to flip an image. So the
+ * fill is handed its own copy: the same file wrapped in one flipping <g>, as a blob URL.
+ * FETCHED rather than re-authored, and rather than shipped as a second asset, so the copy
+ * cannot drift from the art the <img> actually shows; the file is already in cache by then,
+ * the <img> above fetched it.
+ * Measured before this existed (390px, /en): the fill reconstructed the logotype's
+ * background from the UNFLIPPED file, landed on a transparent band of it, and reported
+ * plain cream plate — the logotype stayed blue over petals the live sample reads as green.
+ */
+const flippedPlant = new Map<string, Promise<string>>()
+function flippedPlantUrl(src: string): Promise<string> {
+  let made = flippedPlant.get(src)
+  if (!made) {
+    made = fetch(src)
+      .then(r => r.text())
+      .then(txt => {
+        // The art's own canvas, read from the markup — a hardcoded size goes stale the
+        // moment the file is re-exported, and the flip would then be off by the difference.
+        const box = txt.match(/<svg[^>]*viewBox="([-\d.]+)\s+([-\d.]+)\s+([\d.]+)\s+([\d.]+)"/)
+        if (!box) throw new Error(`no viewBox in ${src}`)
+        const [, x, y, w, h] = box
+        return URL.createObjectURL(new Blob(
+          [`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="${x} ${y} ${w} ${h}">` +
+           `<g transform="translate(0,${Number(y) * 2 + Number(h)}) scale(1,-1)">${txt}</g></svg>`],
+          { type: 'image/svg+xml' },
+        ))
+      })
+    flippedPlant.set(src, made)
+  }
+  return made
+}
+
+function CoverPlant({ p, u, hot }: { p: Plant; u: number; hot: boolean }) {
+  const src = `/SVG/header/decor/${encodeURIComponent(p.file)}`
+  // A mirrored plant declares its cover IMPERATIVELY, once the flipped copy is built, and
+  // the fill notices through its cover MutationObserver (see useAdaptiveText). Not React
+  // state: measured on the built page, the effect that would have held it is torn down
+  // before the fetch resolves — every mirrored plant kept `alive === false` and the
+  // attribute never appeared. A module-level promise per file survives that, and the
+  // blob is built once for the whole page however often the bar re-renders.
+  // Until it lands the plant declares NO cover: the fill then reads the plate it hides,
+  // which is the answer it had before any of this — a cover painted from the wrong side
+  // of the art would be a WRONG answer instead of a missing one.
+  const declareCover = useCallback((el: HTMLImageElement | null) => {
+    if (!el) return
+    if (!p.flipY) { el.setAttribute('data-adaptive-cover-src', src); return }
+    flippedPlantUrl(src).then(u => el.setAttribute('data-adaptive-cover-src', u)).catch(() => {})
+  }, [src, p.flipY])
+  return (
         <img
-          key={p.file}
-          src={`/SVG/header/decor/${encodeURIComponent(p.file)}`}
+          ref={declareCover}
+          src={src}
           alt=""
           aria-hidden
+          // The plants are what the LOGOTYPE is written over — the plate is cream
+          // everywhere, so without them the static fill sees one flat light surface and
+          // the logotype is blue at every scroll position, whatever is painted under it.
+          // Desktop samples them live (backdrop) and has always adapted; this is what
+          // gives the phone the same reading. As an IMAGE cover, not a rect: a flower is
+          // mostly transparent inside its box, and a solid rect would claim the whole
+          // corner is flower-coloured.
+          // z above the plate's own 200 — these paint over it, in the same order.
+          // `-clip`: the box is ~3.6 bar heights tall and the plate shows only the slice
+          // inside itself. The promise that buys is narrow and exact — a text ENTIRELY
+          // inside the plate (the logotype is, by construction) gets the flowers; anything
+          // scrolling under the bar keeps just the flat plate cover, which is the truth
+          // there because the flowers are cut at its edge.
+          // Deliberately NOT `-live`: these move only during the hover/tap bloom (~340ms,
+          // a few percent of scale), so a permanent 8fps tick under a header that is
+          // always on screen would cost far more than the colour it could change.
+          data-adaptive-cover-z={COVER_PLANT_Z}
+          data-adaptive-cover-clip=""
           className={`pill-decor pointer-events-none select-none ${hot ? COVER_DECOR[p.role] : ''}`}
           style={plantBox(p, u)}
         />
-      ))}
-    </>
   )
 }
 

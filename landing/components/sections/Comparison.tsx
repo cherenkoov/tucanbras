@@ -46,7 +46,6 @@ export default function Comparison({ data }: ComparisonProps) {
 
           {/* ── Tucan block ── */}
           <div
-            data-glass-center
             data-adaptive-cover="#7cb082"
             className="glass flex flex-col gap-[36px] flex-1 min-w-[300px] lg:max-w-[727px] rounded-[48px] p-[36px] overflow-hidden"
             style={{
@@ -99,7 +98,6 @@ export default function Comparison({ data }: ComparisonProps) {
 
           {/* ── Others block ── */}
           <div
-            data-glass-center
             data-adaptive-cover="#cccab7"
             className="glass flex flex-col gap-[36px] flex-1 min-w-[300px] lg:max-w-[727px] rounded-[48px] p-[36px] overflow-hidden"
             style={{

@@ -73,7 +73,7 @@ export default function PlanDecor({ plan, slot, variant = 'desktop', mask }: {
       data-plan-decor={`${plan}-${slot}${isMobile ? '-mobile' : ''}`}
       className={
         breakpoint + (isPlate
-          ? 'plan-decor-plate absolute inset-0 overflow-hidden pointer-events-none opacity-80 group-hover:opacity-100 group-[.is-center]:opacity-100 transition-opacity duration-[600ms]'
+          ? 'plan-decor-plate absolute inset-0 overflow-hidden pointer-events-none opacity-80 group-hover:opacity-100 transition-opacity duration-[600ms]'
           : 'plan-decor-button absolute inset-0 overflow-hidden pointer-events-none')
       }
       style={{

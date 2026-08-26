@@ -13,7 +13,6 @@ import Footer from '@/components/sections/Footer'
 
 import AnchorScrollHandler from '@/components/ui/AnchorScrollHandler'
 import BackgroundCanvas from '@/components/ui/background/BackgroundCanvas'
-import GlassCenterActivation from '@/components/ui/GlassCenterActivation'
 import ScrollDebug from '@/components/ui/ScrollDebug'
 import { getTutors } from '@/lib/tutors'
 import { getStubTutors } from '@/lib/tutorStubs'
@@ -83,8 +82,6 @@ export default async function Home({
   return (
     <div className="relative" style={{ overflow: 'clip' }}>
       <AnchorScrollHandler />
-      {/* Mobile: fire glass hover when a surface scrolls into the viewport centre */}
-      <GlassCenterActivation />
       {/* Crash-point probe — active only with ?debug=1 in the URL */}
       <ScrollDebug />
       {/* Background — absolute, anchored to page top */}

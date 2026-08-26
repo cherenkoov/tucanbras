@@ -12,7 +12,6 @@ export default function Hero({ data, trialPlanName, locale }: HeroProps) {
 
       {/* Container — width fits content, glass → solid blue on hover */}
       <div
-        data-glass-center
         className="glass flex w-fit max-[500px]:w-full flex-col gap-0 rounded-feat p-s300"
         style={{
           boxShadow: 'var(--shadow-hero)',

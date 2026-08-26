@@ -5,7 +5,6 @@ import type { PlanCard } from '@/types'
 import { PlanSection, CONFIG } from '@/components/sections/PlanSectionShared'
 
 const SCROLL_PER_CARD = 400
-const PIN_TOP = 168
 
 export default function PlansStack({ plans, locale }: { plans: PlanCard[]; locale: string }) {
   const [activeIndex, setActiveIndex] = useState(0)
@@ -18,7 +17,9 @@ export default function PlansStack({ plans, locale }: { plans: PlanCard[]; local
   const measure = useCallback(() => {
     const heights = cardRefs.current.map(el => el?.offsetHeight ?? 0)
     const maxH = Math.max(...heights)
-    if (maxH > 0) setCardHeight(maxH)
+    // Сравнение со старым значением — обязательное условие наблюдателя ниже: без него
+    // каждый замер писал бы стейт, а каждая запись будила бы наблюдателя.
+    if (maxH > 0) setCardHeight(prev => (Math.abs(prev - maxH) > 0.5 ? maxH : prev))
     // Absolute document offset — offsetTop is relative to the nearest
     // positioned ancestor (<main className="relative">), which would make
     // this far smaller than window.scrollY and jump activeIndex to the last card.
@@ -28,8 +29,22 @@ export default function PlansStack({ plans, locale }: { plans: PlanCard[]; local
 
   useEffect(() => {
     measure()
+    // Наблюдатель за САМИМИ карточками, а не только `resize` окна. Карточки лежат
+    // абсолютно, в высоту коробки стопки не вкладываются, и высота у них доезжает
+    // ПОСЛЕ первого замера — шрифты, декор плашки, перенос подписи кнопки. Замер на
+    // маунте отдавал `cardHeight` меньше настоящей самой высокой карточки (замерено:
+    // 482 против 529.5), коробка стопки оставалась короткой, и карточка вылезала за
+    // низ липкого блока — а он клипует. На экране это и был «тариф то обрезается, то
+    // нет»: резалась только карточка выше устаревшего замера и только после того, как
+    // стопка отлипала (пока она приклеена, её низ совпадает с низом экрана, и линия
+    // среза не видна). Ширина карточек тут ни при чём — наблюдаем ради высоты.
+    const ro = new ResizeObserver(measure)
+    cardRefs.current.forEach(el => el && ro.observe(el))
     window.addEventListener('resize', measure)
-    return () => window.removeEventListener('resize', measure)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', measure)
+    }
   }, [measure])
 
   useEffect(() => {
@@ -46,7 +61,32 @@ export default function PlansStack({ plans, locale }: { plans: PlanCard[]; local
 
   return (
     <div ref={sectionRef} style={{ height: `calc(${(plans.length - 1) * SCROLL_PER_CARD}px + 100dvh)`, overflowX: 'clip' }}>
-      <div className="sticky top-0 flex flex-col justify-center" style={{ height: '100dvh', isolation: 'isolate', overflowX: 'clip' }}>
+      {/*
+        Липнет НЕ к верху вьюпорта, а к нижней грани фиксированного хедера: карточка
+        центруется по ВИДИМОЙ части экрана, а не по всему экрану. С `top-0` + `100dvh`
+        центр стопки совпадал с центром вьюпорта, и на телефоне, где карточка почти во
+        весь экран, её верх (имя тарифа и цена) уходил под хедер.
+
+        Высота — `min-height`, а НЕ `height`, и это не косметика: блок клипует (см.
+        `overflow-x` ниже), поэтому всё, что не влезло, режется. С жёсткой высотой
+        карточка выше оставшейся полосы вылезала за низ коробки и обрезалась — видно
+        это становилось, когда стопка отлипала и линия среза уезжала с нижней грани
+        экрана вверх. С `min-height` коробка растёт под содержимое: полосы хватает —
+        карточка стоит по центру, не хватает — коробка становится ровно по карточке, и
+        свободного места для центрирования просто нет, то есть карточка сама встаёт под
+        хедер, а за низ экрана уходит хвост (точки прогресса), который и так за кадром.
+        Отрицательного свободного места при этом не возникает нигде, поэтому `safe`
+        центрированию тут не нужен.
+      */}
+      <div
+        className="sticky flex flex-col justify-center"
+        style={{
+          top: 'var(--header-offset)',
+          minHeight: 'calc(100dvh - var(--header-offset))',
+          isolation: 'isolate',
+          overflowX: 'clip',
+        }}
+      >
 
         {/* Card stack */}
         <div className="relative" style={{ height: cardHeight }}>

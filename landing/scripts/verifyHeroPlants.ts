@@ -79,17 +79,6 @@ async function main() {
     deviceScaleFactor: 1,
     ...(TOUCH ? { isMobile: true, hasTouch: true } : {}),
   })
-  // Without credentials Notion fails, page.tsx falls back to the snapshot AND renders
-  // <NotionRetry/>, which calls location.reload() three times. Every Playwright context
-  // starts with an empty sessionStorage, so EVERY run got the full storm: measurements
-  // and screenshots landed at random points inside four page loads, which is where the
-  // "Execution context was destroyed" errors and the nonsense pixel diffs came from —
-  // a green run meant the timing happened to work, not that the page was right.
-  // Pre-seeding the counter makes the run deterministic whether or not Notion answers.
-  // Coupled to STORAGE_KEY/MAX_RETRIES in components/ui/NotionRetry.tsx by name.
-  await page.addInitScript(() => {
-    try { sessionStorage.setItem('notion_retry', '99') } catch { /* storage blocked */ }
-  })
   // The dev server serves the devtools' own webfont from /__nextjs_font, and that request
   // can simply never settle — which holds `load` open forever and times the run out with
   // a perfectly healthy page underneath (seen on /ru while /en and /pt sailed through).

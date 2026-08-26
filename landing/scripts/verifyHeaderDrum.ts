@@ -124,13 +124,6 @@ async function main() {
   const browser = await chromium.launch()
   const context = await browser.newContext({ viewport: VIEWPORT })
 
-  // When Notion is unreachable the page ships <NotionRetry>, which reloads up to
-  // three times — mid-run that destroys the execution context and every evaluate
-  // with it. Pre-seed its retry counter so it stands down. Nothing under test
-  // depends on live Notion: labels fall back to notionSnapshot.json and this
-  // script only measures geometry and ordering.
-  await context.addInitScript(() => sessionStorage.setItem('notion_retry', '3'))
-
   const page = await context.newPage()
 
   try {
@@ -448,7 +441,6 @@ async function checkMobileHint(browser: Browser) {
   const context = await browser.newContext({
     viewport: MOBILE_VIEWPORT, hasTouch: true, isMobile: true, deviceScaleFactor: 3,
   })
-  await context.addInitScript(() => sessionStorage.setItem('notion_retry', '3'))
   const page = await context.newPage()
 
   try {

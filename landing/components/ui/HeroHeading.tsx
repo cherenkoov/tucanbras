@@ -17,7 +17,7 @@ import { useEffect, useRef } from 'react'
  *
  * Why it cannot be CSS. The size wanted here is `target ÷ (natural width of this exact
  * string in this exact font)`, and no length unit knows the second term. A `vw` tuned by
- * hand would have to be re-tuned per locale — the lines come from Notion, and Portuguese
+ * hand would have to be re-tuned per locale — the lines come from the CMS, and Portuguese
  * runs a good deal longer than English.
  *
  * The measurement converges in one step because the card's width does NOT depend on the

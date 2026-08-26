@@ -55,12 +55,6 @@ function is(label: string, got: unknown, want: unknown) {
 async function main() {
   const browser = await chromium.launch()
   const page = await browser.newPage({ viewport: VIEWPORT, deviceScaleFactor: 1 })
-  // Without credentials Notion fails, page.tsx falls back to the snapshot AND renders
-  // <NotionRetry/>, which reloads three times — see verifyHeroPlants.ts. Pre-seeding the
-  // counter makes the run deterministic whether or not Notion answers.
-  await page.addInitScript(() => {
-    try { sessionStorage.setItem('notion_retry', '99') } catch { /* storage blocked */ }
-  })
   await page.goto(BASE, { waitUntil: 'load', timeout: 60_000 })
   await page.waitForSelector(`${CTA} img`, { timeout: 15_000 })
   // The plants are <img>; a box measured before decode is 0-sized.

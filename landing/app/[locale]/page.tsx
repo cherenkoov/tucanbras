@@ -13,11 +13,9 @@ import Footer from '@/components/sections/Footer'
 
 import AnchorScrollHandler from '@/components/ui/AnchorScrollHandler'
 import BackgroundCanvas from '@/components/ui/background/BackgroundCanvas'
-import NotionRetry from '@/components/ui/NotionRetry'
 import ScrollDebug from '@/components/ui/ScrollDebug'
 import { getTutors } from '@/lib/tutors'
 import { getStubTutors } from '@/lib/tutorStubs'
-import { uiLabels } from '@/lib/uiLabels'
 import {
   getHeaderData,
   getHeroData,
@@ -27,13 +25,12 @@ import {
   getCelpeBrasData,
   getPlansData,
   getFooterData,
-} from '@/lib/notion'
-import snapshot from '@/lib/notionSnapshot.json'
+} from '@/lib/content'
 
-// Anchor hrefs are structural — labels come from Notion
+// Anchor hrefs are structural — labels come from the CMS
 const NAV_HREFS = ['#about', '#tutors', '#celpe-bras', '#plans']
 
-// Trial-lesson price word — no Notion field, localized inline
+// Trial-lesson price word — no CMS field, localized inline
 const FREE_LABEL: Record<Locale, string> = { ru: 'бесплатно', en: 'free', pt: 'grátis' }
 
 export function generateStaticParams() {
@@ -54,7 +51,7 @@ export default async function Home({
     notFound()
   }
 
-  const [notionHeader, notionHero, notionAbout, notionComparison, notionTutors] = await Promise.all([
+  const [headerData, heroData, aboutData, comparisonData, tutorsData] = await Promise.all([
     getHeaderData(locale),
     getHeroData(locale),
     getAboutData(locale),
@@ -62,50 +59,28 @@ export default async function Home({
     getTutorsData(locale),
   ])
 
-  const [notionCelpeBras, notionPlans, notionFooter, tutors] = await Promise.all([
+  const [celpeBrasData, plansData, footerData, tutors] = await Promise.all([
     getCelpeBrasData(locale),
     getPlansData(locale),
     getFooterData(locale),
     getTutors(locale).catch(() => []),
   ])
 
-  const notionFailed = !notionHeader.nav0
-  const snap = (snapshot as Record<string, typeof snapshot.ru>)[locale]
-
-  // Per-section fallback. A PARTIAL Notion response (header OK, but some other row empty or
-  // missing) sails past the coarse notionFailed flag and blanks that section — that is exactly
-  // how CELPE-BRAS lost its heading/hint (2026-07-19). So each section independently falls back
-  // to the snapshot when its own primary field is empty. The snapshot is the source of truth we
-  // are migrating to; live Notion only wins when it actually returned content for that section.
-  const headerData    = notionFailed ? snap.header : notionHeader
-  const heroData      = notionFailed || !notionHero.heading1      ? snap.hero       : notionHero
-  const aboutData     = notionFailed || !notionAbout.message1     ? snap.about      : notionAbout
-  const comparisonData = notionFailed || !notionComparison.heading ? snap.comparison : notionComparison
-  const tutorsData    = notionFailed || !notionTutors.heading1    ? snap.tutors     : notionTutors
-  const celpeBrasData = notionFailed || !notionCelpeBras.heading  ? snap.celpeBras  : notionCelpeBras
-  const plansData     = notionFailed || notionPlans.plans.length === 0 ? snap.plans : notionPlans
-  const footerData    = notionFailed ? snap.footer : notionFooter
-
   const displayTutors = tutors.length > 0 ? tutors : getStubTutors(locale)
 
   // Одна строка на два места: первый пункт списка тарифов в футер-форме И значение,
   // которым hero-CTA стреляет в `plan-selected`. FooterForm принимает событие только
-  // если тариф есть в `planNames`, так что разъехаться им нельзя. Пофайловый фолбэк —
-  // как у секций выше: частичный ответ Notion обнулил бы поле, и кнопка выбирала бы
-  // пустой тариф.
-  const trialPlanName = footerData.formFreeLessonOption || snap.footer.formFreeLessonOption
+  // если тариф есть в `planNames`, так что разъехаться им нельзя. Пофайловый фолбэк
+  // на снапшот теперь внутри `lib/content.ts` — сюда поле приходит уже разрешённым.
+  const trialPlanName = footerData.formFreeLessonOption
 
   const navLinks = NAV_HREFS.map((href, i) => ({
     href,
-    // "Туторы"/"Tutors"/"Tutores" is owned in code (uiLabels), not Notion — the
-    // rebrand must render regardless of the live Notion "Репетиторы". Other nav
-    // labels still come from the CMS until the Phase 2 content migration.
-    label: href === '#tutors' ? uiLabels(locale).tutorsNav : headerData[`nav${i}` as keyof typeof headerData],
+    label: headerData[`nav${i}` as keyof typeof headerData],
   }))
 
   return (
     <div className="relative" style={{ overflow: 'clip' }}>
-      {notionFailed && <NotionRetry />}
       <AnchorScrollHandler />
       {/* Crash-point probe — active only with ?debug=1 in the URL */}
       <ScrollDebug />

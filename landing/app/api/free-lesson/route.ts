@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Client as NotionClient } from '@notionhq/client'
 import { sendWelcomeEmail } from '@/lib/email'
 import { isLocale } from '@/lib/locales'
 import pool from '@/lib/db'
@@ -58,8 +57,6 @@ const MAX_PLAN = 100
 
 // ─── Integrations ─────────────────────────────────────────────────────────────
 
-const notion = new NotionClient({ auth: process.env.NOTION_TOKEN })
-
 async function sendTelegramNotification(
   name: string, telegram: string, email: string,
   tutorId: number | null, plan: string, source: string,
@@ -85,26 +82,6 @@ async function sendTelegramNotification(
     body:    JSON.stringify({ chat_id: chatId, text }),
   })
   if (!res.ok) throw new Error(`Telegram error ${res.status}`)
-}
-
-async function saveToNotion(
-  name: string, telegram: string, email: string,
-  tutorId: number | null, plan: string, locale: string,
-) {
-  const dbId = process.env.NOTION_LEADS_DB_ID
-  if (!dbId) return
-
-  await notion.pages.create({
-    parent: { database_id: dbId },
-    properties: {
-      Name:     { title: [{ text: { content: name } }] },
-      Email:    { email: email || null },
-      Telegram: { rich_text: telegram ? [{ text: { content: telegram } }] : [] },
-      Учитель:  { rich_text: tutorId != null ? [{ text: { content: String(tutorId) } }] : [] },
-      Тариф:    plan   ? { select: { name: plan } }   : { select: null },
-      Язык:     locale ? { select: { name: locale } } : { select: null },
-    },
-  })
 }
 
 async function saveToPostgres(
@@ -171,17 +148,13 @@ export async function POST(req: NextRequest) {
       : null
 
   // Storage first-class, notifications best-effort: the response reflects
-  // whether the lead was actually persisted anywhere. Notion is only counted
-  // as storage when it's configured — otherwise its no-op would read as a
-  // successful save and mask a Postgres failure with a 200.
-  const storageNames: string[] = []
-  const storageTasks: Promise<unknown>[] = []
-  if (process.env.NOTION_LEADS_DB_ID) {
-    storageNames.push('notion')
-    storageTasks.push(saveToNotion(name, telegram, email, tutorId, plan, locale))
-  }
-  storageNames.push('postgres')
-  storageTasks.push(saveToPostgres(name, telegram, email, tutorId, plan, source))
+  // whether the lead was actually persisted anywhere. Postgres is the only
+  // storage — Telegram and Resend are notifications, and their failure must
+  // never turn a saved lead into an error (nor a lost lead into a 200).
+  const storageNames: string[] = ['postgres']
+  const storageTasks: Promise<unknown>[] = [
+    saveToPostgres(name, telegram, email, tutorId, plan, source),
+  ]
   const notifyTasks: Promise<unknown>[] = []
   if (telegram) notifyTasks.push(sendTelegramNotification(name, telegram, email, tutorId, plan, source))
   if (email)    notifyTasks.push(sendWelcomeEmail(email, name, locale))

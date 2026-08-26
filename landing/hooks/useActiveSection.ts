@@ -111,7 +111,7 @@ export function useActiveSection(hrefs: string[]): {
       setActive(next)
     }
 
-    // One passive listener, coalesced into a frame — same shape as GlassCenterActivation.
+    // One passive listener, coalesced into a frame.
     const onScroll = () => {
       if (raf) return
       raf = requestAnimationFrame(() => { raf = 0; update() })

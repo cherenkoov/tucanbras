@@ -27,7 +27,6 @@ export default function FeatureCard({ index, title, icon, bg, tint, text }: {
 }) {
   return (
     <div
-      data-glass-center
       data-adaptive-cover={bg}
       onPointerDown={bloomOnTap}
       /* `group/card` is NAMED: the plant inside answers to this card's hover, and an

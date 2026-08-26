@@ -213,8 +213,9 @@ if (DESKTOP) {
   // сгенерирован», то есть гард врал бы на ровном месте. Двигаем, пока сама карточка не
   // отчитается `:hover`.
   await page.evaluate(() => {
-    [...document.querySelectorAll<HTMLElement>('[data-glass-center]')]
-      .find(e => e.offsetWidth > 0 && e.querySelector('[data-plan-plant]'))
+    [...document.querySelectorAll<HTMLElement>('[data-plan-plant]')]
+      .find(e => e.offsetWidth > 0)
+      ?.closest<HTMLElement>('.group')
       ?.scrollIntoView({ block: 'center' })
   })
   // Проверяется НАЛИЧИЕ ПРАВИЛА, а не живое наведение мышью. Симуляция курсора здесь

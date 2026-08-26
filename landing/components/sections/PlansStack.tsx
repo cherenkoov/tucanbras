@@ -5,7 +5,6 @@ import type { PlanCard } from '@/types'
 import { PlanSection, CONFIG } from '@/components/sections/PlanSectionShared'
 
 const SCROLL_PER_CARD = 400
-const PIN_TOP = 168
 
 export default function PlansStack({ plans, locale }: { plans: PlanCard[]; locale: string }) {
   const [activeIndex, setActiveIndex] = useState(0)
@@ -46,7 +45,29 @@ export default function PlansStack({ plans, locale }: { plans: PlanCard[]; local
 
   return (
     <div ref={sectionRef} style={{ height: `calc(${(plans.length - 1) * SCROLL_PER_CARD}px + 100dvh)`, overflowX: 'clip' }}>
-      <div className="sticky top-0 flex flex-col justify-center" style={{ height: '100dvh', isolation: 'isolate', overflowX: 'clip' }}>
+      {/*
+        Липнет НЕ к верху вьюпорта, а к нижней грани фиксированного хедера, и высоту
+        берёт ровно ту, что от экрана остаётся: карточка центруется по ВИДИМОЙ части,
+        а не по всему экрану. С `top-0` + `100dvh` центр стопки совпадал с центром
+        вьюпорта, и на телефоне, где карточка почти во весь экран, её верх (имя тарифа
+        и цена) уходил под хедер.
+
+        `safe center` вместо `center`: когда карточка ВЫШЕ оставшейся полосы, обычное
+        центрирование выпихивает её в обе стороны разом — и верх снова прячется под
+        хедером. `safe` в этом случае прижимает к началу, то есть к нижней грани
+        хедера, и срезается низ (точки прогресса), а не заголовок. Браузер без
+        поддержки просто отбросит объявление и получит flex-start — тот же фолбэк.
+      */}
+      <div
+        className="sticky flex flex-col"
+        style={{
+          top: 'var(--header-offset)',
+          height: 'calc(100dvh - var(--header-offset))',
+          justifyContent: 'safe center',
+          isolation: 'isolate',
+          overflowX: 'clip',
+        }}
+      >
 
         {/* Card stack */}
         <div className="relative" style={{ height: cardHeight }}>

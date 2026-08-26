@@ -120,7 +120,6 @@ export function PlanSection({ plan, index, locale }: { plan: PlanCard; index: nu
 
   return (
     <div
-      data-glass-center
       /* Тап взводит `[data-tapped]` на 900ms — на телефоне это стенд-ин для hover, к
          которому обращается декор плашки (см. ZOOM_PLATE в PlanDecor). Мышь тут no-op. */
       onPointerDown={bloomOnTap}
@@ -138,7 +137,7 @@ export function PlanSection({ plan, index, locale }: { plan: PlanCard; index: nu
       */}
       <div
         aria-hidden
-        className="hidden lg:block absolute inset-0 pointer-events-none backdrop-blur-[4px] group-hover:backdrop-blur-none group-[.is-center]:backdrop-blur-none"
+        className="hidden lg:block absolute inset-0 pointer-events-none backdrop-blur-[4px] group-hover:backdrop-blur-none"
         style={{
           WebkitMaskImage: `url(${BG[index]})`,
           WebkitMaskSize: '100% 100%',
@@ -150,7 +149,7 @@ export function PlanSection({ plan, index, locale }: { plan: PlanCard; index: nu
       />
       {/* Mobile SVG colored plate (custom notch shape); transparent notch reveals card below — translucent, solid on hover */}
       <div
-        className="lg:hidden absolute inset-0 opacity-80 group-hover:opacity-100 group-[.is-center]:opacity-100 transition-opacity duration-[600ms]"
+        className="lg:hidden absolute inset-0 opacity-80 group-hover:opacity-100 transition-opacity duration-[600ms]"
         style={{
           backgroundImage: `url(${MOBILE_BG[index]})`,
           backgroundSize: '100% 100%',
@@ -159,7 +158,7 @@ export function PlanSection({ plan, index, locale }: { plan: PlanCard; index: nu
       />
       {/* Desktop SVG colored plate (custom notch shape + preserveAspectRatio="none"); translucent, solid on hover */}
       <div
-        className="hidden lg:block absolute inset-0 opacity-80 group-hover:opacity-100 group-[.is-center]:opacity-100 transition-opacity duration-[600ms]"
+        className="hidden lg:block absolute inset-0 opacity-80 group-hover:opacity-100 transition-opacity duration-[600ms]"
         style={{
           backgroundImage: `url(${BG[index]})`,
           backgroundSize: '100% 100%',

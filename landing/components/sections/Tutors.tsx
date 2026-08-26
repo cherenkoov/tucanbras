@@ -39,8 +39,8 @@ function TutorCard({
   // Card cover hue: amber when selected, green otherwise. Keep the frosted /80 base
   // plus solidify-on-hover/center; only the hue changes (transition-colors animates it).
   const coverClass = selected
-    ? 'bg-[#f69137]/80 group-hover:bg-[#f69137] group-[.is-center]:bg-[#f69137]'
-    : 'bg-[#8fd096]/80 group-hover:bg-[#8fd096] group-[.is-center]:bg-[#8fd096]'
+    ? 'bg-[#f69137]/80 group-hover:bg-[#f69137]'
+    : 'bg-[#8fd096]/80 group-hover:bg-[#8fd096]'
 
   // Chip = the cursor button (desktop) and the tap chip (mobile). Colours/label by state.
   const chip = justDeselected
@@ -127,7 +127,6 @@ function TutorCard({
 
       {/* Card body — content defines height; glass cover sits behind it */}
       <div
-        data-glass-center
         data-adaptive-cover={selected ? '#f69137' : '#8fd096'}
         className="group relative z-10 px-[12px] pb-[24px]"
         style={{ paddingTop: 'calc(var(--edge-h) + 16px)' }}

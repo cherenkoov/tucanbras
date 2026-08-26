@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import type { FooterProps, FaqGroup as FaqGroupType } from '@/types'
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
 import FooterForm from '@/components/ui/FooterForm'
@@ -13,6 +14,14 @@ const IMG_SOCIAL_IG = '/SVG/footer/instagram.svg'
 const IMG_SOCIAL_YT = '/SVG/footer/youtube.svg'
 // Arrow icon (bxs:up-arrow). Base state = up, closed accordion = rotate-180 (down).
 const ICON_ARROW    = '/SVG/footer/arrow.svg'
+
+// ─── Геометрия карточки футера ────────────────────────────────────────────────
+// Радиус карточки и её отступ объявлены ЗДЕСЬ, а не только в классе/стиле: от этой
+// же пары считается маска логотипа (см. ниже), и разъехаться им нельзя. Отступ
+// уезжает в кастомное свойство `--footer-card-pad`, чтобы формула ниже читала ровно
+// то число, которым карточка отбита на текущей ширине.
+const CARD_RADIUS = 48                        // = --radius-2xl
+const CARD_PAD    = 'clamp(12px, 4vw, 36px)'  // отступ карточки: и по бокам, и сверху
 
 // Live social URLs, keyed by socialLinks label. Anything not listed here renders
 // as an inactive (dimmed, non-clickable) icon until its channel goes live.
@@ -114,12 +123,13 @@ export default function Footer({ data, tutors, planNames, planPrices, locale }: 
 
         {/* ══ Footer content card — glass → solid on hover ══ */}
         <div
-          data-glass-center
-          className="glass relative z-[2] rounded-[48px] overflow-hidden flex flex-col gap-[64px]"
+          className="glass relative z-[2] overflow-hidden flex flex-col gap-[64px]"
           style={{
             boxShadow: '0px 2px 4px 0px rgba(0,0,0,0.18), inset 0px 4px 4px 0px rgba(255,255,255,0.25)',
-            padding: 'clamp(12px, 4vw, 36px)',
-          }}
+            '--footer-card-pad': CARD_PAD,
+            borderRadius: `${CARD_RADIUS}px`,
+            padding: 'var(--footer-card-pad)',
+          } as CSSProperties}
         >
 
           <FooterDecor />
@@ -129,12 +139,25 @@ export default function Footer({ data, tutors, planNames, planPrices, locale }: 
 
           {/* ── Logo + description ── */}
           <div className="relative flex flex-wrap items-center justify-center gap-[30px]">
-            {/* Logo */}
-            <div className="flex-1 min-w-[280px]">
+            {/* Logo — маска со скруглёнными ВЕРХНИМИ углами.
+                Надпись упирается своим левым верхним углом ровно в угол контентной
+                области карточки (первый блок в колонке, отбитой на `--footer-card-pad`),
+                и её прямой угол спорил с кривой самой карточки. Радиус маски — вложенная
+                формула проекта R_inner = R_outer − отступ (та же, что у hero-CTA и
+                контролов футер-формы, см. globals.css): отступ карточки одинаков по бокам
+                и сверху, поэтому оба верхних угла маски концентричны её углам.
+                Нижние углы прямые: снизу надпись ни во что не упирается. */}
+            <div
+              className="flex-1 min-w-[280px] overflow-hidden"
+              style={{
+                borderTopLeftRadius:  `calc(${CARD_RADIUS}px - var(--footer-card-pad))`,
+                borderTopRightRadius: `calc(${CARD_RADIUS}px - var(--footer-card-pad))`,
+              }}
+            >
               <img
                 src={IMG_LOGO}
                 alt="TucanBRAS"
-                className="w-full h-auto"
+                className="block w-full h-auto"
               />
             </div>
             {/* Description */}

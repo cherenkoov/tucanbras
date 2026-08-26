@@ -17,7 +17,6 @@ export default function About({ data }: AboutProps) {
   return (
     <section id="about" className="w-full scroll-mt-[136px] lg:scroll-mt-[164px]">
       <div
-        data-glass-center
         className="glass flex flex-col gap-[12px] overflow-visible min-[740px]:overflow-hidden rounded-[38px] p-[12px] max-w-[1720px] mx-auto w-full"
         style={{
           boxShadow: 'var(--shadow-hero)',
@@ -31,7 +30,6 @@ export default function About({ data }: AboutProps) {
 
           {/* Inspiration heading */}
           <div
-            data-glass-center
             className="about-inspiration glass relative z-20 flex flex-col gap-0 items-center w-full rounded-[26px] p-[36px] overflow-visible"
             style={{
               boxShadow: 'var(--shadow-hero)',
@@ -70,7 +68,6 @@ export default function About({ data }: AboutProps) {
 
           {/* CTA block — spans both grid rows at desktop */}
           <div
-            data-glass-center
             className="about-cta glass relative flex flex-col overflow-hidden rounded-[26px] p-[36px]"
             style={{
               boxShadow: 'var(--shadow-hero)',
@@ -166,7 +163,6 @@ export default function About({ data }: AboutProps) {
 
         {/* Motivation quote — full-width, outside grid */}
         <div
-          data-glass-center
           className="glass flex flex-col items-center justify-center rounded-[26px] p-[36px] w-full z-10"
           style={{
             boxShadow: 'var(--shadow-hero)',

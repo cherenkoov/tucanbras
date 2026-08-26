@@ -310,7 +310,6 @@ export default function FooterForm({ formTitle, tutors, planNames, planPrices, l
     <form
       onSubmit={handleContinue}
       noValidate
-      data-glass-center
       // Radius budget: this surface is 48px (--radius-2xl) and every nested inset
       // spends from it — 48 − 20 = 28px (--radius-card) for the controls below.
       // The padding can never exceed the radius; the old clamp(…, 4vw, 36px)

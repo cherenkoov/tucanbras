@@ -1,5 +1,5 @@
 /**
- * Normalize an image URL pasted into Notion into something an <img> / next/image
+ * Normalize an admin-pasted image URL into something an <img> / next/image
  * can actually render.
  *
  * Admins paste Google Drive *share* links (e.g. `…/file/d/<id>/view?usp=…`), which
@@ -12,7 +12,7 @@
  * Non-Drive URLs (and local `/PNG/...` paths from the stubs) pass through untouched.
  */
 
-// Matches the file id in the shapes Drive/Notion produce:
+// Matches the file id in the shapes Drive produces:
 //   /file/d/<id>/view   ?id=<id>   &id=<id>   /d/<id>  (already-CDN form)
 const DRIVE_ID = /(?:\/file\/d\/|[?&]id=|\/d\/)([a-zA-Z0-9_-]{20,})/
 

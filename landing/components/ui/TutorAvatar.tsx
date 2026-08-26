@@ -4,8 +4,8 @@ import Image from 'next/image'
 import { canOptimizeImage } from '@/lib/optimizableImage'
 import type { TutorRef } from '@/types'
 
-// Round tutor avatar with an initials fallback. Shared by FooterForm and
-// FreeLessonModal — keep it here so the two forms can't drift apart.
+// Round tutor avatar with an initials fallback. Shared by FooterForm and the
+// Tutors carousel — the landing's only two places that show a tutor's face.
 export default function TutorAvatar({ tutor, size = 40 }: { tutor: TutorRef; size?: number }) {
   const initials = tutor.fullName
     .split(' ')

@@ -6,7 +6,7 @@ import CelpeBrasCta from '@/components/sections/CelpeBrasCta'
 import AdaptiveText from '@/components/ui/AdaptiveText'
 import FeatureCard from '@/components/ui/FeatureCard'
 
-// ─── Passport intro (asset + localized quote — NOT from Notion) ──────────────
+// ─── Passport intro (asset + localized quote — NOT from the CMS) ─────────────
 const PASSPORT_IMG = '/PNG/celpe/brazil-passport.png'
 
 const PASSPORT: Record<Locale, { quote: string; alt: string }> = {

@@ -1,5 +1,5 @@
 // TypeScript interfaces for all 8 sections of TucanBRAS landing page.
-// Content comes from Notion (see lib/notion.ts). Only structure & nav are hardcoded.
+// Content comes from Postgres (see lib/content.ts). Only structure & nav are hardcoded.
 
 export type Locale = 'ru' | 'en' | 'pt'
 
@@ -32,7 +32,7 @@ export interface HeaderProps {
 export interface HeroData {
   heading1: string;
   heading2: string;
-  ctaText: string; // из Notion, БОЛЬШЕ НЕ РЕНДЕРИТСЯ — надпись CTA владеет uiLabels.tryFree
+  ctaText: string; // из CMS, БОЛЬШЕ НЕ РЕНДЕРИТСЯ — надпись CTA владеет uiLabels.tryFree
   ctaHref: string; // TODO: TBD
 }
 
@@ -80,22 +80,6 @@ export interface TutorsData {
   ctaHref: string; // TODO: TBD
   specLabel: string;   // "Специализации" / "Specializations" / "Especializações"
   selectLabel: string; // "Выбрать" / "Select" / "Selecionar"
-}
-
-// ─── FreeLessonModal strings ──────────────────────────────────────────────────
-export interface FreeLessonModalStrings {
-  title: string;
-  tutorPh: string;
-  namePh: string;
-  telegramPh: string;
-  emailPh: string;
-  submit: string;
-  successMsg: string;
-  errorMsg: string;
-  nameError: string;
-  telegramError: string;
-  contactError: string; // shown when neither telegram nor email is filled
-  emailError: string;   // shown when email format is invalid
 }
 
 export interface TutorsProps {
@@ -167,7 +151,7 @@ export interface FooterData {
   legalTitle: string;
   copyright: string;
   allRightsReserved: string;
-  faqGroups: FaqGroup[];  // 3 groups — from Notion
+  faqGroups: FaqGroup[];  // 3 groups — from the CMS
   policyLinks: { label: string; href: string }[];
   socialLinks: { label: string; href: string; iconUrl: string }[];
 }
@@ -175,7 +159,7 @@ export interface FooterData {
 export interface FooterProps {
   data: FooterData;
   tutors: TutorRef[];
-  planNames: string[];  // formFreeLessonOption prepended, then plan names from Notion
+  planNames: string[];  // formFreeLessonOption prepended, then plan names from the CMS
   planPrices: Record<string, string>;  // plan name → price label (trial → localized "free")
   locale: string;
 }

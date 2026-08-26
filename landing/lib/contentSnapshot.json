@@ -242,20 +242,6 @@
           "iconUrl": "/SVG/footer/youtube.svg"
         }
       ]
-    },
-    "modal": {
-      "title": "Записаться на бесплатный урок",
-      "tutorPh": "Выбрать преподавателя",
-      "namePh": "Ваше имя",
-      "telegramPh": "Ваш Telegram",
-      "emailPh": "Email (необязательно)",
-      "submit": "Записаться",
-      "successMsg": "Спасибо! Переходим в бот…",
-      "errorMsg": "Что-то пошло не так. Попробуйте ещё раз.",
-      "nameError": "Пожалуйста, введите ваше имя",
-      "telegramError": "Пожалуйста, введите Telegram username",
-      "contactError": "Укажите Telegram или email",
-      "emailError": "Введите корректный email"
     }
   },
   "en": {
@@ -501,20 +487,6 @@
           "iconUrl": "/SVG/footer/youtube.svg"
         }
       ]
-    },
-    "modal": {
-      "title": "Sign up for a free lesson",
-      "tutorPh": "Choose a tutor",
-      "namePh": "Your name",
-      "telegramPh": "Your Telegram",
-      "emailPh": "Email (optional)",
-      "submit": "Sign up",
-      "successMsg": "Thank you! Redirecting to bot…",
-      "errorMsg": "Something went wrong. Please try again.",
-      "nameError": "Please enter your name",
-      "telegramError": "Please enter your Telegram username",
-      "contactError": "Please enter Telegram or email",
-      "emailError": "Please enter a valid email"
     }
   },
   "pt": {
@@ -760,20 +732,6 @@
           "iconUrl": "/SVG/footer/youtube.svg"
         }
       ]
-    },
-    "modal": {
-      "title": "Inscreva-se para uma aula gratuita",
-      "tutorPh": "Escolha um professor",
-      "namePh": "Seu nome",
-      "telegramPh": "Seu Telegram",
-      "emailPh": "E-mail (opcional)",
-      "submit": "Inscrever-se",
-      "successMsg": "Obrigado! Redirecionando para o bot…",
-      "errorMsg": "Algo deu errado. Tente novamente.",
-      "nameError": "Por favor, insira seu nome",
-      "telegramError": "Por favor, insira seu usuário do Telegram",
-      "contactError": "Por favor, informe o Telegram ou email",
-      "emailError": "Por favor, insira um email válido"
     }
   }
 }

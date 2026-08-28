@@ -27,9 +27,13 @@ TucanBRAS/
           └── локальный PostgreSQL `tukan` (общая БД)
 ```
 
-- **Notion** — административный хаб: управление анкетами учителей
+- **админка tucan** — административный хаб на VPS (`tucanbras.com/tukanapp/`, CRA-статика
+  за nginx, pm2-процесса нет): модерация анкет учителей и раздел «Контент лендинга»,
+  где правятся тексты всех секций сайта. Заменила Notion, от которого отказались
+  решением владельца 2026-07-17 (Фазы 1–2 в проде с 2026-08-28)
 - **PostgreSQL `tukan`** — локальная БД на VPS, общая для бота и лендинга
-  (лендинг переехал с временной внешней БД; таблицы `TeacherAnketas`, `leads`)
+  (лендинг переехал с временной внешней БД; таблицы `TeacherAnketas`, `leads`,
+  `LandingContents` — тексты секций лендинга, 8 секций × 3 локали)
 - **tucan-bot** — Telegram-бот + Express API (порт 9000, отдельный репозиторий
   `Raison231/tucan-bot`, локально `c:\active-projects\tucan-bot`); backend для mini-app.
   На старте делает `sequelize.sync({ alter: { drop: false } })` — все колонки,
@@ -48,13 +52,19 @@ TucanBRAS/
 |---|---|---|
 | `DB_HOST`/`DB_NAME`/`DB_USER`/`DB_PASSWORD` | tucan-bot, landing | локальный PostgreSQL `tukan` на VPS (лендинг: ветка без TLS в `lib/db.ts`) |
 | `DATABASE_URL` | landing (legacy) | внешняя БД с TLS-проверкой — временная, выведена из использования |
-| `NOTION_TOKEN` | tucan-bot, landing | Notion integration token |
-| `NOTION_TEACHERS_DB_ID` | tucan-bot, landing | ID базы учителей в Notion |
+| `REVALIDATE_SECRET` | tucan-bot, landing | общий секрет хука ревалидации; на лендинге без него роут отвечает 401 всегда |
+| `LANDING_REVALIDATE_URL` | tucan-bot | куда бот стучится после сохранения контента. На VPS локальный `http://127.0.0.1:3001/api/revalidate` — лендинг живёт соседним процессом, ходить наружу через nginx и TLS незачем. Публичный `https://tucanbras.com/api/revalidate` — на случай переезда лендинга на другой хост |
 | `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` | landing | уведомления о лидах: бот-отправитель и чат-получатель |
 | `BOT_BASE_URL` | landing | база для фото учителей (`/static/...`), обычно `https://api.tucanbras.com` |
 | `NEXT_PUBLIC_ONBOARDING_URL` | landing | база URL онбординга приложения; кнопка «Continue» в футере ведёт сюда с `?tutor&plan&locale` (build-time inline, `NEXT_PUBLIC_`) |
 
 **Важно:** `.env` файлы не коммитятся в git. Секреты живут в `.env` на VPS.
+
+> **Грабля админки:** в `/var/www/tucan` незакоммичены `package.json` (там дописан
+> `"homepage": "/tukanapp"` — именно он сажает приложение на подпуть) и `package-lock.json`
+> (его переписывает каждый `npm install`). Перед `git pull` откатывать **только лок**:
+> тронешь `package.json` — сборка уедет в корень и админка на `/tukanapp/` отвалится.
+> `npm ci` там падает: лок на `main` протух.
 
 ## Деплой
 
@@ -64,13 +74,14 @@ TucanBRAS/
 |---|---|
 | landing | `cd /var/www/tucanbras-landing && git pull origin main && cd landing && npm ci && npm run build && pm2 restart tucanbras-landing` |
 | tucan-bot | `cd /var/www/tucan-bot && git pull && npm install && pm2 restart tucan-bot` |
+| tucan (админка) | `cd /var/www/tucan && git checkout -- package-lock.json && git pull && npm install && npm run build` — статику подхватит nginx, pm2-процесса нет |
 | mini-app | статика: `npm run build` в `mini-app/tucan/`, раздаётся ботом или отдельным хостингом |
 
 Security-заголовки лендинга (CSP, HSTS и т.д.) отдаёт `headers()` в `landing/next.config.ts`.
 
 ## Подробная документация
 
-- `landing/CLAUDE.md` — Next.js лендинг: стек, секции, Notion CMS, анимации
+- `landing/CLAUDE.md` — Next.js лендинг: стек, секции, контент из БД, анимации
 - `bot-main/CLAUDE.md` — бот: Express API, Sequelize, Telegram-команды, Notion интеграция
 - `mini-app/` — CLAUDE.md отсутствует, см. ниже
 

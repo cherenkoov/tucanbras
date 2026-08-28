@@ -15,7 +15,7 @@
 | Runtime | React | 19.2.4 |
 | Language | TypeScript | 5.x strict |
 | Styling | Tailwind CSS | v4 (PostCSS) |
-| CMS | Notion API (`@notionhq/client`) | 5.17.0 |
+| CMS | Postgres `LandingContents` + раздел «Контент лендинга» в админке tucan | — |
 | Database | PostgreSQL (`pg`) | 8.20.0 — общая БД `tukan` тукан-бота на VPS |
 | Email | Resend | 6.12.0 |
 | Deploy | VPS: `next start` за nginx, pm2 `tucanbras-landing` | см. корневой CLAUDE.md |
@@ -30,7 +30,8 @@ Tailwind v4 не имеет `tailwind.config.ts` — все токены (цве
 tucanbras/
 ├── app/
 │   ├── [locale]/page.tsx        # Собирает секции; генерирует статику для ru/en/pt
-│   ├── api/free-lesson/route.ts # Lead capture: Notion + PostgreSQL + Telegram + email
+│   ├── api/free-lesson/route.ts # Lead capture: PostgreSQL + Telegram + email
+│   ├── api/revalidate/route.ts   # Хук бота: пересобрать /ru /en /pt после правки контента
 │   ├── layout.tsx               # Root layout, metadata
 │   └── globals.css              # Дизайн-токены, шрифты, CSS-анимации
 ├── components/
@@ -53,7 +54,6 @@ tucanbras/
 │       │   ├── Scene3Beach.tsx
 │       │   ├── Scene4Cliff.tsx
 │       │   └── SceneTransition.tsx
-│       ├── FreeLessonModal.tsx
 │       ├── FooterForm.tsx
 │       ├── FernAnimated.tsx
 │       ├── HibiscusUpAnimated.tsx
@@ -64,7 +64,10 @@ tucanbras/
 ├── hooks/
 │   └── useScrollAnimation.ts   # Общий RAF + scroll hook с idle detection
 ├── lib/
-│   ├── notion.ts               # Данные всех секций из Notion
+│   ├── content.ts              # Данные всех секций из Postgres (замена notion.ts)
+│   ├── contentResolve.ts       # Слияние строки из БД со снапшотом, пофайловый фолбэк
+│   ├── contentSnapshot.json    # Запечённый контент — фолбэк, когда БД недоступна
+│   ├── links.ts                # activeHref: '#' и пустая строка = «канал не запущен»
 │   ├── tutors.ts               # PostgreSQL запрос репетиторов
 │   ├── db.ts                   # PostgreSQL connection pool
 │   └── email.ts                # Resend welcome emails (ru/en/pt)
@@ -133,16 +136,36 @@ tucanbras/
 
 ---
 
-## Notion как CMS — правила работы
+## Контент из БД (`LandingContents`)
 
-Весь контент берётся из Notion через `lib/notion.ts`. Тексты секций **не хардкодятся** в компонентах.
+Весь контент берётся из Postgres через `lib/content.ts`. Тексты секций **не хардкодятся**
+в компонентах. Правятся в админке tucan: кабинет админа → «Контент лендинга».
 
-**Что идёт из Notion:**
+Таблицей владеет бот: `LandingContents (section, locale, data JSONB)`, уникальный индекс
+`(section, locale)`, **8 секций × 3 локали = 24 строки**. `data` лежит РОВНО в форме
+интерфейсов `types/index.ts` — лендинг читает её без маппинга.
+
+**Фолбэк.** `lib/contentResolve.ts` сливает строку из БД с `lib/contentSnapshot.json`
+пополе: форму результата задаёт СНАПШОТ, пустое значение из БД считается отсутствующим и
+добирается из него. Поэтому `next build` проходит с выключенным Postgres, а частичная
+строка не обнуляет секцию целиком (так CELPE-BRAS однажды терял заголовок).
+
+**Правка появляется сразу, а не через час ISR:** после сохранения бот дёргает
+`POST /api/revalidate` с заголовком `x-revalidate-secret`, роут пересобирает `/ru /en /pt`.
+Хук в боте не бросает — упавший лендинг не мешает админу сохранить текст.
+
+**Что идёт из CMS:**
 - Тексты заголовков и описаний всех секций
-- Карточки репетиторов (имя, языки, описание, теги)
-- Тарифы (название, цена, описание, CTA-текст, буллеты)
+- Тарифы (название, цена, подзаголовок, CTA-текст, 1–4 буллета «что входит»)
 - FAQ (вопросы и ответы)
 - CELPE-BRAS карточки
+- Ссылки футера: юридические документы и соцсети (`href` = `#` → пункт приглушён, «скоро»)
+
+**Границы, которые держит форма админки, а не бот:** тарифов не больше 4
+(`PlanSectionShared` индексирует `CONFIG`/`BG` — массивы из четырёх), пунктов «что входит»
+от 1 до 4. Меняешь эти пределы в коде лендинга — правь и `landingSchema.js` в админке.
+
+**Карточки репетиторов идут НЕ отсюда**, а из `TeacherAnketas` через `lib/tutors.ts`.
 
 **Что хардкодится в коде:**
 - Структура навигации и якорные ссылки
@@ -155,9 +178,11 @@ tucanbras/
 
 ## Формы и захват лидов
 
-Два входа: `FreeLessonModal` (popup) и `FooterForm` (встроенная форма).
-Оба POST на `/api/free-lesson`.
-Пайплайн: Notion → PostgreSQL → Telegram-уведомление → Resend welcome email.
+Один вход: `FooterForm` (встроенная форма в футере), POST на `/api/free-lesson`.
+Пайплайн: PostgreSQL → Telegram-уведомление → Resend welcome email.
+
+> `FreeLessonModal` удалён (решение владельца 2026-07-28): с момента редизайна он нигде не
+> монтировался. Секции `modal` нет ни в CMS, ни в снапшоте.
 
 ---
 
@@ -173,7 +198,7 @@ tucanbras/
 
 - Порядок секций фиксирован — не менять
 - Названия пунктов меню фиксированы — не менять
-- CTA-тексты берутся из Notion — не хардкодить
+- CTA-тексты берутся из CMS — не хардкодить
 - Мобильная версия обязательна для всех секций
 - Локализация: ru / en / pt — статическая генерация через `generateStaticParams`
 - `<Image>` из `next/image` везде — никаких `<img>` для растровых изображений
@@ -844,9 +869,10 @@ Tutors, декор плашки). `.is-center` как класс ОСТАЛСЯ:
 3. **Пайплайн учителей: БД ↔ лендинг.** Учителя приходят через приложение →
    онбординг → анкета → одобрение админа → после этого появляются на лендинге.
    Продумать синхронизацию (кросс-репо: tucan-bot + landing).
-   Решение 2026-07-17: **от Notion отказываемся** — админ-звено и CMS-контент
-   лендинга (`lib/notion.ts`, лиды в `api/free-lesson`) предстоит мигрировать;
-   замена пока не выбрана.
+   Решение 2026-07-17: **от Notion отказываемся.** Закрыто Фазами 1–2 (в проде
+   2026-08-28): модерация анкет живёт в админке tucan, тексты секций переехали из
+   Notion в `LandingContents`, `lib/notion.ts` удалён. Осталась Фаза 4 — зачистка
+   `NOTION_*` из env на VPS и справочных ссылок ниже.
 4. **Ловушка скролла в карусели Tutors (мобилка) — ИСПРАВЛЕНО 2026-07-24.**
    Корень: `touch-action: pan-x` стоял и на скроллере, и на КАРТОЧКЕ (в неё и
    попадает палец). `pan-x` разрешает начатому на элементе касанию только
@@ -901,8 +927,9 @@ Tutors, декор плашки). `.is-center` как класс ОСТАЛСЯ:
 ## Open Questions
 
 - Статуя Христа: SVG или Three.js? Решить когда дизайн-ассеты готовы.
-- Финальные URL соцсетей (TG, IG, YouTube)
-- Финальные URL политики конфиденциальности
+- Финальные URL соцсетей (IG, YouTube) — **правятся в админке**, не в коде;
+  у Telegram адрес уже проставлен
+- Финальные URL политики конфиденциальности — **правятся в админке**, страниц пока нет
 - `NEXT_PUBLIC_TG_BOT_URL` — финальный URL Telegram-бота
 - Figma ссылка — добавить после настройки доступа
 

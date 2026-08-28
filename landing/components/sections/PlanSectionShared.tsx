@@ -210,9 +210,11 @@ export function PlanSection({ plan, index, locale }: { plan: PlanCard; index: nu
 
         <div className="flex flex-col gap-[32px] shrink-0 lg:flex-1 w-full lg:w-auto mt-[32px] lg:mt-0">
           <div className="flex flex-col gap-[24px]">
-            {plan.features.map(f => (
+            {/* Ключ по индексу: пункты правит человек из админки, и два одинаковых
+                текста в одном тарифе дали бы React дублирующийся ключ. */}
+            {plan.features.map((f, fi) => (
               <FeatureRow
-                key={f}
+                key={fi}
                 text={f}
                 textCream={cfg.textCream}
                 mobileTextCream={cfg.mobileTextCream}

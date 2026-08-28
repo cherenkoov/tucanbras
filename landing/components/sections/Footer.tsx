@@ -6,12 +6,11 @@ import FooterTucan from '@/components/ui/FooterTucan'
 import FooterDecor from '@/components/ui/FooterDecor'
 import ComingSoonHint from '@/components/ui/ComingSoonHint'
 import { uiLabels } from '@/lib/uiLabels'
+import { activeHref } from '@/lib/links'
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
 const IMG_LOGO      = '/SVG/footer/TUCANBRAS.svg'
-const IMG_SOCIAL_TG = '/SVG/footer/telegram.svg'
-const IMG_SOCIAL_IG = '/SVG/footer/instagram.svg'
-const IMG_SOCIAL_YT = '/SVG/footer/youtube.svg'
+// Иконки соцсетей здесь НЕ перечисляются: путь приходит из CMS полем iconUrl.
 // Arrow icon (bxs:up-arrow). Base state = up, closed accordion = rotate-180 (down).
 const ICON_ARROW    = '/SVG/footer/arrow.svg'
 
@@ -23,11 +22,11 @@ const ICON_ARROW    = '/SVG/footer/arrow.svg'
 const CARD_RADIUS = 48                        // = --radius-2xl
 const CARD_PAD    = 'clamp(12px, 4vw, 36px)'  // отступ карточки: и по бокам, и сверху
 
-// Live social URLs, keyed by socialLinks label. Anything not listed here renders
-// as an inactive (dimmed, non-clickable) icon until its channel goes live.
-const SOCIAL_URLS: Record<string, string> = {
-  Telegram: 'https://t.me/tucanBRAS',
-}
+// Адреса соцсетей приходят из CMS вместе с подписью и иконкой: вписал ссылку
+// в админке — иконка ожила, убрал — снова погасла, без деплоя. Раньше здесь
+// лежала захардкоженная карта URL, и поле href из CMS не читалось вовсе.
+// Иконка по-прежнему берётся файлом из /public: новая соцсеть требует SVG
+// в репозитории, одной админкой не обойтись.
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -203,7 +202,7 @@ export default function Footer({ data, tutors, planNames, planPrices, locale }: 
               </p>
               <div className="flex flex-col gap-[16px] pl-[8px]">
                 {data.policyLinks.map(link => {
-                  const href = link.href && link.href !== '#' ? link.href : null
+                  const href = activeHref(link.href)
                   const style = { fontSize: 'clamp(14px, 1.2vw, 18px)', lineHeight: '18px' }
 
                   // No page yet: dimmed to 40%, non-clickable, hint on hover/tap.
@@ -239,7 +238,7 @@ export default function Footer({ data, tutors, planNames, planPrices, locale }: 
             {data.socialLinks.length > 0 && (
               <div className="flex flex-1 min-w-[276px] gap-[24px] items-center justify-center">
                 {data.socialLinks.map(link => {
-                  const url = SOCIAL_URLS[link.label]
+                  const url = activeHref(link.href)
                   const icon = (
                     <img
                       src={link.iconUrl}

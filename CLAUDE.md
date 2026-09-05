@@ -24,16 +24,22 @@ TucanBRAS/
   │  tucanbras-   │  порт 9000)       │
   │  landing)     │                   │
   └───────┬───────┴─────────┬─────────┘
-          └── локальный PostgreSQL `tukan` (общая БД)
+          └── локальный PostgreSQL `tucandb` (общая БД)
 ```
 
-- **админка tucan** — административный хаб на VPS (`tucanbras.com/tukanapp/`, CRA-статика
-  за nginx, pm2-процесса нет): модерация анкет учителей и раздел «Контент лендинга»,
-  где правятся тексты всех секций сайта. Заменила Notion, от которого отказались
-  решением владельца 2026-07-17 (Фазы 1–2 в проде с 2026-08-28)
-- **PostgreSQL `tukan`** — локальная БД на VPS, общая для бота и лендинга
-  (лендинг переехал с временной внешней БД; таблицы `TeacherAnketas`, `leads`,
-  `LandingContents` — тексты секций лендинга, 8 секций × 3 локали)
+- **tucan-miniapp** — клиентское приложение на VPS (`tucanbras.com/app/`, CRA-статика
+  за nginx, pm2-процесса нет; репозиторий по-прежнему `Raison231/tucan`). Telegram
+  открывает его как Mini App: кабинеты ученика, преподавателя и админа, онбординг,
+  уроки, календарь, материалы, тарифы. Админка — раздел внутри, а не суть приложения:
+  модерация анкет и «Контент лендинга», где правятся тексты всех секций сайта.
+  Заменила Notion, от которого отказались решением владельца 2026-07-17
+  (Фазы 1–2 в проде с 2026-08-28)
+- **PostgreSQL `tucandb`** — локальная БД на VPS, общая для бота и лендинга
+  (до 2026-09-05 называлась `tukan`; владелец — роль `tucan`). Девять таблиц, среди
+  них `TeacherAnketas` и `LandingContents` (тексты секций лендинга, 8 × 3 локали).
+  **Таблицы `leads` в ней НЕТ** — форма лендинга перестала сохранять лиды коммитом
+  8626ce6 от 2026-08-02, когда стала уводить в онбординг; `/api/free-lesson` с тех
+  пор мёртвый код
 - **tucan-bot** — Telegram-бот + Express API (порт 9000, отдельный репозиторий
   `Raison231/tucan-bot`, локально `c:\active-projects\tucan-bot`); backend для mini-app.
   На старте делает `sequelize.sync({ alter: { drop: false } })` — все колонки,
@@ -50,7 +56,7 @@ TucanBRAS/
 
 | Переменная | Проекты | Назначение |
 |---|---|---|
-| `DB_HOST`/`DB_NAME`/`DB_USER`/`DB_PASSWORD` | tucan-bot, landing | локальный PostgreSQL `tukan` на VPS (лендинг: ветка без TLS в `lib/db.ts`) |
+| `DB_HOST`/`DB_NAME`/`DB_USER`/`DB_PASSWORD` | tucan-bot, landing | локальный PostgreSQL `tucandb` на VPS (лендинг: ветка без TLS в `lib/db.ts`) |
 | `DATABASE_URL` | landing (legacy) | внешняя БД с TLS-проверкой — временная, выведена из использования |
 | `REVALIDATE_SECRET` | tucan-bot, landing | общий секрет хука ревалидации; на лендинге без него роут отвечает 401 всегда |
 | `LANDING_REVALIDATE_URL` | tucan-bot | куда бот стучится после сохранения контента. На VPS локальный `http://127.0.0.1:3001/api/revalidate` — лендинг живёт соседним процессом, ходить наружу через nginx и TLS незачем. Публичный `https://tucanbras.com/api/revalidate` — на случай переезда лендинга на другой хост |
@@ -60,10 +66,12 @@ TucanBRAS/
 
 **Важно:** `.env` файлы не коммитятся в git. Секреты живут в `.env` на VPS.
 
-> **Грабля админки:** в `/var/www/tucan` незакоммичены `package.json` (там дописан
-> `"homepage": "/tukanapp"` — именно он сажает приложение на подпуть) и `package-lock.json`
+> **Грабля мини-аппа:** в `/var/www/tucan-miniapp` незакоммичены `package.json` (там
+> дописан `"homepage": "/app"` — он задаёт префикс АССЕТОВ; сам роутер берёт подпуть
+> из `APP_BASENAME` в `src/utils/consts.js`, эти два значения обязаны совпадать)
+> и `package-lock.json`
 > (его переписывает каждый `npm install`). Перед `git pull` откатывать **только лок**:
-> тронешь `package.json` — сборка уедет в корень и админка на `/tukanapp/` отвалится.
+> тронешь `package.json` — ассеты уедут в корень и приложение на `/app/` отвалится.
 > `npm ci` там падает: лок на `main` протух.
 
 ## Деплой
@@ -72,9 +80,9 @@ TucanBRAS/
 
 | Проект | Как деплоить |
 |---|---|
-| landing | `cd /var/www/tucanbras-landing && git pull origin main && cd landing && npm ci && npm run build && pm2 restart tucanbras-landing` |
+| landing | `cd /var/www/tucan-landing && git pull origin main && cd landing && npm ci && npm run build && pm2 restart tucan-landing` |
 | tucan-bot | `cd /var/www/tucan-bot && git pull && npm install && pm2 restart tucan-bot` |
-| tucan (админка) | `cd /var/www/tucan && git checkout -- package-lock.json && git pull && npm install && npm run build` — статику подхватит nginx, pm2-процесса нет |
+| tucan-miniapp | `cd /var/www/tucan-miniapp && git checkout -- package-lock.json && git pull && npm install && npm run build` — статику подхватит nginx, pm2-процесса нет |
 | mini-app | статика: `npm run build` в `mini-app/tucan/`, раздаётся ботом или отдельным хостингом |
 
 Security-заголовки лендинга (CSP, HSTS и т.д.) отдаёт `headers()` в `landing/next.config.ts`.

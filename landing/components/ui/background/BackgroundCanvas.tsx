@@ -123,7 +123,7 @@ function Placeholder() {
       style={{
         width: '100%',
         aspectRatio: '800 / 2047',
-        background: 'var(--color-cream)',
+        background: 'var(--color-sky)',
       }}
     />
   )

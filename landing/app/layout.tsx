@@ -8,9 +8,9 @@ export const metadata: Metadata = {
 
 /* Browser chrome (Android status bar + toolbar) picks up theme-color. Without it
    the browser guesses its own tint — hence the stray orange bottom bar on mobile.
-   Value is --color-cream, the page surface under the whole collage. */
+   Value is --color-sky, the page surface under the whole collage. */
 export const viewport: Viewport = {
-  themeColor: "#fffce5",
+  themeColor: "#d3ecfb",
 };
 
 export default function RootLayout({

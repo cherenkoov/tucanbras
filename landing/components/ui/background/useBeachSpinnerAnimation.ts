@@ -14,8 +14,10 @@ import { addScroll, centreOrigin, easeToTarget, isOnScreen, isSettled, type Spin
 interface Spinner extends SpinState {
   /** the full-canvas overlay div — this is what gets rotated */
   el: HTMLElement
-  /** the art inside it; its live client rect says where the object really is on screen */
-  art: SVGGElement | null
+  /** the art inside it; its live client rect says where the object really is on screen.
+   *  An <g> for markup-backed sprites, the wrapper itself for baked-raster ones — see
+   *  artOf. Never null once measured: the gate needs SOMETHING with a live rect. */
+  art: Element | null
   dir: 1 | -1
 }
 
@@ -58,13 +60,25 @@ export function useBeachSpinnerAnimation(
     if (spinners.length === 0) return
 
     // Re-grab the art if it went away (see 2. above) and re-pin the axis to its centre.
-    const artOf = (s: Spinner): SVGGElement | null => {
+    const artOf = (s: Spinner): Element | null => {
       if (s.art?.isConnected) return s.art
-      s.art = s.el.querySelector<SVGGElement>('g')
+      const g = s.el.querySelector<SVGGElement>('g')
+      if (!g) {
+        // Baked-raster sprite (the beach spinners since the bake — see RasterSpriteLayer):
+        // there is no inner <g> to measure or to centre on. The WRAPPER is the art, and its
+        // rect is exactly the padded box the sprite was baked to, so the gate below reads
+        // the same geometry it always did. transformOrigin is left alone on purpose: the
+        // bake pads symmetrically, so the art's centre IS the box centre, and the layer
+        // states that 50%/50% inline rather than deriving it from a getBBox that no longer
+        // exists.
+        s.art = s.el
+        return s.art
+      }
+      s.art = g
       const svg = s.el.querySelector('svg')
-      const box = s.art?.getBBox()
+      const box = g.getBBox()
       const view = svg?.viewBox.baseVal
-      if (box && view && box.width > 0 && view.width > 0) {
+      if (view && box.width > 0 && view.width > 0) {
         const o = centreOrigin(box, view)
         s.el.style.transformOrigin = `${o.x.toFixed(3)}% ${o.y.toFixed(3)}%`
       }

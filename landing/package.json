@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --hostname 0.0.0.0",
-    "build": "next build",
+    "build": "npm run verify:spinner-bake && next build",
     "start": "next start --hostname 0.0.0.0",
     "lint": "eslint",
     "test": "tsx --test lib/*.test.ts",
@@ -35,7 +35,9 @@
     "gen:plan-tier-art": "node scripts/genPlanTierArt.mjs",
     "gen:footer-flower": "node scripts/genFooterFlowerYellow.mjs",
     "gen:feature-plant-art": "node scripts/genFeaturePlantArt.mjs",
-    "verify:fill-assets": "tsx scripts/verifyFillAssets.mts"
+    "verify:fill-assets": "tsx scripts/verifyFillAssets.mts",
+    "bake:spinners": "tsx scripts/bakeBeachSpinners.mts",
+    "verify:spinner-bake": "tsx scripts/verifySpinnerBake.mts"
   },
   "dependencies": {
     "gsap": "^3.15.0",

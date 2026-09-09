@@ -450,6 +450,10 @@ async function checkMobileHint(browser: Browser) {
     const read = () => page.evaluate(() => {
       const column = document.querySelector('[data-mobile-column]')!
       const hint   = document.querySelector('[data-mobile-hint]')!
+      // The language switcher left the column for the opposite corner (top left,
+      // dealing downwards) and took the column's two switch-offs with it, so it is
+      // probed here on its own terms rather than as one of the column's rows.
+      const lang   = document.querySelector('[data-mobile-lang]')!
 
       // Both copies of "become a tutor", measured identically — and measured INLINE.
       // A named helper here (`const box = el => …`) is compiled by tsx into a
@@ -464,7 +468,7 @@ async function checkMobileHint(browser: Browser) {
         const r  = el.getBoundingClientRect()
         const cs = getComputedStyle(el)
         return {
-          top: r.top, right: r.right, width: r.width,
+          top: r.top, right: r.right, width: r.width, height: r.height,
           opacity:       Number(cs.opacity),
           pointerEvents: cs.pointerEvents,
         }
@@ -475,14 +479,14 @@ async function checkMobileHint(browser: Browser) {
       // while it is shut. `inertTarget` is what a tap would land on instead, and
       // whether THAT is interactive: a tap test is only meaningful over dead page
       // pixels, so the point is chosen from this rather than guessed.
-      const probes = [...column.children].map(el => {
+      const probes = [...column.children, ...lang.children].map(el => {
         const r = el.getBoundingClientRect()
         const x = Math.round(r.left + r.width / 2)
         const y = Math.round(r.top + r.height / 2)
         const hitEl = document.elementFromPoint(x, y)
         return {
           id:       (el as HTMLElement).dataset.mobilePill ?? 'lang-switcher',
-          inColumn: !!hitEl?.closest('[data-mobile-column]'),
+          inColumn: !!hitEl?.closest('[data-mobile-column], [data-mobile-lang]'),
           onLink:   !!hitEl?.closest('a, button, input, textarea, select, label, [role="button"]'),
           onScreen: y > 0 && y < window.innerHeight,
           x, y,
@@ -491,6 +495,13 @@ async function checkMobileHint(browser: Browser) {
 
       return {
         columnInert: column.hasAttribute('inert'),
+        langInert:   lang.hasAttribute('inert'),
+        // The switcher's own box, for the corner it is supposed to stand in.
+        langBox: (() => {
+          const r = lang.querySelector('button[aria-haspopup="listbox"]')!.getBoundingClientRect()
+          return { top: r.top, left: r.left, right: r.right, width: r.width, height: r.height }
+        })(),
+        viewportW: window.innerWidth,
         hintInert:   hint.hasAttribute('inert'),
         colExtra:    pills[0],
         hintPill:    pills[1],
@@ -567,6 +578,8 @@ async function checkMobileHint(browser: Browser) {
     await page.waitForTimeout(600)
     let m = await read()
     assert.ok(m.columnInert, 'burger shut → the column is inert (tab order, a11y tree)')
+    assert.ok(m.langInert,
+      'and so is the language switcher — it has its own container now, so it needs its own inert')
     assert.equal(m.colExtra!.pointerEvents, 'none',
       'and every pill in it drops pointer-events — a transparent link must not be tappable')
     for (const p of m.probes) {
@@ -609,6 +622,26 @@ async function checkMobileHint(browser: Browser) {
       s => !s.hintPill!.opacity && s.colExtra!.opacity > 0.5)
     assert.ok(m.hintInert, 'the yielding hint goes inert while the menu owns the corner')
     assert.ok(!m.columnInert, 'and the open column is interactive')
+    assert.ok(!m.langInert, 'and so is the language switcher')
+    // The switcher owns the OTHER corner: the pills' own first line, but the far
+    // side of the screen — which is what stopped it running off the edge and out of
+    // the bottom of a phone. Measured with the menu open, like the pills below: a
+    // hidden row is lifted 12px by the reveal transform.
+    assert.ok(m.langBox.left < m.viewportW / 2,
+      `the language switcher stands on the left — left edge ${m.langBox.left.toFixed(1)}px ` +
+      `of ${m.viewportW}px`)
+    assert.ok(Math.abs(m.langBox.top - m.colFirst!.top) < 0.5,
+      `and on the column's first line — switcher ${m.langBox.top.toFixed(1)}px, ` +
+      `"Конект" ${m.colFirst!.top.toFixed(1)}px`)
+    // …and it is one of the menu's BUTTONS, not an icon parked beside them: square,
+    // and exactly as tall as the pills across the way (owner, 2026-09-09). The two
+    // numbers live in different files — MOBILE_PILL_H against the pill's own
+    // py/leading literals — so this is what keeps them from drifting apart.
+    assert.ok(Math.abs(m.langBox.height - m.colFirst!.height) < 0.5,
+      `the flag pill stands as tall as a menu pill — switcher ${m.langBox.height.toFixed(1)}px, ` +
+      `"Конект" ${m.colFirst!.height.toFixed(1)}px`)
+    assert.ok(Math.abs(m.langBox.width - m.langBox.height) < 0.5,
+      `and it stays square — ${m.langBox.width.toFixed(1)}×${m.langBox.height.toFixed(1)}px`)
     // The slot, now that both have been seen SETTLED: the hint stands exactly where
     // the column's first pill ("Конект") comes to rest, which is what makes it read
     // as the object the burger hands over rather than a second widget. Measured with

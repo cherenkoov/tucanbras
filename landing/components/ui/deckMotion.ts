@@ -1,5 +1,7 @@
-// One deck, three places: the flags row (mobile burger), the flags dropdown
-// (desktop) and the header's ⋮ column all open the same way — whatever is hidden
+// One deck, three places: the flags dropdown under the desktop bar, the same
+// dropdown in the phone's burger (left corner, since 2026-09-09 — it used to deal
+// sideways and ran off the edge) and the header's ⋮ column all open the same way
+// on the same axis — whatever is hidden
 // lies in the exact box of the pill that stays put, one z-layer under it, and is
 // dealt out from beneath it like cards off the top of a deck.
 //

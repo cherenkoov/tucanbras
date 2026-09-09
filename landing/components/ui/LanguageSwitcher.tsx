@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useState, useRef, useEffect } from 'react'
 import type { Locale } from '@/types'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
-import { DECK, dealDelay, ICON_PILL_HOVER, PILL_H, PITCH, TIGHT_PITCH, PRESS_MS } from '@/components/ui/deckMotion'
+import { DECK, dealDelay, ICON_PILL_HOVER, PILL_GAP, PILL_H, PRESS_MS, TIGHT_GAP } from '@/components/ui/deckMotion'
 import { DECOR_LAYER } from '@/components/ui/pillArt'
 import { coverGlass, GLASS_TRANSITION } from '@/components/ui/coverGlass'
 import { bloomOnTap } from '@/components/ui/tapBloom'
@@ -20,24 +20,33 @@ const LOCALES: LocaleEntry[] = [
   { code: 'ru', label: 'RU', flagUrl: '/SVG/flags/flag-ru.svg', bloomUrl: '/SVG/flags/parts/bloom-ru.svg' },
 ]
 
-// Square flag pill — same height as desktop NavPill (PILL_H), but 1:1 aspect.
-// Cream ground, so the plant behind the flag is the only dark thing on it — and
-// that ground is the header plate's own glass (coverGlass), applied as classes:
-// frosted at rest, filling in to solid cream with the plate. What stays here is
-// everything the glass does not own.
-const PILL_STYLE = {
+// Square flag pill — as tall as the pill it stands beside, and 1:1, whatever that
+// height is: PILL_H on the desktop bar, the burger pill's own 64 on a phone (see
+// `size`). Cream ground, so the plant behind the flag is the only dark thing on it
+// — and that ground is the header plate's own glass (coverGlass), applied as
+// classes: frosted at rest, filling in to solid cream with the plate. What stays
+// here is everything the glass does not own.
+const pillStyle = (size: number) => ({
   color:      'var(--color-ink)',
   boxShadow:  'var(--shadow-round-inner)',
-  width:      `${PILL_H}px`,
-  height:     `${PILL_H}px`,
-} as const
+  width:      `${size}px`,
+  height:     `${size}px`,
+} as const)
 
-// Where card `i` comes to rest, per direction. Sideways the cards are a row of
-// equals, so every step is the tight one; downwards the first card clears the bar
-// with the wide gap and the rest close up behind it — the rhythm the header's ⋮
-// column borrows (see deckMotion).
-const restingOffset = (i: number, row: boolean) =>
-  row ? -(i + 1) * TIGHT_PITCH : PITCH + i * TIGHT_PITCH
+// Where card `i` comes to rest. One axis only, and it is downwards: the first card
+// clears the pill with the wide gap and the rest close up behind it — the rhythm
+// the header's ⋮ column borrows (see deckMotion).
+//
+// Written from the GAPS rather than from deckMotion's PITCH/TIGHT_PITCH, because
+// the pill is no longer always PILL_H tall: those two constants bake 48 in. At
+// size 48 this is the same arithmetic to the pixel (48+16, then 48+8 steps), so
+// the desktop deck is untouched.
+//
+// The sideways deal this used to also offer is gone (2026-09-09, owner report): in
+// the phone's burger column the row opened towards the left EDGE of the screen and
+// the far card fell off it. Down is the axis both layouts share now.
+const restingOffset = (i: number, size: number) =>
+  size + PILL_GAP + i * (size + TIGHT_GAP)
 
 /**
  * Transition for a card being dealt out of / tucked back into the deck.
@@ -60,14 +69,16 @@ function dealMotion(i: number, count: number, open: boolean, still: boolean) {
   } as const
 }
 
-// The 24px box is the button's own, not the mockup's — the pill keeps its size.
-// The flag does NOT zoom: it is the pill's meaning, not its decoration, and it
-// already grows with the button. Only the plant behind it moves on its own.
-const FLAG_BOX = {
-  width:     '24px',
-  height:    '24px',
+// Half the button, the box the 48px pill has always drawn its flag in (24px) —
+// stated as a ratio so a bigger button carries a proportionally bigger flag rather
+// than a small one adrift in the middle of it.
+// The flag does NOT zoom on hover: it is the pill's meaning, not its decoration,
+// and it already grows with the button. Only the plant behind it moves on its own.
+const flagBox = (size: number) => ({
+  width:     `${size / 2}px`,
+  height:    `${size / 2}px`,
   objectFit: 'contain',
-} as const
+} as const)
 
 // Named group, not the bare `group`: on desktop these pills live inside the
 // header bar, which is a `.group` of its own — an unnamed `group-hover:` matches
@@ -86,7 +97,7 @@ const BLOOM_ZOOM = 'pill-decor motion-safe:group-hover/pill:scale-[1.15]'
 // the flag, one plant per locale. The art is authored in the mockup's 72×61 pill
 // box and carries `preserveAspectRatio="slice"`, so the same proportional
 // placement survives the square button — it crops, never squashes.
-function PillFace({ locale }: { locale: LocaleEntry }) {
+function PillFace({ locale, size }: { locale: LocaleEntry; size: number }) {
   return (
     <>
       <img
@@ -98,7 +109,7 @@ function PillFace({ locale }: { locale: LocaleEntry }) {
       <img
         src={locale.flagUrl}
         alt={locale.label}
-        style={FLAG_BOX}
+        style={flagBox(size)}
         className="relative block"
       />
     </>
@@ -108,8 +119,20 @@ function PillFace({ locale }: { locale: LocaleEntry }) {
 interface Props {
   /** pill — dark button + dropdown (Header) | text — slash-separated links (Footer) */
   variant?: 'pill' | 'text'
-  /** down — dropdown below button (desktop) | row — inline row to the left (mobile) */
-  dropDirection?: 'down' | 'row'
+  /**
+   * False → the switcher is being hidden by whatever owns it (the burger column),
+   * and an open deck folds back with it. Without this the cards stay dealt behind
+   * the closed menu and the next opening starts with three flags already out —
+   * which, dealing DOWNWARDS, lands them over the page instead of inside the menu.
+   */
+  shown?: boolean
+  /**
+   * Side of the square pill, in px. Defaults to the header bar's own PILL_H, which
+   * is what the desktop switcher stands at; the phone passes the burger pill's
+   * height so the two columns read as one set of buttons. Everything scales off it
+   * — the flag inside, and the steps the deck deals on.
+   */
+  size?: number
   /**
    * The header plate is hot (`coverHot`) → the pills standing on it fill in with it.
    * Off the plate — the footer's text variant, or any caller that doesn't say — the
@@ -120,7 +143,7 @@ interface Props {
   style?: React.CSSProperties
 }
 
-export default function LanguageSwitcher({ variant = 'text', dropDirection = 'down', hot = false, className, style }: Props) {
+export default function LanguageSwitcher({ variant = 'text', shown = true, size = PILL_H, hot = false, className, style }: Props) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const reduceMotion = useReducedMotion()
@@ -149,21 +172,31 @@ export default function LanguageSwitcher({ variant = 'text', dropDirection = 'do
     return () => document.removeEventListener('pointerdown', onPointer)
   }, [open])
 
+  // …and fold the deck back when the owner hides the whole switcher. Adjusted
+  // DURING RENDER, which is React's own answer to "reset state when a prop changes":
+  // an effect would let one frame of the dealt deck paint before closing it, and it
+  // is exactly what `react-hooks/set-state-in-effect` refuses. Setting to a value
+  // the state already holds bails out, so the common render costs nothing.
+  const [wasShown, setWasShown] = useState(shown)
+  if (wasShown !== shown) {
+    setWasShown(shown)
+    if (!shown) setOpen(false)
+  }
+
   // ── pill variant ────────────────────────────────────────────────────────────
-  // One deck, two axes: sideways in the mobile burger column, downwards under the
-  // desktop bar. Closed, every other locale sits in the exact box of the current
-  // pill, one z-layer under it; open, the cards are dealt out from beneath it.
-  // The block never changes size — the cards are absolute, so they fan out over
-  // the page instead of pushing their neighbours around.
+  // One deck, one axis — downwards, under the bar on a desktop and under the
+  // burger's first row on a phone. Closed, every other locale sits in the exact
+  // box of the current pill, one z-layer under it; open, the cards are dealt out
+  // from beneath it. The block never changes size — the cards are absolute, so
+  // they fan out over the page instead of pushing their neighbours around.
   if (variant === 'pill') {
-    const row = dropDirection === 'row'
-    const axis = (px: number) => (row ? `translateX(${px}px)` : `translateY(${px}px)`)
+    const axis = (px: number) => `translateY(${px}px)`
 
     return (
       <div
         ref={ref}
         className={`relative shrink-0 ${className ?? ''}`}
-        style={{ ...style, width: PILL_H, height: PILL_H }}
+        style={{ ...style, width: size, height: size }}
       >
         <div role="listbox" aria-label="Select language" className="absolute inset-0 pointer-events-none">
           {others.map((l, i) => (
@@ -178,19 +211,19 @@ export default function LanguageSwitcher({ variant = 'text', dropDirection = 'do
               onPointerDown={bloomOnTap}
               className={`${PILL_GROUP} absolute left-0 top-0 flex items-center justify-center overflow-hidden rounded-btn font-semibold whitespace-nowrap select-none cursor-pointer ${coverGlass(hot)} ${ICON_PILL_HOVER}`}
               style={{
-                ...PILL_STYLE,
+                ...pillStyle(size),
                 boxShadow: 'var(--shadow-pill-float)',
                 // Deeper in the deck = lower layer, so each card is drawn from
                 // under the one that left before it.
                 zIndex:    others.length - i,
                 transform: open
-                  ? `${axis(restingOffset(i, row))} scale(1)`
+                  ? `${axis(restingOffset(i, size))} scale(1)`
                   : `${axis(0)} scale(${DECK.TUCK_SCALE})`,
                 ...dealMotion(i, others.length, open, reduceMotion),
                 pointerEvents: open ? 'auto' : 'none',
               }}
             >
-              <PillFace locale={l} />
+              <PillFace locale={l} size={size} />
             </Link>
           ))}
         </div>
@@ -205,11 +238,11 @@ export default function LanguageSwitcher({ variant = 'text', dropDirection = 'do
           // and `transition-transform` set the same property, so as classes one of
           // the two would win outright and the other would silently stop. `scale` is
           // what Tailwind v4's `scale-*` writes — not `transform`.
-          style={{ ...PILL_STYLE, zIndex: others.length + 1, transition: `scale ${PRESS_MS}ms ease-out, ${GLASS_TRANSITION}` }}
+          style={{ ...pillStyle(size), zIndex: others.length + 1, transition: `scale ${PRESS_MS}ms ease-out, ${GLASS_TRANSITION}` }}
           aria-haspopup="listbox"
           aria-expanded={open}
         >
-          <PillFace locale={current} />
+          <PillFace locale={current} size={size} />
         </button>
       </div>
     )

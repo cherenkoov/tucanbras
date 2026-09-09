@@ -570,6 +570,15 @@ function NavPill({ id, label, href, bg, text, art, onClick }: Pill) {
 }
 
 // ─── Mobile floating pill ─────────────────────────────────────────────────────
+// Its height, spelled out for anything that has to MATCH it — the language
+// switcher next to it does, so the two columns read as one set of buttons rather
+// than as buttons and a widget (owner, 2026-09-09). It is the sum of the literals
+// on the pill below, which have to stay literal for Tailwind to generate them at
+// all: py-[18px] + leading-[28px] + py-[18px]. `verify:header-drum` measures the
+// two against each other, so the pair cannot drift apart silently.
+const MOBILE_PILL_H = 18 + 28 + 18
+
+
 // The phone has no drum, so it shows the same pills two ways: the burger column,
 // and the lone "become a tutor" the Tutors section calls out from under the plate.
 // One component for both — the hint is not a lookalike, it is the same pill with
@@ -1197,7 +1206,7 @@ export default function Header({ navLinks, locale }: HeaderProps) {
             {/* `hot` is the plate's state, not the switcher's: the closed pill
                 stands on the plate and firms up with it. Its dealt cards hang below
                 the bar and answer for themselves — see coverGlass. */}
-            <LanguageSwitcher variant="pill" dropDirection="down" hot={coverHot} />
+            <LanguageSwitcher variant="pill" hot={coverHot} />
           </nav>
 
           {/* Mobile burger — collapse animation.
@@ -1251,7 +1260,8 @@ export default function Header({ navLinks, locale }: HeaderProps) {
           `inert` here is the other half, and it is not redundant: it keeps a hidden
           pill out of the tab order and the a11y tree, which pointer-events does
           nothing about — a transparent link is still focusable and still announced.
-          It is inherited, so it covers the language switcher too. Guard:
+          The language switcher used to ride this container and inherit both; it has
+          its own now (see below) and carries its own copy of the pair. Guard:
           `npm run verify:header-drum` (Part 3). */}
       <div
         data-mobile-column
@@ -1268,20 +1278,46 @@ export default function Header({ navLinks, locale }: HeaderProps) {
             onClick={() => { setMenuOpen(false); pill.onClick?.() }}
           />
         ))}
-        {/* Mobile language switcher — same two-layer switch-off as the pills above:
-            its wrapper drops pointer-events (its own buttons never claim any, so
-            the wrapper's rule reaches them), and the column's `inert` handles the
-            tab order. */}
+      </div>
+
+      {/* ── Mobile language switcher — the other corner ──
+          It used to be the last row of the column above, dealing its flags SIDEWAYS
+          towards the left edge of the screen. Two things were wrong with that, and
+          both are what the owner reported (2026-09-09): the row ran out of screen,
+          and the switcher had to queue behind six pills that already reach the
+          bottom of a phone. So it changes corner rather than order — top LEFT, on
+          the first pill's own line (identical `p-4`, so the two rows line up), and
+          it unrolls DOWNWARDS into the empty half of the screen the pills leave.
+
+          Its own container, not an absolutely-placed child of the column: the column
+          is right-anchored and hugs its widest pill, so reaching the far edge from
+          inside it would mean stretching it across the whole screen — ~450px of
+          invisible fixed overlay at z-50, which is precisely the shape of the ghost
+          taps this header already had to hunt down once.
+          That independence costs it the column's two switch-offs, so it carries both
+          itself: `inert` for the tab order and the a11y tree, `pointer-events-none`
+          for the finger (the wrapper's rule reaches the flags because they never
+          claim any of their own). Guard: `npm run verify:header-drum` (Part 3)
+          probes this container exactly like the column's pills. */}
+      <div
+        data-mobile-lang
+        inert={!menuOpen}
+        className="lg:hidden absolute top-full left-0 z-50 p-4 pointer-events-none"
+      >
         <LanguageSwitcher
           variant="pill"
-          dropDirection="row"
           // Same plate state as the desktop switcher: on a phone `coverHot` is armed
-          // by a tap on the bar — and the burger IS on the bar, so the column's flags
-          // come out solid with the plate and settle back to glass with it.
+          // by a tap on the bar — and the burger IS on the bar, so the flags come out
+          // solid with the plate and settle back to glass with it.
           hot={coverHot}
+          // …and the deck folds back when the burger shuts, or it would be dealt out
+          // over the page the next time the menu opens.
+          shown={menuOpen}
+          // As tall and as wide as the pills across the way, not the bar's 48px:
+          // down here it is one of the menu's buttons, not an icon on a header.
+          size={MOBILE_PILL_H}
           className={`transition-all duration-300 ${menuOpen ? 'pointer-events-auto' : 'pointer-events-none'}`}
           style={{
-            transitionDelay: menuOpen ? `${PILLS.length * 60}ms` : '0ms',
             opacity: menuOpen ? 1 : 0,
             transform: menuOpen ? 'translateY(0)' : 'translateY(-12px)',
           }}

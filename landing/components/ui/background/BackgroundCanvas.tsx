@@ -11,7 +11,10 @@ import { computeWaveQueue, BEACH_ART_H, WIDE_BREAKPOINT, type WaveQueueLayout } 
 import { loadOceanWaveShapes, type OceanWaveShape } from './oceanWaves'
 import { useWaveDepthOrder } from './useWaveDepthOrder'
 import { prepareBeachSvg, BEACH_GROUND_COLOR, BEACH_PREFIX } from './prepareBeachSvg'
+// Aliased: this file also uses the DOM `Image` constructor (beach bottom-edge sampling).
+import NextImage from 'next/image'
 import { BEACH_SPINNERS, readViewBox } from './beachSpinners'
+import { BAKED_SPINNER_BY_ID, BEACH_BASE_SVG, SPINNER_BAKE_VIEWBOX } from './beachSpinnerBake'
 import { useBeachSpinnerAnimation } from './useBeachSpinnerAnimation'
 import { useCloudAnimation } from './useCloudAnimation'
 import { useBushAnimation } from './useBushAnimation'
@@ -111,6 +114,60 @@ function AdaptiveSpriteLayer(
   )
 }
 
+/**
+ * A bounded sprite overlay backed by a BAKED RASTER instead of inline markup.
+ *
+ * Used for the 20 beach spinners, which were 4 230 of the beach svg's 5 501 nodes — 77% of
+ * it, and the page's single worst DOM contributor (Lighthouse 2026-09-02 named
+ * `<g id="b2-type 3 palm 01">` and its 403 children by name). A raster is loss-free HERE
+ * because the spin transforms this WRAPPER, never the art's inner nodes: the compositor
+ * rotates an already-painted surface and cannot tell where it came from. Sprites whose
+ * motion mutates inner geometry — the cars' SMIL animateTransform — keep their markup.
+ *
+ * Two things the markup version gave for free and this one has to state:
+ *  • transformOrigin. useBeachSpinnerAnimation derived it from the inner <g>'s getBBox.
+ *    There is no <g> now, but padBox pads the measured box SYMMETRICALLY, so the art's
+ *    centre IS the box centre — 50% 50%, said outright.
+ *  • the adaptive-text cover. `data-adaptive-cover-src` is painted at the element's own
+ *    box, so it needs a picture whose extent equals this sprite — hence one file per
+ *    sprite rather than an atlas, and the WEBP url, the one every target decodes.
+ */
+function RasterSpriteLayer(
+  { src, fill, sizes, style, spinId }: {
+    src: string
+    fill: string
+    sizes: string
+    style: CSSProperties
+    spinId?: string
+  },
+) {
+  return (
+    <div
+      data-spin-id={spinId}
+      data-adaptive-cover-src={fill}
+      data-adaptive-cover-live=""
+      data-adaptive-cover-z={SPRITE_COVER_Z}
+      style={{ ...style, transformOrigin: '50% 50%' }}
+    >
+      {/* `sizes` is the sprite's own share of the viewport, computed at bake time from its
+          box — the beach spans 100% width against a 1027-unit viewBox, so a phone is served
+          a ~120px palm and a retina desktop its own width, off ONE master.
+          loading=lazy is not only laziness: React 19 emits a <link rel=preload as=image> for
+          every SSR image that lacks it, and 20 palms far below the fold have no business
+          competing with the LCP. */}
+      <NextImage
+        src={src}
+        alt=""
+        aria-hidden="true"
+        fill
+        sizes={sizes}
+        loading="lazy"
+        style={{ objectFit: 'fill' }}
+      />
+    </div>
+  )
+}
+
 function parseViewBox(str: string | null): { x: number; y: number; w: number; h: number } | null {
   if (!str) return null
   const [x, y, w, h] = str.trim().split(/[\s,]+/).map(Number)
@@ -145,12 +202,6 @@ function extractGroup(svgString: string, groupId: string): { inner: string; with
 
 function wrapSvg(inner: string): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 800 2047" overflow="visible">${inner}</svg>`
-}
-
-// Drop the clip-path on the object's OUTER <g> so the rotated art isn't cropped to
-// its authored box (same reasoning as the cars) and needs none of the beach's defs.
-function stripSpinnerClip(groupSvg: string): string {
-  return groupSvg.replace(/(<g id="[^"]*")\s+clip-path="[^"]*"/, '$1')
 }
 
 // Groups lifted into a front layer ABOVE the train (z:7), in back→front paint order.
@@ -385,7 +436,6 @@ export default function BackgroundCanvas() {
   // Beach's ORIGINAL viewBox (pre surf-injection, which rewrites the base svg's one) —
   // the spinner host div reproduces this canvas so the bounded overlays line up.
   const [beachVB, setBeachVB] = useState<{ x: number; y: number; w: number; h: number } | null>(null)
-  const [spinnerLayers, setSpinnerLayers] = useState<(SpriteLayer | null)[]>([])
   const [cityLayer, setCityLayer] = useState<SpriteLayer | null>(null)
   const [mf4Layer, setMf4Layer] = useState<SpriteLayer | null>(null)
   const [cloudsSvg, setCloudsSvg] = useState('')
@@ -600,8 +650,8 @@ export default function BackgroundCanvas() {
     // conveyor is a large per-frame SMIL repaint region, kept off phones; skip the fetch.
     const wantSurf = tier === 'full'
     const load: Promise<[string, Record<string, OceanWaveShape> | null]> = wantSurf
-      ? Promise.all([fetch('/SVG/background/main%202.svg').then(r => r.text()), loadOceanWaveShapes()])
-      : fetch('/SVG/background/main%202.svg').then(r => r.text()).then(raw => [raw, null])
+      ? Promise.all([fetch(BEACH_BASE_SVG).then(r => r.text()), loadOceanWaveShapes()])
+      : fetch(BEACH_BASE_SVG).then(r => r.text()).then(raw => [raw, null])
     load
       .then(([raw, shapes]) => {
         // Prepare (namespace ids, strip backdrops), then LIFT each palm/umbrella out
@@ -614,28 +664,19 @@ export default function BackgroundCanvas() {
         // hardcoded copy goes stale the moment the art is re-exported, and every object
         // then lands in the wrong place. Lift before the surf injection, which rewrites
         // that viewBox; the spinner host div reproduces this ORIGINAL canvas.
-        const vb = parseViewBox(readViewBox(s))
-        const spinnerIds = BEACH_SPINNERS.map(cfg => `${BEACH_PREFIX}${cfg.id}`)
-        const boxes = vb ? measureGroupBoxes(s, spinnerIds) : new Map<string, SpriteBox>()
-        const spinners: (SpriteLayer | null)[] = []
-        for (const cfg of BEACH_SPINNERS) {
-          const id = `${BEACH_PREFIX}${cfg.id}`
-          const measured = boxes.get(id)
-          if (!measured) {
-            spinners.push(null) // unmeasured → stays baked in the beach, static
-            continue
-          }
-          const { inner, without } = extractGroup(s, id)
-          if (!inner) {
-            spinners.push(null)
-            continue
-          }
-          const box = padBox(measured, BOX_BLEED)
-          spinners.push({ svg: wrapSvgBounded(stripSpinnerClip(inner), box), box })
-          s = without
-        }
+        // The spinners are gone from this string before it ever reaches the network:
+        // BEACH_BASE_SVG is main 2.svg with those 20 groups stripped at bake time, and they
+        // are drawn from rasters instead (RasterSpriteLayer). Stripping them HERE, after
+        // fetching the full export, was measured and rejected — the page then paid 215 KB
+        // gzipped for markup it throws away PLUS the rasters (A/B 2026-09-05: 1380 → 1529 KB
+        // total transfer, the change inverted on the byte axis while the DOM halved).
+        //
+        // What stood here also mounted the WHOLE 5 501-node beach invisibly just to read 20
+        // bounding boxes (measureGroupBoxes). Those boxes are a build artefact now; a
+        // re-export that drifts the ids is caught by `npm run verify:spinner-bake` rather
+        // than by a silent double-paint.
+        const vb = parseViewBox(readViewBox(s)) ?? SPINNER_BAKE_VIEWBOX
         setBeachVB(vb)
-        setSpinnerLayers(spinners)
         s = injectBeachCarAnimation(s)
         if (wantSurf && shapes) {
           setWaveShapes(shapes) // also feeds the terminal sea-fill band
@@ -1086,16 +1127,19 @@ export default function BackgroundCanvas() {
                 overflow: 'visible',
               }}
             >
-              {spinnerLayers.map((layer, i) =>
-                layer ? (
-                  <AdaptiveSpriteLayer
-                    key={BEACH_SPINNERS[i].id}
-                    spinId={BEACH_SPINNERS[i].id}
-                    svg={layer.svg}
-                    style={boundedLayerStyle(layer.box, beachVB)}
+              {BEACH_SPINNERS.map((cfg) => {
+                const baked = BAKED_SPINNER_BY_ID.get(`${BEACH_PREFIX}${cfg.id}`)
+                return baked ? (
+                  <RasterSpriteLayer
+                    key={cfg.id}
+                    spinId={cfg.id}
+                    src={baked.src}
+                    fill={baked.fill}
+                    sizes={baked.sizes}
+                    style={boundedLayerStyle(baked.box, beachVB)}
                   />
-                ) : null,
-              )}
+                ) : null
+              })}
             </div>
           )}
         </div>

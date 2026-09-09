@@ -570,6 +570,15 @@ function NavPill({ id, label, href, bg, text, art, onClick }: Pill) {
 }
 
 // ─── Mobile floating pill ─────────────────────────────────────────────────────
+// Its height, spelled out for anything that has to MATCH it — the language
+// switcher next to it does, so the two columns read as one set of buttons rather
+// than as buttons and a widget (owner, 2026-09-09). It is the sum of the literals
+// on the pill below, which have to stay literal for Tailwind to generate them at
+// all: py-[18px] + leading-[28px] + py-[18px]. `verify:header-drum` measures the
+// two against each other, so the pair cannot drift apart silently.
+const MOBILE_PILL_H = 18 + 28 + 18
+
+
 // The phone has no drum, so it shows the same pills two ways: the burger column,
 // and the lone "become a tutor" the Tutors section calls out from under the plate.
 // One component for both — the hint is not a lookalike, it is the same pill with
@@ -1304,6 +1313,9 @@ export default function Header({ navLinks, locale }: HeaderProps) {
           // …and the deck folds back when the burger shuts, or it would be dealt out
           // over the page the next time the menu opens.
           shown={menuOpen}
+          // As tall and as wide as the pills across the way, not the bar's 48px:
+          // down here it is one of the menu's buttons, not an icon on a header.
+          size={MOBILE_PILL_H}
           className={`transition-all duration-300 ${menuOpen ? 'pointer-events-auto' : 'pointer-events-none'}`}
           style={{
             opacity: menuOpen ? 1 : 0,

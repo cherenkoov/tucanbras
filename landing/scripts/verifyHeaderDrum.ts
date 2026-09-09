@@ -468,7 +468,7 @@ async function checkMobileHint(browser: Browser) {
         const r  = el.getBoundingClientRect()
         const cs = getComputedStyle(el)
         return {
-          top: r.top, right: r.right, width: r.width,
+          top: r.top, right: r.right, width: r.width, height: r.height,
           opacity:       Number(cs.opacity),
           pointerEvents: cs.pointerEvents,
         }
@@ -498,8 +498,8 @@ async function checkMobileHint(browser: Browser) {
         langInert:   lang.hasAttribute('inert'),
         // The switcher's own box, for the corner it is supposed to stand in.
         langBox: (() => {
-          const r = lang.firstElementChild!.getBoundingClientRect()
-          return { top: r.top, left: r.left, right: r.right }
+          const r = lang.querySelector('button[aria-haspopup="listbox"]')!.getBoundingClientRect()
+          return { top: r.top, left: r.left, right: r.right, width: r.width, height: r.height }
         })(),
         viewportW: window.innerWidth,
         hintInert:   hint.hasAttribute('inert'),
@@ -633,6 +633,15 @@ async function checkMobileHint(browser: Browser) {
     assert.ok(Math.abs(m.langBox.top - m.colFirst!.top) < 0.5,
       `and on the column's first line — switcher ${m.langBox.top.toFixed(1)}px, ` +
       `"Конект" ${m.colFirst!.top.toFixed(1)}px`)
+    // …and it is one of the menu's BUTTONS, not an icon parked beside them: square,
+    // and exactly as tall as the pills across the way (owner, 2026-09-09). The two
+    // numbers live in different files — MOBILE_PILL_H against the pill's own
+    // py/leading literals — so this is what keeps them from drifting apart.
+    assert.ok(Math.abs(m.langBox.height - m.colFirst!.height) < 0.5,
+      `the flag pill stands as tall as a menu pill — switcher ${m.langBox.height.toFixed(1)}px, ` +
+      `"Конект" ${m.colFirst!.height.toFixed(1)}px`)
+    assert.ok(Math.abs(m.langBox.width - m.langBox.height) < 0.5,
+      `and it stays square — ${m.langBox.width.toFixed(1)}×${m.langBox.height.toFixed(1)}px`)
     // The slot, now that both have been seen SETTLED: the hint stands exactly where
     // the column's first pill ("Конект") comes to rest, which is what makes it read
     // as the object the burger hands over rather than a second widget. Measured with

@@ -32,12 +32,14 @@ const PILL_STYLE = {
   height:     `${PILL_H}px`,
 } as const
 
-// Where card `i` comes to rest, per direction. Sideways the cards are a row of
-// equals, so every step is the tight one; downwards the first card clears the bar
-// with the wide gap and the rest close up behind it — the rhythm the header's ⋮
-// column borrows (see deckMotion).
-const restingOffset = (i: number, row: boolean) =>
-  row ? -(i + 1) * TIGHT_PITCH : PITCH + i * TIGHT_PITCH
+// Where card `i` comes to rest. One axis only, and it is downwards: the first card
+// clears the pill with the wide gap and the rest close up behind it — the rhythm
+// the header's ⋮ column borrows (see deckMotion).
+//
+// The sideways deal this used to also offer is gone (2026-09-09, owner report): in
+// the phone's burger column the row opened towards the left EDGE of the screen and
+// the far card fell off it. Down is the axis both layouts share now.
+const restingOffset = (i: number) => PITCH + i * TIGHT_PITCH
 
 /**
  * Transition for a card being dealt out of / tucked back into the deck.
@@ -108,8 +110,13 @@ function PillFace({ locale }: { locale: LocaleEntry }) {
 interface Props {
   /** pill — dark button + dropdown (Header) | text — slash-separated links (Footer) */
   variant?: 'pill' | 'text'
-  /** down — dropdown below button (desktop) | row — inline row to the left (mobile) */
-  dropDirection?: 'down' | 'row'
+  /**
+   * False → the switcher is being hidden by whatever owns it (the burger column),
+   * and an open deck folds back with it. Without this the cards stay dealt behind
+   * the closed menu and the next opening starts with three flags already out —
+   * which, dealing DOWNWARDS, lands them over the page instead of inside the menu.
+   */
+  shown?: boolean
   /**
    * The header plate is hot (`coverHot`) → the pills standing on it fill in with it.
    * Off the plate — the footer's text variant, or any caller that doesn't say — the
@@ -120,7 +127,7 @@ interface Props {
   style?: React.CSSProperties
 }
 
-export default function LanguageSwitcher({ variant = 'text', dropDirection = 'down', hot = false, className, style }: Props) {
+export default function LanguageSwitcher({ variant = 'text', shown = true, hot = false, className, style }: Props) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const reduceMotion = useReducedMotion()
@@ -149,15 +156,25 @@ export default function LanguageSwitcher({ variant = 'text', dropDirection = 'do
     return () => document.removeEventListener('pointerdown', onPointer)
   }, [open])
 
+  // …and fold the deck back when the owner hides the whole switcher. Adjusted
+  // DURING RENDER, which is React's own answer to "reset state when a prop changes":
+  // an effect would let one frame of the dealt deck paint before closing it, and it
+  // is exactly what `react-hooks/set-state-in-effect` refuses. Setting to a value
+  // the state already holds bails out, so the common render costs nothing.
+  const [wasShown, setWasShown] = useState(shown)
+  if (wasShown !== shown) {
+    setWasShown(shown)
+    if (!shown) setOpen(false)
+  }
+
   // ── pill variant ────────────────────────────────────────────────────────────
-  // One deck, two axes: sideways in the mobile burger column, downwards under the
-  // desktop bar. Closed, every other locale sits in the exact box of the current
-  // pill, one z-layer under it; open, the cards are dealt out from beneath it.
-  // The block never changes size — the cards are absolute, so they fan out over
-  // the page instead of pushing their neighbours around.
+  // One deck, one axis — downwards, under the bar on a desktop and under the
+  // burger's first row on a phone. Closed, every other locale sits in the exact
+  // box of the current pill, one z-layer under it; open, the cards are dealt out
+  // from beneath it. The block never changes size — the cards are absolute, so
+  // they fan out over the page instead of pushing their neighbours around.
   if (variant === 'pill') {
-    const row = dropDirection === 'row'
-    const axis = (px: number) => (row ? `translateX(${px}px)` : `translateY(${px}px)`)
+    const axis = (px: number) => `translateY(${px}px)`
 
     return (
       <div
@@ -184,7 +201,7 @@ export default function LanguageSwitcher({ variant = 'text', dropDirection = 'do
                 // under the one that left before it.
                 zIndex:    others.length - i,
                 transform: open
-                  ? `${axis(restingOffset(i, row))} scale(1)`
+                  ? `${axis(restingOffset(i))} scale(1)`
                   : `${axis(0)} scale(${DECK.TUCK_SCALE})`,
                 ...dealMotion(i, others.length, open, reduceMotion),
                 pointerEvents: open ? 'auto' : 'none',

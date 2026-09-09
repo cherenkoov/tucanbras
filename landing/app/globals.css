@@ -81,7 +81,13 @@
 
 @theme {
   /* ── Colors ── */
-  --color-cream:          #fffce5; /* Surface/Page/White, Background */
+  --color-cream:          #fffce5; /* Surface/Page/White, карточки и «стекло» хедера */
+  --color-sky:            #d3ecfb; /* Surface/Page/Sky — ГРУНТ страницы под всем коллажем.
+                                      Небо, которое видно везде, где коллаж прозрачен.
+                                      Светлее порога 0.70 адаптивного текста (L=0.81),
+                                      так что заголовки берут синюю сторону дуотона:
+                                      4.64:1 против --color-blue. Темнее не делать —
+                                      уедет и порог, и контраст. */
   --color-ink:            #323031; /* Text/Heading Black, Surface/Black */
   --color-ink-secondary:  #5b595a; /* muted text, Others block */
   --color-ink-muted:      #cccab7; /* Others block surface */
@@ -147,7 +153,10 @@
 }
 
 :root {
-  background: var(--color-cream);
+  /* Грунт страницы: небо. Коллаж (BackgroundCanvas) рисуется ПОВЕРХ него и местами
+     прозрачен — там виден именно этот цвет. `color` остаётся кремовым: это цвет ТЕКСТА
+     по умолчанию, к фону отношения не имеет. */
+  background: var(--color-sky);
   color: var(--color-cream);
   --page-x: var(--spacing-s600); /* 24px — mobile */
 

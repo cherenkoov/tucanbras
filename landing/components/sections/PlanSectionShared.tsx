@@ -23,24 +23,11 @@ const MOBILE_BG = [
 
 const ICON_CHECK = '/SVG/marks/Mark%20-%20Positive.svg'
 
-// Кнопка «Попробовать» (тариф 1): декоративные цветы из Figma 3483:45258
-// (инстансы 3510:46024-26; поворот двух из них запечён в экспорт). В каждый
-// ассет запечена подложка #8FD096 (= CONFIG[0].accent), чтобы multiply-тень
-// цветка умножалась на цвет кнопки, как в макете. Сменится акцент первого
-// тарифа — перегенерить ассеты.
-// Цветы — ПОЛНЫЕ (не обрезанные по краю макетной кнопки): торчат за края, а
-// живой overflow-hidden кнопки сам обрезает их на любой ширине — иначе на узкой
-// кнопке линия обреза оказывалась посреди кнопки. Координаты — getBBox()
-// контента в системе макетной кнопки 466×99; % = значение/466. Кнопка уже 466 →
-// цветы сжимаются пропорционально ей (для отрицательных смещений min/max
-// меняются местами), шире — замирают на макетных пикселях, чтобы не
-// разрастаться относительно текста. Вертикаль — через margin-top/-bottom:
-// их % считается от ШИРИНЫ контейнера, что даёт равномерный масштаб по осям.
-const TRY_FLOWERS = [
-  { src: '/SVG/plans/try-flower-top.svg',   pos: { left: 'calc(50% - min(74px, 15.879%))', top: 0, marginTop: 'max(-51px, -10.944%)', width: 'min(119px, 25.536%)', aspectRatio: '119 / 121' } },
-  { src: '/SVG/plans/try-flower-left.svg',  pos: { left: 'max(-105.5px, -22.639%)', top: 0, marginTop: 'min(6.5px, 1.395%)', width: 'min(232px, 49.785%)', aspectRatio: '232 / 210' } },
-  { src: '/SVG/plans/try-flower-right.svg', pos: { right: 'max(-12.5px, -2.682%)', bottom: 0, marginBottom: 'max(-29.5px, -6.331%)', width: 'min(111px, 23.82%)', aspectRatio: '111 / 113' } },
-]
+// Цветов внутри кнопок тарифов больше НЕТ (решение владельца 2026-09-09) — ни своей
+// композиции у тарифа 1 (`TRY_FLOWERS`, узел 3483:45258), ни общего слоя `PlanDecor`
+// у остальных. Декор ПЛАШЕК остался: убраны только кнопки. Слот `button` в
+// `planDecorPlants.ts` пуст у всех четырёх тарифов, поэтому `PlanDecor` тут и не
+// вызывается — см. комментарий в таблице.
 
 export const CONFIG = [
   { featuresFirst: true,  textCream: false, mobileTextCream: false, accent: '#8FD096', btnText: null      },
@@ -227,61 +214,25 @@ export function PlanSection({ plan, index, locale }: { plan: PlanCard; index: nu
             type="button"
             onClick={handleCtaClick}
             aria-pressed={selected}
-            /* `relative` — контейнер для слоя декора: без него `absolute inset-0`
-               отсчитывается от ближайшего позиционированного предка, и лист рисуется
-               размером с колонку, а не с кнопку. На вид самой кнопки не влияет. */
-            /* `group/btn` — своё имя группы: листья внутри кнопки должны отвечать на
-               наведение НА КНОПКУ, а не на карточку целиком. Тап взводится тем же
-               bloomOnTap; он всплывает и до карточки, поэтому плашка отвечает заодно. */
-            onPointerDown={bloomOnTap}
-            className="btn-press group/btn relative flex items-center justify-center w-full overflow-hidden rounded-[28px] cursor-pointer"
+            className="btn-press flex items-center justify-center w-full rounded-[28px] cursor-pointer"
             style={{
               backgroundColor: cfg.accent,
               paddingTop: '32px',
               paddingBottom: '32px',
               paddingLeft: '16px',
               paddingRight: '16px',
-              // У первого тарифа inner-shadow уезжает в оверлей ПОВЕРХ цветов
-              // (в Figma эффекты кнопки рисуются над детьми).
-              boxShadow: index === 0
-                ? '0px 1px 4px 0px rgba(0,0,0,0.18)'
-                : '0px 1px 4px 0px rgba(0,0,0,0.18), inset 0px 1px 2px 0px rgba(255,255,255,0.18)',
+              // Inner-shadow снова на самой кнопке у ВСЕХ тарифов: у первого он уезжал в
+              // оверлей поверх цветов (в Figma эффекты кнопки рисуются над детьми) —
+              // цветов внутри кнопки больше нет, оверлею нечего перекрывать.
+              boxShadow: '0px 1px 4px 0px rgba(0,0,0,0.18), inset 0px 1px 2px 0px rgba(255,255,255,0.18)',
             }}
           >
-            {/* Кнопка первого тарифа — СВОЯ композиция (`TRY_FLOWERS` выше), а не общий
-                слой `PlanDecor`: у неё цветы поверх плиты по узлу 3483:45258, с запечённой
-                подложкой акцента под multiply-тени. Прежние срезы `p0-btn-*` из таблицы
-                убраны — иначе на кнопке рисовались бы обе композиции сразу. */}
-            {index === 0
-              ? TRY_FLOWERS.map(f => (
-                <div
-                  key={f.src}
-                  aria-hidden
-                  className="absolute pointer-events-none"
-                  style={{
-                    ...f.pos,
-                    backgroundImage: `url(${f.src})`,
-                    backgroundSize: '100% 100%',
-                    backgroundRepeat: 'no-repeat',
-                  }}
-                />
-              ))
-              : <PlanDecor plan={index} slot="button" />}
-
-            {/* `relative` — иначе абсолютный слой декора нарисуется поверх лейбла */}
             <span
-              className="relative font-sans font-bold text-center"
+              className="font-sans font-bold text-center"
               style={{ fontSize: 'clamp(24px, 2.5vw, 48px)', lineHeight: '32px', color: cfg.btnText ?? 'var(--color-cream)' }}
             >
               {selected ? L.planSelected : plan.ctaText}
             </span>
-            {index === 0 && (
-              <div
-                aria-hidden
-                className="absolute inset-0 pointer-events-none rounded-[inherit]"
-                style={{ boxShadow: 'inset 0px 1px 2px 0px rgba(255,255,255,0.18)' }}
-              />
-            )}
           </button>
         </div>
       </div>

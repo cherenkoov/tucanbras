@@ -16,9 +16,9 @@
 | Language | TypeScript | 5.x strict |
 | Styling | Tailwind CSS | v4 (PostCSS) |
 | CMS | Postgres `LandingContents` + раздел «Контент лендинга» в админке tucan | — |
-| Database | PostgreSQL (`pg`) | 8.20.0 — общая БД `tukan` тукан-бота на VPS |
+| Database | PostgreSQL (`pg`) | 8.20.0 — общая БД `tucandb` бота на VPS |
 | Email | Resend | 6.12.0 |
-| Deploy | VPS: `next start` за nginx, pm2 `tucanbras-landing` | см. корневой CLAUDE.md |
+| Deploy | VPS: `next start` за nginx, pm2 `tucan-landing` | см. корневой CLAUDE.md |
 
 Tailwind v4 не имеет `tailwind.config.ts` — все токены (цвета, тени, шрифты) объявлены в `app/globals.css`. Всегда использовать `var(--color-*)`, никогда не вводить сырые hex-значения.
 
@@ -80,7 +80,7 @@ tucanbras/
 ├── docs/superpowers/
 │   ├── plans/                  # Планы реализации
 │   └── specs/                  # Дизайн-документы
-├── migrations/                 # SQL для БД (сейчас применяются к БД бота `tukan`)
+├── migrations/                 # SQL для БД (применяются к БД бота `tucandb`)
 └── docker-compose.yml          # PostgreSQL dev container
 ```
 

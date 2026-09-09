@@ -1,6 +1,8 @@
 // Pure function — patches SVG string before dangerouslySetInnerHTML injection.
 // No DOM access, safe to call on any thread.
 
+import { CLOUD_BODIES } from '../cloudBodies'
+
 // Train path: derived from "train trace" group in SVG (SVG coordinate space, no transform needed).
 // Direction: upper-right (mountain top) → lower-left (forest). start_2 reversed + middle_2 + end_2.
 const TRAIN_PATH_D =
@@ -89,11 +91,22 @@ const CLOUD_INIT_CLASS: Record<string, string> = {
 
 // Inject the cloud-reveal <style> + initial slide-in classes into the clouds-only
 // SVG produced by wrapSvg(). No "move to end" needed — the layer is clouds only.
+// Also floors the two sketch clouds with a cream body (see cloudBodies.ts): they are drawn
+// as an open outline, so on the sky-blue ground their bellies read as holes in the art.
+// FIRST child of the group, so the exported strokes keep painting over it.
 export function injectCloudAnimation(svgString: string): string {
   let out = svgString.replace(/(<svg[^>]*>)/, `$1<style>${CLOUD_CSS}</style>`)
   out = out.replace(/<g id="(Cloud[^"]*)"/g, (_m, id: string) => {
     const initClass = CLOUD_INIT_CLASS[id] ?? 'cloud-anim-left'
     return `<g id="${id}" class="${initClass}"`
   })
+  for (const [id, d] of Object.entries(CLOUD_BODIES)) {
+    // style=, not fill=: presentation attributes do not take var(), and the layer is inline
+    // in the document, so the token resolves from :root like anywhere else.
+    out = out.replace(
+      new RegExp(`(<g id="${id}"[^>]*>)`),
+      `$1<path d="${d}" style="fill:var(--color-cream)"/>`,
+    )
+  }
   return out
 }

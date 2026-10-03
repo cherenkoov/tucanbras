@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { CSSProperties } from 'react'
 import type { HeaderProps } from '@/types'
 import { uiLabels, BECOME_TEACHER_ID } from '@/lib/uiLabels'
@@ -144,10 +144,6 @@ const COVER_DECOR = {
   mid:   'motion-safe:scale-[1.15]',
 } as const
 
-// Where the cover plants sit in the static fill's layer stack: above the plate they are
-// painted on (`data-adaptive-cover-z="200"` on both plates), below nothing else here.
-const COVER_PLANT_Z = 210
-
 /**
  * The bar's plants: one <img> per file from `public/SVG/header/decor`, sized off the
  * bar's height and pinned to an edge (see coverPlants.ts). No window, no bleed —
@@ -161,80 +157,13 @@ function CoverPlants({ plants, u, hot }: { plants: readonly Plant[]; u: number; 
   )
 }
 
-/**
- * A mirrored plant (`flipY`) shows the file turned over, and a CSS background layer —
- * which is what the static fill paints a cover with — has no way to flip an image. So the
- * fill is handed its own copy: the same file wrapped in one flipping <g>, as a blob URL.
- * FETCHED rather than re-authored, and rather than shipped as a second asset, so the copy
- * cannot drift from the art the <img> actually shows; the file is already in cache by then,
- * the <img> above fetched it.
- * Measured before this existed (390px, /en): the fill reconstructed the logotype's
- * background from the UNFLIPPED file, landed on a transparent band of it, and reported
- * plain cream plate — the logotype stayed blue over petals the live sample reads as green.
- */
-const flippedPlant = new Map<string, Promise<string>>()
-function flippedPlantUrl(src: string): Promise<string> {
-  let made = flippedPlant.get(src)
-  if (!made) {
-    made = fetch(src)
-      .then(r => r.text())
-      .then(txt => {
-        // The art's own canvas, read from the markup — a hardcoded size goes stale the
-        // moment the file is re-exported, and the flip would then be off by the difference.
-        const box = txt.match(/<svg[^>]*viewBox="([-\d.]+)\s+([-\d.]+)\s+([\d.]+)\s+([\d.]+)"/)
-        if (!box) throw new Error(`no viewBox in ${src}`)
-        const [, x, y, w, h] = box
-        return URL.createObjectURL(new Blob(
-          [`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="${x} ${y} ${w} ${h}">` +
-           `<g transform="translate(0,${Number(y) * 2 + Number(h)}) scale(1,-1)">${txt}</g></svg>`],
-          { type: 'image/svg+xml' },
-        ))
-      })
-    flippedPlant.set(src, made)
-  }
-  return made
-}
-
 function CoverPlant({ p, u, hot }: { p: Plant; u: number; hot: boolean }) {
   const src = `/SVG/header/decor/${encodeURIComponent(p.file)}`
-  // A mirrored plant declares its cover IMPERATIVELY, once the flipped copy is built, and
-  // the fill notices through its cover MutationObserver (see useAdaptiveText). Not React
-  // state: measured on the built page, the effect that would have held it is torn down
-  // before the fetch resolves — every mirrored plant kept `alive === false` and the
-  // attribute never appeared. A module-level promise per file survives that, and the
-  // blob is built once for the whole page however often the bar re-renders.
-  // Until it lands the plant declares NO cover: the fill then reads the plate it hides,
-  // which is the answer it had before any of this — a cover painted from the wrong side
-  // of the art would be a WRONG answer instead of a missing one.
-  const declareCover = useCallback((el: HTMLImageElement | null) => {
-    if (!el) return
-    if (!p.flipY) { el.setAttribute('data-adaptive-cover-src', src); return }
-    flippedPlantUrl(src).then(u => el.setAttribute('data-adaptive-cover-src', u)).catch(() => {})
-  }, [src, p.flipY])
   return (
         <img
-          ref={declareCover}
           src={src}
           alt=""
           aria-hidden
-          // The plants are what the LOGOTYPE is written over — the plate is cream
-          // everywhere, so without them the static fill sees one flat light surface and
-          // the logotype is blue at every scroll position, whatever is painted under it.
-          // Desktop samples them live (backdrop) and has always adapted; this is what
-          // gives the phone the same reading. As an IMAGE cover, not a rect: a flower is
-          // mostly transparent inside its box, and a solid rect would claim the whole
-          // corner is flower-coloured.
-          // z above the plate's own 200 — these paint over it, in the same order.
-          // `-clip`: the box is ~3.6 bar heights tall and the plate shows only the slice
-          // inside itself. The promise that buys is narrow and exact — a text ENTIRELY
-          // inside the plate (the logotype is, by construction) gets the flowers; anything
-          // scrolling under the bar keeps just the flat plate cover, which is the truth
-          // there because the flowers are cut at its edge.
-          // Deliberately NOT `-live`: these move only during the hover/tap bloom (~340ms,
-          // a few percent of scale), so a permanent 8fps tick under a header that is
-          // always on screen would cost far more than the colour it could change.
-          data-adaptive-cover-z={COVER_PLANT_Z}
-          data-adaptive-cover-clip=""
           className={`pill-decor pointer-events-none select-none ${hot ? COVER_DECOR[p.role] : ''}`}
           style={plantBox(p, u)}
         />
@@ -987,24 +916,9 @@ export default function Header({ navLinks, locale }: HeaderProps) {
       >
 
         {/* Background plate — mobile: простой прямоугольник с radius-card (glass → solid по ховеру бара).
-            Без backdrop-blur: на телефонах блюр-буферы (размер элемента × DPR) роняли вкладку.
-
-            data-adaptive-cover: this plate is what the LOGOTYPE actually sits on, so the
-            adaptive static fill has to know about it. Without the hint that path
-            reconstructs the background BEHIND the header — the collage art the plate
-            hides, plus whatever content card happens to be sliding under the fixed bar —
-            and picks the duotone side from it: over dark jungle the logotype went cream
-            ON the cream plate, i.e. invisible (measured at scrollY≈1800, iPhone 12).
-            The colour carries its real alpha; as a `linear-gradient` layer it composites
-            over the layers below exactly as the live plate does.
-            z 200, not the default 100: equal z ties break on document order and the
-            header is early in the DOM, so content cards would otherwise paint over it —
-            but this bar is `fixed` and covers them. Applies to every adaptive text that
-            scrolls under the header, not just the logotype. */}
+            Без backdrop-blur: на телефонах блюр-буферы (размер элемента × DPR) роняли вкладку. */}
         <div
           aria-hidden
-          data-adaptive-cover={coverHot ? '#fffce5' : 'rgba(255,252,229,0.72)'}
-          data-adaptive-cover-z="200"
           className={`lg:hidden absolute inset-0 pointer-events-none rounded-card transition-colors duration-[600ms] ${
             coverHot ? 'bg-cream' : 'bg-[rgba(255,252,229,0.72)]'
           }`}
@@ -1022,17 +936,9 @@ export default function Header({ navLinks, locale }: HeaderProps) {
           style={{ clipPath: 'url(#header-plate-clip)', WebkitClipPath: 'url(#header-plate-clip)' }}
         />
 
-        {/* Background plate — desktop: inline SVG с кастомной формой.
-            Same adaptive-cover hint as the mobile plate above; desktop normally runs the
-            live backdrop path (which ignores covers and samples this plate for real), so
-            this only carries reduced-motion, ?staticfill and engines that reject url(#)
-            inside backdrop-filter. A cover is one solid colour over its bounding RECT, so
-            the notch in PLATE_PATH is not modelled — good enough to pick a side of the
-            0.70 threshold, not pixel-exact like the backdrop path. */}
+        {/* Background plate — desktop: inline SVG с кастомной формой. */}
         <svg
           aria-hidden
-          data-adaptive-cover="#fffce5"
-          data-adaptive-cover-z="200"
           className="hidden lg:block absolute pointer-events-none select-none w-full"
           style={{ top: 0, left: 0, height: '100%', overflow: 'visible' }}
           viewBox="0 0 1728 120"

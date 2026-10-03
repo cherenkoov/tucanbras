@@ -10,7 +10,7 @@ export const metadata: Metadata = {
    the browser guesses its own tint — hence the stray orange bottom bar on mobile.
    Value is --color-sky, the page surface under the whole collage. */
 export const viewport: Viewport = {
-  themeColor: "#d3ecfb",
+  themeColor: "#5dade2",
 };
 
 export default function RootLayout({

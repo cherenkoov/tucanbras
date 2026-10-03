@@ -27,11 +27,16 @@ export default function FeatureCard({ index, title, icon, bg, tint, text }: {
 }) {
   return (
     <div
-      data-adaptive-cover={bg}
+      /* Stable handle for npm run verify:celpe-cta (the desktop card it measures the
+         CTA column against). */
+      data-feature-card=""
       onPointerDown={bloomOnTap}
       /* `group/card` is NAMED: the plant inside answers to this card's hover, and an
          unnamed group would also fire from any ancestor group the section gains. */
-      className="group/card glass relative flex flex-1 items-center gap-[48px] min-w-[300px] overflow-hidden rounded-[44px] px-[32px] py-[32px] hover:scale-[1.04] active:scale-[0.95]"
+      /* The lift and the press are POINTER-ONLY: on touch the block has exactly one
+         state (2026-10-03). A bare `active:` fires on a finger too, and a phone can even
+         latch `:hover` after a tap — hence the media query on both. */
+      className="group/card glass relative flex flex-1 items-center gap-[48px] min-w-[300px] overflow-hidden rounded-[44px] px-[32px] py-[32px] [@media(hover:hover)]:hover:scale-[1.04] [@media(hover:hover)]:active:scale-[0.95]"
       style={{
         minHeight: '164px',
         '--glass-tint': tint,

@@ -124,7 +124,7 @@ export function PlanSection({ plan, index, locale }: { plan: PlanCard; index: nu
       */}
       <div
         aria-hidden
-        className="hidden lg:block absolute inset-0 pointer-events-none backdrop-blur-[4px] group-hover:backdrop-blur-none"
+        className="hidden lg:block absolute inset-0 pointer-events-none backdrop-blur-[4px] [@media(hover:hover)]:group-hover:backdrop-blur-none"
         style={{
           WebkitMaskImage: `url(${BG[index]})`,
           WebkitMaskSize: '100% 100%',
@@ -134,9 +134,12 @@ export function PlanSection({ plan, index, locale }: { plan: PlanCard; index: nu
           maskRepeat: 'no-repeat',
         }}
       />
-      {/* Mobile SVG colored plate (custom notch shape); transparent notch reveals card below — translucent, solid on hover */}
+      {/* Mobile SVG colored plate (custom notch shape); transparent notch reveals the card
+          below. ONE state on the phone (2026-10-03): translucent, and it stays there — the
+          `group-hover:opacity-100` that solidified it is gone, and with it the transition
+          that had nowhere left to go. */}
       <div
-        className="lg:hidden absolute inset-0 opacity-80 group-hover:opacity-100 transition-opacity duration-[600ms]"
+        className="lg:hidden absolute inset-0 opacity-80"
         style={{
           backgroundImage: `url(${MOBILE_BG[index]})`,
           backgroundSize: '100% 100%',
@@ -145,7 +148,7 @@ export function PlanSection({ plan, index, locale }: { plan: PlanCard; index: nu
       />
       {/* Desktop SVG colored plate (custom notch shape + preserveAspectRatio="none"); translucent, solid on hover */}
       <div
-        className="hidden lg:block absolute inset-0 opacity-80 group-hover:opacity-100 transition-opacity duration-[600ms]"
+        className="hidden lg:block absolute inset-0 opacity-80 [@media(hover:hover)]:group-hover:opacity-100 transition-opacity duration-[600ms]"
         style={{
           backgroundImage: `url(${BG[index]})`,
           backgroundSize: '100% 100%',

@@ -82,12 +82,12 @@
 @theme {
   /* ── Colors ── */
   --color-cream:          #fffce5; /* Surface/Page/White, карточки и «стекло» хедера */
-  --color-sky:            #d3ecfb; /* Surface/Page/Sky — ГРУНТ страницы под всем коллажем.
+  --color-sky:            #5dade2; /* Surface/Page/Sky — ГРУНТ страницы под всем коллажем.
                                       Небо, которое видно везде, где коллаж прозрачен.
-                                      Светлее порога 0.70 адаптивного текста (L=0.81),
-                                      так что заголовки берут синюю сторону дуотона:
-                                      4.64:1 против --color-blue. Темнее не делать —
-                                      уедет и порог, и контраст. */
+                                      Решение владельца 2026-10-03 (было #d3ecfb).
+                                      Порога яркости тут больше нет — дуотон у текстов
+                                      снят, заголовки всегда --color-green, — но контраст
+                                      остался: #8fd096 над этим небом даёт 1.36:1. */
   --color-ink:            #323031; /* Text/Heading Black, Surface/Black */
   --color-ink-secondary:  #5b595a; /* muted text, Others block */
   --color-ink-muted:      #cccab7; /* Others block surface */
@@ -299,6 +299,9 @@ html.noanim * {
   transition: background-color 600ms ease;
 }
 
+/* Both halves of the hover state live under `hover: hover`, the colour included: a
+   phone can LATCH `:hover` on a tap and keep it until the next tap elsewhere, which is
+   exactly the second state the touch layout must not have. */
 @media (hover: hover) {
   .glass {
     -webkit-backdrop-filter: blur(4px);
@@ -308,33 +311,26 @@ html.noanim * {
   .glass:hover {
     -webkit-backdrop-filter: blur(0);
     backdrop-filter: blur(0);
+    background-color: var(--glass-solid, #fffce5);
   }
-}
-
-.glass:hover {
-  background-color: var(--glass-solid, #fffce5);
 }
 
 /*
-  `.is-center` — то же самое состояние, что `:hover`, но для тача, где ховера нет.
-  Ставится ЯВНО и поштучно: сейчас его выдаёт только CelpeBrasStack активной карточке
-  своей стопки. Общего триггера «поверхность доехала до центра экрана» больше НЕТ —
-  GlassCenterActivation снят 2026-08-26 по решению владельца: блоки на телефоне
-  остаются полупрозрачными, пока их не переключит кто-то осознанно.
+  НА ТАЧЕ У БЛОКА РОВНО ОДНО СОСТОЯНИЕ — полупрозрачное (2026-10-03, решение владельца:
+  «у мобилки сделать только одно состояние у блоков, никаких изменений на hover или
+  на клик; дефолт — прозрачный блок»). `--glass-solid` там не красит ничего.
 
-  NO transition on touch: animating background-color repaints the WHOLE card
-  every frame for 600ms, and the About cards are 1400–2700px tall — at DPR 3
-  each repainting card transiently costs a ~50–100MB IOSurface. Scrolling
-  About toggles several in sequence, which exhausted the iOS tab's surface
-  budget (magenta tiles → paint void → jetsam kill on iPhone 12 mini). The
-  colour change lands instantly instead.
+  История, чтобы не возвращать по кругу: сперва общий триггер «поверхность доехала до
+  центра экрана» (GlassCenterActivation) — снят 2026-08-26, — потом класс `.is-center`,
+  который `CelpeBrasStack` вешал активной карточке своей стопки. Сегодня снят и он,
+  вместе с правилом: его больше никто не ставит и никто не читает.
+  Снят и `transition`: переходу больше некуда идти, а анимация background-color
+  перекрашивала КАРТОЧКУ ЦЕЛИКОМ каждый кадр 600ms — при высоте карточек About в
+  1400–2700px и DPR 3 это ~50–100MB IOSurface на карточку, чем и выедался бюджет
+  поверхностей вкладки на iPhone 12 mini (magenta tiles → paint void → jetsam).
 */
 @media (hover: none) {
   .glass { transition: none; }
-
-  .glass.is-center {
-    background-color: var(--glass-solid, #fffce5);
-  }
 }
 
 /* Effect 2 — Button press: lift on hover, press in on click. */
@@ -765,7 +761,11 @@ html.noanim * {
   .footer-plant-tf { transform: rotate(var(--footer-rot, 0deg)); }
 }
 
-.glass:hover > .footer-decor { opacity: 1; }
+/* Follows the card's own glass, so it is scoped the same way: pointer devices only,
+   or a latched `:hover` would brighten the decor and give the touch block a second state. */
+@media (hover: hover) {
+  .glass:hover > .footer-decor { opacity: 1; }
+}
 
 @media (hover: none) {
   .footer-decor { transition: none; }

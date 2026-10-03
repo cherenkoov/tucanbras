@@ -1,57 +1,49 @@
-'use client'
+import type { CSSProperties } from 'react'
 
-import { useRef, type CSSProperties, type Ref } from 'react'
-import { AdaptiveDuotoneFilter, DUOTONES, DEFAULT_DUOTONE, type Duotone } from './AdaptiveText'
-import { useAdaptiveText } from './useAdaptiveText'
+// Icon counterpart of AdaptiveText: an SVG symbol that sits directly on the background
+// collage (today only the Comparison «VS»). It used to run the same adaptive duotone as
+// the headings — the art's alpha was the glyph mask and the fill was sampled from the
+// background behind it. Removed 2026-10-03 with the text duotone: the symbol is now the
+// flat brand green, like the headings beside it.
+//
+// The art keeps its own colours in the file, so the flat green is painted here: flood the
+// filter region with the colour and composite it THROUGH the image's alpha, which leaves
+// the silhouette untouched and recolours everything inside it. A CSS mask would do the
+// same, but then the <img> could no longer size the box from the file's own aspect.
+const ICON_COLOR = '#8fd096' // --color-green; a filter's flood-color takes no var()
+const FILTER_ID = 'adaptive-icon-green'
 
 interface AdaptiveIconProps {
   src: string
   alt?: string
   className?: string
   style?: CSSProperties
-  // Escape hatch: force the icon to one duotone side in static mode (touch/reduced-
-  // motion) when the layered fill can't resolve its spot. Desktop backdrop ignores it.
-  // 'ink' means the active palette's LIGHT-background side (green by default).
-  staticFill?: 'ink' | 'cream'
-  // Which palette the duotone resolves to on a LIGHT background — same default as
-  // AdaptiveText so icons and headings read as one system.
-  duotone?: Duotone
 }
 
-// Icon counterpart of AdaptiveText: an SVG symbol over the moving collage whose colour
-// adapts to the background behind it (same green↔green duotone). The image's alpha acts as
-// the glyph mask; the real <img> stays as the fallback when neither technique can run — it
-// keeps the art's own colour. Size via `style.width`; aspect comes from the file.
-export default function AdaptiveIcon({ src, alt = '', className, style, staticFill, duotone = DEFAULT_DUOTONE }: AdaptiveIconProps) {
-  const wrapRef = useRef<HTMLElement>(null)
-  const overlayRef = useRef<HTMLSpanElement>(null)
-  const imgRef = useRef<HTMLImageElement>(null)
-
-  useAdaptiveText({
-    textRef: wrapRef, overlayRef, imageSrc: src, imageRef: imgRef, staticFill,
-    filterId:   DUOTONES[duotone].id,
-    lightColor: DUOTONES[duotone].lightColor,
-    darkColor:  DUOTONES[duotone].darkColor,
-  })
-
+export default function AdaptiveIcon({ src, alt = '', className, style }: AdaptiveIconProps) {
   return (
     <>
-      <AdaptiveDuotoneFilter duotone={duotone} />
+      {/* One id for every instance: the filter is a constant, so duplicate definitions
+          are identical and the first one in the document answers for all of them. */}
+      <svg width="0" height="0" aria-hidden="true" style={{ position: 'absolute' }}>
+        <filter id={FILTER_ID} colorInterpolationFilters="sRGB">
+          <feFlood floodColor={ICON_COLOR} result="fill" />
+          <feComposite in="fill" in2="SourceAlpha" operator="in" />
+        </filter>
+      </svg>
 
       <span
-        ref={wrapRef as Ref<HTMLSpanElement>}
         role={alt ? 'img' : undefined}
         aria-label={alt || undefined}
         aria-hidden={alt ? undefined : true}
         className={className}
-        style={{ ...style, position: 'relative', display: 'inline-block' }}
+        style={{ ...style, display: 'inline-block' }}
       >
-        <img src={src} alt="" aria-hidden="true" ref={imgRef} style={{ width: '100%', height: 'auto', display: 'block' }} />
-        {/* Overlay for backdrop mode (hidden in static mode); covers the icon box. */}
-        <span
-          ref={overlayRef}
+        <img
+          src={src}
+          alt=""
           aria-hidden="true"
-          style={{ position: 'absolute', inset: 0, pointerEvents: 'none', display: 'none' }}
+          style={{ width: '100%', height: 'auto', display: 'block', filter: `url(#${FILTER_ID})` }}
         />
       </span>
     </>

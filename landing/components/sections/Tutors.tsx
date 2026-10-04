@@ -7,9 +7,7 @@ import type { TutorsProps, Locale } from '@/types'
 import type { Tutor } from '@/lib/tutors'
 import { getStubTutors } from '@/lib/tutorStubs'
 import { uiLabels } from '@/lib/uiLabels'
-import AdaptiveText, { AdaptiveDuotoneFilter } from '@/components/ui/AdaptiveText'
-import { useAdaptiveDuotone, dimDuotone } from '@/components/ui/useAdaptiveDuotone'
-import { BLUE } from '@/components/ui/useAdaptiveText'
+import AdaptiveText from '@/components/ui/AdaptiveText'
 
 // ─── Tutor card ──────────────────────────────────────────────────────────────
 
@@ -36,11 +34,13 @@ function TutorCard({
   const [tapPos,   setTapPos]   = useState({ x: 0, y: 0 })
   const [hovered,  setHovered]  = useState(false)
 
-  // Card cover hue: amber when selected, green otherwise. Keep the frosted /80 base
-  // plus solidify-on-hover/center; only the hue changes (transition-colors animates it).
+  // Card cover hue: amber when selected, green otherwise. The frosted /80 base is the
+  // ONLY state on touch (2026-10-03) — solidify-on-hover is scoped to pointer devices,
+  // because a phone can latch `:hover` after a tap. Selection is not a hover state: it
+  // changes the hue, which `transition-colors` animates, and that stays on every device.
   const coverClass = selected
-    ? 'bg-[#f69137]/80 group-hover:bg-[#f69137]'
-    : 'bg-[#8fd096]/80 group-hover:bg-[#8fd096]'
+    ? 'bg-[#f69137]/80 [@media(hover:hover)]:group-hover:bg-[#f69137]'
+    : 'bg-[#8fd096]/80 [@media(hover:hover)]:group-hover:bg-[#8fd096]'
 
   // Chip = the cursor button (desktop) and the tap chip (mobile). Colours/label by state.
   const chip = justDeselected
@@ -58,7 +58,10 @@ function TutorCard({
         onSelect()
       }}
       data-tutor-card
-      className="relative flex flex-col w-full max-w-[410px] mx-auto cursor-pointer select-none active:opacity-80 lg:active:opacity-100 transition-opacity bg-transparent border-0 p-0 text-left"
+      // No press feedback: `active:opacity-80` (phones only, desktop reset it to 100) was
+      // the card's one tap state, and on touch the block now has exactly one — the tap's
+      // real answer is the hue change of a selected card. 2026-10-03.
+      className="relative flex flex-col w-full max-w-[410px] mx-auto cursor-pointer select-none bg-transparent border-0 p-0 text-left"
       // touch-action `manipulation`, НЕ `pan-x`: карточка — это то, во что реально
       // попадает палец, а `pan-x` разрешает начатому здесь касанию ТОЛЬКО
       // горизонтальный пан. Вертикальный свайп при этом не «проваливается» к
@@ -127,21 +130,20 @@ function TutorCard({
 
       {/* Card body — content defines height; glass cover sits behind it */}
       <div
-        data-adaptive-cover={selected ? '#f69137' : '#8fd096'}
         className="group relative z-10 px-[12px] pb-[24px]"
         style={{ paddingTop: 'calc(var(--edge-h) + 16px)' }}
       >
         {/*
           Glass cover — frosted green panel masked to the cover silhouette so the
           blur follows the notch shape (not the rectangle). Fixed-height notched
-          band on top + stretchy rounded body below; solidifies on hover / centre.
+          band on top + stretchy rounded body below; solidifies on hover (pointer only).
           Blur only on hover-capable devices (как .glass в globals.css): на
           телефонах backdrop-буферы element×DPR роняли вкладку; transition —
           только цвет, анимация радиуса блюра перефильтровывает буфер каждый кадр.
         */}
         <div
           aria-hidden
-          className={`absolute inset-0 z-0 rounded-b-[36px] [@media(hover:hover)]:backdrop-blur-[4px] ${coverClass} transition-colors duration-[600ms] group-hover:backdrop-blur-none pointer-events-none`}
+          className={`absolute inset-0 z-0 rounded-b-[36px] [@media(hover:hover)]:backdrop-blur-[4px] ${coverClass} transition-colors duration-[600ms] [@media(hover:hover)]:group-hover:backdrop-blur-none pointer-events-none`}
           style={{
             WebkitMaskImage: 'url(/SVG/tutors/cover-edge.svg), linear-gradient(#fff,#fff)',
             maskImage: 'url(/SVG/tutors/cover-edge.svg), linear-gradient(#fff,#fff)',
@@ -340,14 +342,14 @@ const DOTS = [
   { w:  6, h: 6, alpha: 0.2  },
 ] as const
 
-// The indicator adapts to the background like the headings do (AdaptiveText): where the
-// engine can sample the live collage, each dot goes TRANSPARENT and its own rounded box
-// carries the duotone backdrop — blue over a light scene, light green over a dark
-// one. Without it the dots are flat and simply vanish where Tutors crosses the dark
-// cliff/ocean. No mask is involved (the border-radius clips the backdrop), so this path
-// also runs on iOS, unlike the image-masked adaptive icons. Fallback = flat blue.
-// NB touch: the built-in chain (BACKDROP_BUILTIN) can only land on near-white/near-black,
-// so phones still get a grayscale dot — no built-in filter sequence can tint one side.
+const DOT_COLOR = 'var(--color-green)'
+
+// The indicator is the flat brand green, like the headings beside it. It used to sample
+// the live collage through a backdrop-filter duotone (blue over a light scene, light green
+// over a dark one) so the dots would not vanish where Tutors crosses the dark cliff and
+// ocean; that went with the rest of the duotone on 2026-10-03. Distance from the active
+// index still dims the neighbours, and element `opacity` is enough for that now — there
+// is no backdrop buffer left for it to regroup.
 function CarouselDots({
   count,
   activeIndex,
@@ -357,41 +359,27 @@ function CarouselDots({
   activeIndex: number
   onPick: (i: number) => void
 }) {
-  const duotone = useAdaptiveDuotone()
-
   return (
     <>
-      {/* Only needed for the desktop chain (url(#adaptive-duotone-blue) — BACKDROP and
-          this default must name the SAME palette); out of flow, no gap in the row below. */}
-      {duotone?.includes('url(') && <AdaptiveDuotoneFilter />}
-
       <div className="flex justify-center items-center gap-[6px]">
         {Array.from({ length: count }, (_, i) => {
           const dist = Math.abs(i - activeIndex)
           if (dist > 2) return null
           const dot = DOTS[dist]
-          const chain = duotone ? dimDuotone(duotone, dot.alpha) : undefined
           return (
             <button
               key={i}
               onClick={() => onPick(i)}
               aria-label={`Тутор ${i + 1}`}
               // Stable handle for npm run verify:tutor-dots (asserts the dots still paint
-              // a duotone instead of an invisible transparent box).
+              // the brand green instead of an invisible transparent box).
               data-tutor-dot={dist}
               style={{
                 width:           dot.w,
                 height:          dot.h,
                 borderRadius:    4,
-                // Duotone mode paints the sampled backdrop, so the box must be empty and
-                // the dim has to live INSIDE the chain — element opacity would regroup the
-                // box and leak past the radius clip (see dimDuotone).
-                backgroundColor: duotone ? 'transparent' : BLUE,
-                opacity:         duotone ? 1 : dot.alpha,
-                backdropFilter:       chain,
-                WebkitBackdropFilter: chain,
-                // Explicit list, not `all`: `all` would also animate backdrop-filter, and
-                // re-filtering the backdrop buffer every frame is what we avoid elsewhere.
+                backgroundColor: DOT_COLOR,
+                opacity:         dot.alpha,
                 transition:      'width 0.3s ease, height 0.3s ease, opacity 0.3s ease',
                 border:          'none',
                 cursor:          dist === 0 ? 'default' : 'pointer',
@@ -544,15 +532,6 @@ export default function Tutors({ data, tutors, locale }: TutorsSectionProps) {
       <div className="flex flex-col gap-[64px] lg:gap-[80px] max-w-[1720px] mx-auto w-full">
 
         {/* ══ Headings row ══ */}
-        {/* These sit in the collage↔beach raise band. They used to carry staticFill="ink",
-            pinned there because the LIVE extracted sprites (roads/bushes, slid + swaying)
-            did not match the baked fill art and the static fill landed on the wrong duotone
-            side. That pin is gone (2026-08-19, owner report «тексты не реагируют на кусты»):
-            the sprites now declare themselves to the fill at their LIVE boxes
-            (data-adaptive-cover-src / -live in BackgroundCanvas), so the reconstruction
-            follows them instead of guessing. The pin mattered more than it looks — it does
-            not just override a colour, it returns from the hook early: no observers, no
-            covers, no tick. Under it these headings could never react to anything. */}
         <div className="flex flex-col lg:flex-row gap-[24px] lg:gap-[48px] items-start w-full">
           <AdaptiveText
             as="h2"

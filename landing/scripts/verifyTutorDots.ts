@@ -1,22 +1,18 @@
-// The Tutors carousel indicator must actually PAINT. In duotone mode a dot is a
-// TRANSPARENT box that gets its colour from backdrop-filter (its border-radius doing the
-// clipping), so an engine that silently drops the chain — or an `opacity()` term it does
-// not honour — leaves the indicator invisible with nothing in the console to show it.
-// This asserts, against the live page: a duotone chain is in the computed style, the
-// active dot resolves to INK or CREAM, and every dimmed dot still changes the pixels
-// behind it. Run against a prod build (`npm run build && npm start`):
+// The Tutors carousel indicator must actually PAINT.
 //
-//   npm run verify:tutor-dots                       → http://localhost:3000/ru
-//   npm run verify:tutor-dots -- http://host/ru      → custom URL
+// It is a flat brand-green box now (2026-10-03). Before that it was a TRANSPARENT box
+// tinted by a backdrop-filter duotone, which is the failure this guard was written for:
+// an engine that silently drops the chain left the indicator invisible with nothing in
+// the console to show it. The duotone is gone; the way a dot can still vanish is not.
+// `opacity` dims the neighbours, a decor change can cover the row, and the colour is one
+// token away from the headings — so the check stays as it was in shape: against the live
+// page, the active dot must resolve to the brand green and every dot must change the
+// pixels behind it. Run against a prod build (`npm run build && npm start`):
+//
+//   npm run verify:tutor-dots                                   → http://localhost:3000/ru
+//   npm run verify:tutor-dots -- http://host/ru                 → custom URL
 //   npm run verify:tutor-dots -- http://host/ru 390x844         → phone-width layout
 //   npm run verify:tutor-dots -- http://host/ru 390x844 touch   → …and `hover: none`
-//
-// NB `touch` no longer changes the duotone. The hook picks its chain by ENGINE, not by
-// input type (WebKit is the only one that drops url(#) inside backdrop-filter, and a
-// Chromium phone renders the exact palette) — so a touch viewport still expects the
-// palette. To check the chain iOS gets, append ?duowk=1 to the URL, which forces the
-// WebKit path on any engine; expectations below follow that flag, and ?duobrand=1 with it
-// asks for the fitted brand chain that is no longer the WebKit default.
 //
 // ?noanim=1 is forced: the two screenshots (dots shown / hidden) must see the SAME
 // background, and the collage sprites move on their own otherwise.
@@ -27,34 +23,15 @@ const vpArg = /^(\d+)x(\d+)$/.exec(process.argv[3] ?? '')
 const VIEWPORT = vpArg
   ? { width: Number(vpArg[1]), height: Number(vpArg[2]) }
   : { width: 1440, height: 900 }
-// Chromium's mobile emulation is what flips `hover: none` / `any-hover: none`, and that
-// media query is how the hook picks the touch chain — a viewport alone stays a desktop.
+// Chromium's mobile emulation is what flips `hover: none` / `any-hover: none`. Nothing in
+// the indicator reads it any more, but the phone layout is still worth a pass.
 const TOUCH = process.argv.includes('touch')
 
-// The duotone's two outputs. Engines that render url(#) inside backdrop-filter run the
-// default palette (AdaptiveText DUOTONES.blue, which BACKDROP names): blue over a light
-// scene, light green over a dark one.
-// WebKit cannot: it drops url(#) inside backdrop-filter, and the built-in chain that
-// rebuilt the same pair is only correct where its blur barrier clamps — which production
-// showed it does not everywhere (2026-08-17, see BACKDROP_BUILTIN_BRAND). A SHAPE has no
-// static fallback to escape to, unlike the headings, so WebKit keeps the live sample in
-// MONO: near-white over a dark scene, near-black over a light one. Dots on iOS are
-// therefore black/white while the headings are palette-coloured — that is the trade, not
-// a bug. ?duobrand=1 puts the fitted pair back for a device re-measurement.
-const BLUE = [0x2e, 0x67, 0xb2]
-const LIGHT_GREEN = [0x8f, 0xd0, 0x96]
-const WK_BLUE = [0x2e, 0x68, 0xb1]
-const MONO_LIGHT = [0xff, 0xff, 0xff]
-const MONO_DARK = [0x00, 0x00, 0x00]
-const WEBKIT_PATH = BASE.includes('duowk')
-const BRAND_LEVER = BASE.includes('duobrand')
-const SIDES: [string, number[]][] = WEBKIT_PATH
-  ? BRAND_LEVER
-    ? [['blue (webkit, ?duobrand)', WK_BLUE], ['light green (webkit, ?duobrand)', LIGHT_GREEN]]
-    : [['near-black (webkit mono)', MONO_DARK], ['near-white (webkit mono)', MONO_LIGHT]]
-  : [['blue', BLUE], ['light green', LIGHT_GREEN]]
-const DUOTONE_TOL = 32
-// A dimmed dot composites `opacity(a)` of the duotone over the real backdrop; at a=0.2
+// --color-green, the one colour the indicator and the headings share (DOT_COLOR in
+// Tutors.tsx). The active dot is fully opaque, so it must land on it exactly.
+const GREEN = [0x8f, 0xd0, 0x96]
+const COLOR_TOL = 8
+// A dimmed dot composites `opacity(a)` of the green over the real backdrop; at a=0.2
 // that is a faint ghost, so only a few levels of change are expected.
 const PAINT_TOL = 6
 
@@ -116,12 +93,8 @@ async function main() {
   await page.locator('[data-tutor-dot]').first().evaluate(el => el.scrollIntoView({ block: 'center' }))
   await page.waitForTimeout(1_200) // parallax easing settles
 
-  const chain = await page.locator('[data-tutor-dot="0"]').evaluate(el => {
-    const cs = getComputedStyle(el)
-    return cs.backdropFilter || cs.getPropertyValue('-webkit-backdrop-filter')
-  })
   const bg = await page.locator('[data-tutor-dot="0"]').evaluate(el => getComputedStyle(el).backgroundColor)
-  console.log(`chain: ${chain}\nbackground: ${bg}`)
+  console.log(`background: ${bg}`)
 
   const dots = await page.locator('[data-tutor-dot]').evaluateAll(els =>
     els.map(el => {
@@ -157,44 +130,34 @@ async function main() {
   if (controlDrift > PAINT_TOL) {
     failures.push(`background drifted between shots (control Δ${controlDrift}) — results unreliable`)
   }
-  // No chain = the flat-ink fallback (?staticfill, ?noadaptive, an engine without
-  // backdrop-filter). Report but do not assert: a 0.2-alpha ink dot over the dark cliff
-  // IS all but invisible there — that weakness is the reason the duotone path exists.
-  const duotone = !!chain && chain !== 'none'
-  if (!duotone) console.log('no duotone chain — flat blue fallback, measuring only')
-
   dots.forEach((d, i) => {
     const px = withDots[i]
     const bare = withoutDots[i]
     const delta = dist(px, bare)
     const label = `dot dist=${d.dist} rgb(${px.join(',')})`
-    if (duotone && delta <= PAINT_TOL) {
+    if (delta <= PAINT_TOL) {
       failures.push(`${label}: paints nothing — identical to the background behind it (${bare.join(',')})`)
       return
     }
-    // The full-strength dot is pure duotone (or the flat fallback colour), so it must land
-    // on one of the two ends; dimmed ones are a blend and only have to differ from the
-    // bare background.
+    // The active dot is opaque, so it is the brand green exactly; the dimmed ones are a
+    // blend with whatever is behind them and only have to differ from the bare background.
     if (d.dist === 0) {
-      const measured = SIDES.map(([name, rgb]) => [name, dist(px, rgb)] as const)
-      const best = measured.reduce((a, b) => (b[1] < a[1] ? b : a))
-      if (best[1] > DUOTONE_TOL) {
-        failures.push(`${label}: no palette side matched (${measured.map(m => `${m[0]} Δ${m[1]}`).join(', ')})`)
+      const off = dist(px, GREEN)
+      if (off > COLOR_TOL) {
+        failures.push(`${label}: not the brand green rgb(${GREEN.join(',')}) — Δ${off}`)
         return
       }
-      console.log(`✓ ${label} → ${best[0]}`)
+      console.log(`✓ ${label} → brand green`)
       return
     }
-    console.log(`${duotone ? '✓' : '·'} ${label} → Δ${delta} vs background`)
+    console.log(`✓ ${label} → Δ${delta} vs background`)
   })
 
   if (failures.length) {
     console.error('\n✗ ' + failures.join('\n✗ '))
     process.exit(1)
   }
-  console.log(duotone
-    ? `\n✓ indicator paints a ${SIDES.map(s => s[0]).join('/')} duotone at every distance`
-    : '\n✓ fallback indicator is flat blue (no duotone technique here)')
+  console.log('\n✓ indicator paints the brand green at every distance')
 }
 
 main().catch(err => {

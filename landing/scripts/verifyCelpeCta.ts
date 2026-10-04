@@ -78,7 +78,7 @@ async function main() {
     // The hint + CTA column is meant to be exactly ONE column of the feature grid. That
     // grid is `hidden lg:flex`, so below lg its cards measure 0 and there is nothing to
     // compare against — the phone layout stacks instead (CelpeBrasStack).
-    const card = document.querySelector<HTMLElement>('#celpe-bras .hidden.lg\\:flex > .flex-row > [data-adaptive-cover]')
+    const card = document.querySelector<HTMLElement>('#celpe-bras .hidden.lg\\:flex > .flex-row > [data-feature-card]')
     const gridVisible = !!card && card.getBoundingClientRect().width > 0
     return {
       btn: { x: b.x, y: b.y, w: b.width, h: b.height },

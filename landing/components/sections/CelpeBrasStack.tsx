@@ -79,13 +79,15 @@ export default function CelpeBrasStack({ titles, cardConfig }: Props) {
                 }}
               >
                 <div
-                  data-adaptive-cover={cardConfig[i].bg}
                   /* A finger has no hover, and `:active` dies with the touch ~200ms
                      before `.pill-decor` has finished opening — so a tap ARMS the card
                      for TAP_BLOOM_MS instead and the plant answers to
                      `group-data-tapped/card`. Same trick the header pills use. */
                   onPointerDown={bloomOnTap}
-                  className={`group/card glass relative flex items-center gap-[32px] w-fit max-w-full overflow-hidden rounded-[44px] px-[32px] py-[32px] hover:scale-[1.04] active:scale-[0.95] ${isActive ? 'is-center' : ''}`}
+                  /* Lift and press are POINTER-ONLY — see FeatureCard. The active card of
+                     the stack no longer solidifies either: on touch the block has one
+                     state, so `is-center` went with the rule that read it (2026-10-03). */
+                  className="group/card glass relative flex items-center gap-[32px] w-fit max-w-full overflow-hidden rounded-[44px] px-[32px] py-[32px] [@media(hover:hover)]:hover:scale-[1.04] [@media(hover:hover)]:active:scale-[0.95]"
                   style={{
                     '--glass-tint': cardConfig[i].tint,
                     '--glass-solid': cardConfig[i].bg,

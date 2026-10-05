@@ -28,8 +28,9 @@
 //
 // ── type-2 → foam that JUMPS out from behind a wave (from main 2.svg) ───────────
 // Lifted out of the beach and re-attached as a CHILD of two queue waves, painted BEHIND each
-// wave's silhouette. It appears by rising above its wave's crest and hides by diving back under
-// the SAME wave (a fish out of water) — pure occlusion, no fade. It rides with its wave.
+// wave's silhouette and clipped to everything above that wave's OUTLINE. It appears by rising
+// above its wave's crest and hides by diving back under the SAME wave (a fish out of water) —
+// pure occlusion, no fade: it is cut exactly where it meets the water. It rides with its wave.
 //
 // prefers-reduced-motion → injectStaticSea, NOT the SVG untouched. The art holds only the
 // wave SILHOUETTES — the water plane left with the old baked sea — so returning it as-is
@@ -37,6 +38,7 @@
 // here is a regression, however much it looks like a simplification.
 
 import { OCEAN_WAVE_IDS, type OceanWaveShape } from './oceanWaves'
+import { OCEAN_WAVE_CRESTS } from './oceanWaveCrests'
 import { VIEWBOX_W, SEA_BASE_TOP, type WaveQueueLayout } from './waveQueueLayout'
 
 // ── Queue geometry (canvas units) + timing ───────────────────────────────────────
@@ -123,16 +125,16 @@ const FOAM_SLOTS: { shape: 0 | 1; x0: number; scale: number; flip: boolean }[] =
   { shape: 0, x0: 420, scale: 0.80, flip: true },  // w 331
   { shape: 1, x0: 190, scale: 0.70, flip: false }, // w 639 — widest, reach gets clamped
 ]
-// Vertical seating, measured from the wave's box top (yBase) DOWN to the foam's TOP edge.
-// REST — fully buried inside the wave's body (nothing pokes out; always below the clip line).
-// Shallower than it used to be (260): the rise is REST − PEAK, so burying the foam deeper made
-// the arc taller and thinner. 200 still leaves it comfortably under the clip line at rest.
-// This is a canvas unit tuned against a ~480-unit wave (TH_TUNED_REF) — multiplied by
-// layout.waveScale at build time, or a shrunk wave would have its foam sit below its own box.
-const FOAM_REST_DEPTH = 200
+// Vertical seating at rest: the foam's TOP edge sits this far BELOW the lowest point of its
+// wave's crest anywhere under the foam (at both ends of the leap), so the outline clip hides
+// it completely while it waits. The rest depth used to be a constant (200, tuned against a
+// ~480-unit wave), and in a deep trough the crest dips lower than that — the foam's top would
+// poke above the water at rest. Canvas units against TH_TUNED_REF, scaled by layout.waveScale.
+const FOAM_BURY = 12
 // How much of ITSELF the foam clears above the waterline at the peak. A single peak-depth
 // constant cannot express this: the four foams have different heights (scale × art height), so
 // the peak is derived per-foam from its own height. 0.9 = nine tenths of it is out of the water.
+// "The waterline" is the wave's crest under the foam at the apex, averaged across its width.
 const FOAM_EMERGE = 0.9
 // Forward reach of the leap along x, relative to its wave. Must be COMPARABLE to the rise `h`
 // (~250-280) or the path reads as a straight up-and-down rather than an arc. Clamped per foam so
@@ -152,13 +154,17 @@ const FOAM_JUMP_END = 0.70
 // curve puts the shape in the geometry, and linear timing keeps the horizontal speed constant,
 // so the foam flies like a thrown object: up, over, gone — no corner, no pause.
 const FOAM_ARC_STEPS = 8
-// Opacity, phase-locked to the same window but slightly LATER than the motion: it fades IN
-// while still hidden behind the wave (so the appearance still reads as emerging from under it),
-// holds across the apex, then fades OUT as it dives — the wave is a stack of bands, not a solid
-// fill, so without this you catch the foam sliding under it through the gaps. 0 everywhere
-// else, which also covers the spawn and the shore dissolve.
-const FOAM_FADE_VALUES = '0;0;1;1;0;0'
-const FOAM_FADE_KEYTIMES = '0;0.557;0.595;0.647;0.692;1'
+// Visibility GATE, not a fade: on for exactly the jump window, off for the rest of the cycle.
+// Both switches happen at rest, while the foam is fully under its wave's outline (FOAM_BURY),
+// so neither is ever seen — they only keep the foam from riding along through the shore
+// dissolve and the respawn, where its wave no longer covers it.
+//
+// It used to be a FADE (0→1 at 0.557–0.595, 1→0 at 0.647–0.692) because the clip was a
+// straight line and the wave is a stack of bands: the foam showed through the gaps on its way
+// down. The fade fixed that by dissolving the foam in mid-air, before it ever touched the
+// wave — "the foam vanishes before it reaches the water". With the outline clip nothing below
+// the crest can show, so the foam stays solid until the wave itself swallows it.
+const FOAM_GATE_VALUES = '0;1;0'
 // Authored bbox of each foam (canvas units) — used to seat it on the wave and to keep it inside
 // the wave's box (silhouettes differ a lot in height: wave 06 is 386 tall, wave 05 is 561).
 const FOAM_BBOX: Record<string, { minX: number; maxX: number; minY: number; h: number }> = {
@@ -168,17 +174,16 @@ const FOAM_BBOX: Record<string, { minX: number; maxX: number; minY: number; h: n
 
 // ── The waterline MASK ───────────────────────────────────────────────────────────
 // The wave is a STACK OF BANDS, not a solid fill, so a foam merely painted behind it shows
-// through the gaps. We additionally CLIP each foam to everything ABOVE a waterline that rides
-// with its wave: anything below is cut away entirely and can never leak through a gap.
+// through the gaps. We additionally CLIP each foam to everything ABOVE its wave's crest, as an
+// outline that rides with the wave: anything below is cut away and can never leak through a gap.
 //
-// The line is placed BELOW the wave's crest on purpose. Above the crest the wave paints
-// nothing, so the foam shows; between the crest and the line the wave paints OVER the foam.
-// The visible boundary is therefore the wave's own WAVY contour, not this straight line — the
-// clip only kills the foam deep down. Measured from the wave's box top (yBase) downwards.
-// Canvas units tuned against a ~480-unit wave (TH_TUNED_REF), so multiplied by
-// layout.waveScale at build time — on desktop the wave is now only ~150 units tall, and an
-// unscaled 150 would put the waterline clip below the wave's own box.
-const FOAM_CLIP_DEPTH = 150
+// The outline is the wave's own top contour (oceanWaveCrests.ts, measured from the art), not a
+// straight line. A straight line under the crest cut the foam wherever the crest dipped below
+// it — in a trough the foam was sliced off in the air, nowhere near the water. It is sunk
+// CREST_CLIP_INSET of the wave's height INTO the wave's top band: the wave is painted over the
+// foam there, so the visible boundary is the wave's own anti-aliased edge, and the clip's edge
+// stays hidden under solid water instead of drawing a second seam beside it.
+const CREST_CLIP_INSET = 0.03
 
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
@@ -261,41 +266,75 @@ function injectLineDissolve(groupHtml: string, begin: string, dur: number): stri
   return out
 }
 
-// Build one queue instance k: pick a shape (cycling the 6), clone it with unique ids, add the
-// line dissolve, place it via a nested <svg> mapped onto a target rect in beach space, and wrap
-// that in a <g> carrying the shared rise + sway animation (phase-offset by `begin`).
+// The wave's top contour in BEACH space, as a depth below the wave's box top (yBase), sunk
+// CREST_CLIP_INSET into the wave. `x` is a beach x; the wave's <svg> spans tx..tx+tw and is
+// stretched (preserveAspectRatio="none"), so the file's x and y map linearly and independently.
+// Linear between the measured samples. A shape missing from the table (a new export that was
+// not re-measured) falls back to a flat line a third of the way down — roughly the old clip.
+type Crest = { depthAt: (x: number) => number; xs: number[]; depths: number[] }
+function waveCrest(id: string, shape: OceanWaveShape, tx: number, tw: number, th: number): Crest {
+  const inset = CREST_CLIP_INSET * th
+  const ys = OCEAN_WAVE_CRESTS[id] ?? [shape.h / 3, shape.h / 3]
+  const last = ys.length - 1
+  const depths = ys.map(y => (y / shape.h) * th + inset)
+  const xs = ys.map((_, i) => tx + (i / last) * tw)
+  const depthAt = (x: number) => {
+    const f = Math.min(last, Math.max(0, ((x - tx) / tw) * last))
+    const i = Math.min(last - 1, Math.floor(f))
+    return depths[i] + (depths[i + 1] - depths[i]) * (f - i)
+  }
+  return { depthAt, xs, depths }
+}
+
+// Sample the crest every few units across [a, b]: the deepest point (for burying the foam) and
+// the mean (for "the waterline" under it).
+function crestStats(crest: Crest, a: number, b: number): { max: number; mean: number } {
+  const steps = Math.max(1, Math.ceil((b - a) / 4))
+  let max = -Infinity
+  let sum = 0
+  for (let i = 0; i <= steps; i++) {
+    const d = crest.depthAt(a + ((b - a) * i) / steps)
+    max = Math.max(max, d)
+    sum += d
+  }
+  return { max, mean: sum / (steps + 1) }
+}
+
 // Build the foam that rides on instance `k`: a sibling painted BEFORE the wave's <svg>, so the
 // wave occludes it. Local arc = jump out from behind the crest, advance N, dive back under.
 function buildFoam(
   foam: { id: string; html: string; x0: number; scale: number; flip: boolean },
-  k: number, yBase: number, th: number, begin: string, layout: WaveQueueLayout,
+  k: number, yBase: number, th: number, crest: Crest, begin: string, layout: WaveQueueLayout,
 ): string {
   const bbox = FOAM_BBOX[foam.id] ?? { minX: 0, maxX: 0, minY: 0, h: 0 }
-  // Every absolute depth/reach below was tuned against a ~480-unit wave. The wave is now
+  // Every absolute size/reach below was tuned against a ~480-unit wave. The wave is now
   // sized from the viewport HEIGHT, so it can be a third of that on a wide screen —
   // scale the foam with it or it ends up deeper than the wave it hides inside.
   const ws = layout.waveScale
-  const restDepthRef = FOAM_REST_DEPTH * ws
-  const clipDepth = FOAM_CLIP_DEPTH * ws
   const jumpN = FOAM_JUMP_N * ws
   const s = foam.scale * ws
   const hf = bbox.h * s
   const wf = (bbox.maxX - bbox.minX) * s
-  // Rest depth. The floor is what matters: the foam's TOP must stay below the clip line, or it
-  // would peek out while submerged. (Anything below that line is cut away, so a tall foam
-  // hanging past the wave's box bottom is harmless — the clip, not the box, is the hider.)
-  const restDepth = Math.min(restDepthRef, Math.max(clipDepth + 40 * ws, th - hf - 10 * ws))
+  // Clamp the leap so a wide foam cannot sail past the frame edge (the foam is NOT inside the
+  // wave's over-wide <svg>, so nothing but the beach viewBox clips it horizontally).
+  const n = Math.min(jumpN, Math.max(0, VIEWBOX_W - FOAM_EDGE_MARGIN - (foam.x0 + wf)))
+  // Rest depth: the foam's TOP sits under the deepest point of the crest anywhere it rests —
+  // before the leap and after it. Anything below the outline is cut away, so a tall foam
+  // hanging past the wave's box bottom is harmless — the clip, not the box, is the hider.
+  const restBefore = crestStats(crest, foam.x0, foam.x0 + wf)
+  const restAfter = crestStats(crest, foam.x0 + n, foam.x0 + n + wf)
+  const restDepth = Math.max(restBefore.max, restAfter.max) + FOAM_BURY * ws
   // Seat it: LEFT edge at the slot's x0, top edge `restDepth` below the wave's box top (yBase).
   // Mirroring negates the x scale, which pins the art by its RIGHT edge — so anchor on maxX to
   // keep the same left edge, and the same on-screen footprint.
   const fx = foam.flip ? foam.x0 + s * bbox.maxX : foam.x0 - s * bbox.minX
   const fy = (yBase + restDepth) - s * bbox.minY
-  // Clamp the leap so a wide foam cannot sail past the frame edge (the foam is NOT inside the
-  // wave's over-wide <svg>, so nothing but the beach viewBox clips it horizontally).
-  const n = Math.min(jumpN, Math.max(0, VIEWBOX_W - FOAM_EDGE_MARGIN - (foam.x0 + wf)))
-  // Peak so that FOAM_EMERGE of the foam's own height sits above the waterline (clip line).
+  // Peak so that FOAM_EMERGE of the foam's own height sits above the waterline under the apex
+  // (the crest there, minus the clip's inset — the visible edge, not the hidden clip line).
   // May go negative — the foam's top then clears the wave's box top, which is fine.
-  const peakDepth = clipDepth - FOAM_EMERGE * hf
+  const apex = foam.x0 + n / 2
+  const waterline = crestStats(crest, apex, apex + wf).mean - CREST_CLIP_INSET * th
+  const peakDepth = waterline - FOAM_EMERGE * hf
   const h = restDepth - peakDepth // how far it rises out of the wave
   const p = (v: number) => v.toFixed(1)
   const dur = layout.durSeconds
@@ -316,24 +355,34 @@ function buildFoam(
     `<animateTransform attributeName="transform" attributeType="XML" type="translate" ` +
     `values="${values}" keyTimes="${keyTimes}" calcMode="linear" ` +
     `dur="${dur.toFixed(1)}s" begin="${begin}s" repeatCount="indefinite"/>`
+  // `discrete`: each value holds until the next keyTime — off, on for the jump, off.
   const gate =
-    `<animate attributeName="opacity" values="${FOAM_FADE_VALUES}" keyTimes="${FOAM_FADE_KEYTIMES}" ` +
-    `dur="${dur.toFixed(1)}s" begin="${begin}s" repeatCount="indefinite" calcMode="linear"/>`
+    `<animate attributeName="opacity" values="${FOAM_GATE_VALUES}" ` +
+    `keyTimes="0;${FOAM_JUMP_START.toFixed(3)};${FOAM_JUMP_END.toFixed(3)}" ` +
+    `dur="${dur.toFixed(1)}s" begin="${begin}s" repeatCount="indefinite" calcMode="discrete"/>`
   const art =
     `<g transform="translate(${p(fx)} ${p(fy)}) scale(${foam.flip ? -s : s} ${s})">` +
     `${cloneIds(foam.html, `-f${k}`)}</g>`
 
-  // Waterline mask. The clip MUST live on a parent that does NOT carry the jump transform,
-  // otherwise the clip would ride along with the foam and never cut it. This wrapper has no
-  // transform, so the clip is fixed in the wave's own space (and thus rides with the wave).
+  // Waterline mask: everything above the wave's outline. The clip MUST live on a parent that
+  // does NOT carry the jump transform, otherwise the clip would ride along with the foam and
+  // never cut it. This wrapper has no transform, so the clip is fixed in the wave's own space
+  // (and thus rides with the wave). The outline runs flat past both ends of the wave to the
+  // same far edges the old rect used, then closes over the top.
   const clipId = `b2-foamclip-${k}`
-  const clipY = yBase + clipDepth
+  const top = p(yBase - 6000)
+  const outline = crest.xs.map((x, i) => `L${p(x)} ${p(yBase + crest.depths[i])}`).join('')
+  const d =
+    `M-6000 ${top}L-6000 ${p(yBase + crest.depths[0])}${outline}` +
+    `L8000 ${p(yBase + crest.depths[crest.depths.length - 1])}L8000 ${top}Z`
   const clip =
-    `<clipPath id="${clipId}" clipPathUnits="userSpaceOnUse">` +
-    `<rect x="-6000" y="${p(clipY - 6000)}" width="14000" height="6000"/></clipPath>`
+    `<clipPath id="${clipId}" clipPathUnits="userSpaceOnUse"><path d="${d}"/></clipPath>`
   return `${clip}<g clip-path="url(#${clipId})"><g class="beach-foam">${jump}${gate}${art}</g></g>`
 }
 
+// Build one queue instance k: pick a shape (cycling the 6), clone it with unique ids, add the
+// line dissolve, place it via a nested <svg> mapped onto a target rect in beach space, and wrap
+// that in a <g> carrying the shared rise + sway animation (phase-offset by `begin`).
 function buildQueueInstance(
   shapes: Record<string, OceanWaveShape>, k: number, layout: WaveQueueLayout,
   drift: number, widthScale: number,
@@ -378,7 +427,9 @@ function buildQueueInstance(
     `keyTimes="0;0.5;1" dur="${dur.toFixed(1)}s" ` +
     `begin="${begin}s" repeatCount="indefinite" calcMode="linear"/>`
   // Foam (if any) goes BEFORE the wave's <svg> so the wave's silhouette occludes it.
-  const foamMarkup = foam ? buildFoam(foam, k, yBase, th, begin, layout) : ''
+  const foamMarkup = foam
+    ? buildFoam(foam, k, yBase, th, waveCrest(id, shape, tx, tw, th), begin, layout)
+    : ''
   // `beach-wave` class → useWaveDepthOrder keeps the instances sorted by DESCENDING phase, so
   // FARTHER waves paint on top (higher z) and nearer-shore waves sit behind (lower z). It reads
   // `begin`/`dur` off this rise animation, which must stay the instance's FIRST animateTransform.

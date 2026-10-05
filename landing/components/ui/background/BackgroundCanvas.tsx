@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import ChristScene, { CHRIST_SCENE, christBoxHeight } from './ChristScene'
+import BgPoster, { POSTER_FADE_MS } from './BgPoster'
 import { injectRailPath, injectCloudAnimation } from './utils/injectRailPath'
 import { useTrainAnimation } from './useTrainAnimation'
 import { useCarAnimation } from './useCarAnimation'
@@ -414,6 +415,8 @@ export default function BackgroundCanvas() {
   // Terminal-fill colour, sampled from the beach SVG's bottom edge (fallback until then).
   const [fillColor, setFillColor] = useState(TERMINAL_FILL_COLOR)
   const [entered, setEntered] = useState(false)
+  // The blurred poster under the scene (BgPoster) — unmounted once its fade-out is done.
+  const [posterGone, setPosterGone] = useState(false)
   // Beach fetch failed — the reveal stops waiting for it (see REVEAL_SETTLE_MS).
   const [beachFailed, setBeachFailed] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -985,6 +988,16 @@ export default function BackgroundCanvas() {
     return () => cancelAnimationFrame(raf)
   }, [layoutReady, entered])
 
+  // Drop the poster once it has faded out under the revealed scene (a timer, not
+  // transitionend — that one does not fire in a background tab). ?nobg never reveals, and
+  // a blurred still is not what that lever is for — drop it straight away there.
+  useEffect(() => {
+    const noBg = isBgDisabled()
+    if (!entered && !noBg) return
+    const t = setTimeout(() => setPosterGone(true), noBg ? 0 : POSTER_FADE_MS + 200)
+    return () => clearTimeout(t)
+  }, [entered])
+
   // Order every queue in the tree — the beach AND the terminal sea-fill band. Re-run when a
   // queue mounts/unmounts (booleans keep the dep stable across unrelated renders).
   useWaveDepthOrder(containerRef, beachSvg)
@@ -1051,6 +1064,8 @@ export default function BackgroundCanvas() {
   }, [coverage.parallaxFactor, coverage.focalTranslateX, sceneLift])
 
   return (
+    <>
+    {!posterGone && <BgPoster hidden={entered} />}
     <div
       className="background-canvas absolute top-0 left-0 w-full pointer-events-none"
       style={{
@@ -1329,5 +1344,6 @@ export default function BackgroundCanvas() {
       )}
       </div>
     </div>
+    </>
   )
 }

@@ -68,7 +68,7 @@ export type PlanDecorPlant = {
   flipY?: boolean
   /**
    * Точка, вокруг которой растение разрастается на hover/тап. По умолчанию — центр бокса
-   * (листья и ветки: у них нет точки важнее середины); у цветка — его сердцевина.
+   * (листья: у них нет точки важнее середины); у цветка — сердцевина, у ветки — черенок.
    * Положение в покое от неё НЕ зависит: `planDecorStyle` компенсирует перенос опоры, так
    * что числа фита остаются как есть.
    */
@@ -84,6 +84,17 @@ export type PlanDecorPivot = { x: number; y: number; aspect: number }
  * снизу длиннее, — поэтому разрастание вокруг бокса тянуло бы сердцевину вверх-вбок.
  */
 const FLOWER_2_CENTRE: PlanDecorPivot = { x: 82.84 / 168, y: 70.36 / 154, aspect: 154 / 168 }
+
+/**
+ * Черенки веток тарифа 4 — центр скруглённого торца ветки в долях своего среза (средняя
+ * точка непрозрачных пикселей в радиусе толщины стебля от крайней точки чернил в его углу).
+ * Ветка разрастается от черенка, как растёт настоящая, а не раздувается из середины.
+ * Срез пере-экспортирован — точку снять заново: она упирается в угол файла.
+ */
+const STEM_PLATE_RIGHT: PlanDecorPivot = { x: 0.0170, y: 0.0159, aspect: 708.818 / 889.618 }
+const STEM_PLATE_LEFT: PlanDecorPivot = { x: 0.0135, y: 0.9782, aspect: 534.145 / 670.721 }
+const STEM_M_TOP: PlanDecorPivot = { x: 0.9819, y: 0.0159, aspect: 353.076 / 443.427 }
+const STEM_M_BOTTOM: PlanDecorPivot = { x: 0.0127, y: 0.9773, aspect: 394.323 / 494.932 }
 
 /** Опора по умолчанию — центр бокса; `aspect` тут ни на что не влияет (смещение опоры 0). */
 const BOX_CENTRE: PlanDecorPivot = { x: 0.5, y: 0.5, aspect: 1 }
@@ -141,9 +152,9 @@ export const PLAN_DECOR: readonly Record<PlanDecorSlot, readonly PlanDecorPlant[
     */
     plate: [
       /* p3-plate-0  3484:59802 — полный арт, клип снят */
-      { file: '/SVG/plans/decor/tier4-plate-right.svg', anchorX: 'right', x: 89.148, anchorY: 'top', y: 28.893, w: 210.312, rotate: 0 },
+      { file: '/SVG/plans/decor/tier4-plate-right.svg', anchorX: 'right', x: 89.148, anchorY: 'top', y: 28.893, w: 210.312, rotate: 0, pivot: STEM_PLATE_RIGHT },
       /* p3-plate-1  3484:60356 — полный арт, клип снят */
-      { file: '/SVG/plans/decor/tier4-plate-left.svg', anchorX: 'left', x: 19.585, anchorY: 'bottom', y: 8.394, w: 158.563, rotate: 0 },
+      { file: '/SVG/plans/decor/tier4-plate-left.svg', anchorX: 'left', x: 19.585, anchorY: 'bottom', y: 8.394, w: 158.563, rotate: 0, pivot: STEM_PLATE_LEFT },
     ],
     button: [],
   },
@@ -186,9 +197,9 @@ export const PLAN_DECOR_MOBILE: readonly (readonly PlanDecorPlant[])[] = [
     /* Тариф 4 — готовые срезы из Figma по той же причине, что и на десктопе (см. комментарий
        у десктопной плашки тарифа 4). Оба среза во всю ширину плашки. */
     /* m3-plate-0  3499:46642 — полный арт, клип снят */
-    { file: '/SVG/plans/decor/tier4-m-top.svg', anchorX: 'right', x: 16.245, anchorY: 'top', y: 18.756, w: 89.763, rotate: 0 },
+    { file: '/SVG/plans/decor/tier4-m-top.svg', anchorX: 'right', x: 16.245, anchorY: 'top', y: 18.756, w: 89.763, rotate: 0, pivot: STEM_M_TOP },
     /* m3-plate-1  3499:46643 — полный арт, клип снят */
-    { file: '/SVG/plans/decor/tier4-m-bottom.svg', anchorX: 'left', x: 29.781, anchorY: 'bottom', y: 7.73, w: 100.189, rotate: 0 },
+    { file: '/SVG/plans/decor/tier4-m-bottom.svg', anchorX: 'left', x: 29.781, anchorY: 'bottom', y: 7.73, w: 100.189, rotate: 0, pivot: STEM_M_BOTTOM },
   ],
 ]
 

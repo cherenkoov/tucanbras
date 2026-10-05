@@ -27,6 +27,25 @@ export default function RootLayout({
           as="fetch"
           crossOrigin="anonymous"
         />
+        {/* The beach and its six wave shapes: without these the fetches wait for hydration,
+            and on a slow phone the beach STARTED downloading at 4.7 s, 1.7 s after the
+            collage had finished (prod 2026-10-05). The scene reveals only once both are in.
+            Low priority — they are below the fold and must not compete with the LCP image;
+            the blurred poster (BgPoster) covers the first screen meanwhile. Keep in sync
+            with BEACH_BASE_SVG and OCEAN_WAVE_IDS. */}
+        {[
+          "/SVG/background/main2-no-spinners.svg",
+          ...[1, 2, 3, 4, 5, 6].map(n => `/SVG/background/Ocean%20Waves/type%201%20wave%200${n}.svg`),
+        ].map(href => (
+          <link key={href} rel="preload" href={href} as="fetch" crossOrigin="anonymous" fetchPriority="low" />
+        ))}
+        {/* The statue (124 KB gzipped — heavier than the beach) and its pedestal are plain
+            <img>s, so without this they are requested only once the collage is parsed and
+            the peak measured: ~0.9 s after the rest of the scene, and the reveal waits for
+            them. Low priority for the same LCP reason as above. */}
+        {["/SVG/background/Jesus%20statue/statue.svg", "/SVG/background/Jesus%20statue/pedestal.svg"].map(href => (
+          <link key={href} rel="preload" href={href} as="image" fetchPriority="low" />
+        ))}
       </head>
       <body className="min-h-full flex flex-col" suppressHydrationWarning>{children}</body>
     </html>

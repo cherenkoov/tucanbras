@@ -31,6 +31,7 @@
     "gen:footer-flower": "node scripts/genFooterFlowerYellow.mjs",
     "gen:feature-plant-art": "node scripts/genFeaturePlantArt.mjs",
     "bake:spinners": "tsx scripts/bakeBeachSpinners.mts",
+    "bake:bg-posters": "tsx scripts/bakeBgPosters.mts",
     "verify:spinner-bake": "tsx scripts/verifySpinnerBake.mts"
   },
   "dependencies": {

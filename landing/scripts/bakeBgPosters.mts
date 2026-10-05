@@ -7,27 +7,31 @@
 // phone (prod 2026-10-05, 1.6 Mbit, latency 150ms) the text paints at 0.8 s and the scene
 // is ready at ~5–6 s — the first screen was bare sky for 4–5 seconds.
 //
-// HOW BLURRED. Light: ~6 css px on phones, ~8 on desktops. The first version was a 32px-wide
-// still (~15 css px of blur, 2026-10-05) and the owner saw ARTIFACTS on it — a 12× bilinear
-// upscale paints a visible grid of soft squares, and lossy WebP at 32px smears chroma into
-// orange/green fringes around the clouds and the statue. Here the still is ~W/6 px wide
-// (64 at 390), encoded with smartSubsample: no grid, no fringes, statue and clouds read.
+// HOW BLURRED. ~3 css px on phones and tablets, ~4 on desktops — the owner's call, in two
+// steps. The first version was a 32px-wide still (~15 css px, 2026-10-05) and showed
+// ARTIFACTS: a 12× bilinear upscale paints a grid of soft squares, and lossy WebP at 32px
+// smears chroma into orange/green fringes. Then ~6 px (W/6) — clean, but still read as
+// soap. Now W/4: the statue's folds and the clouds' shape read. Going sharper was tried and
+// rejected: at ~2 px a half-step overlay shows a second outline, at ~1 px the statue and
+// its stars visibly double mid-cross-fade — and the stars are ANIMATED (ChristScene), so no
+// still will ever line up with them. Blur is what lets the still disagree with the scene.
+// Encoded with smartSubsample, so no chroma fringes at any size.
 //
 // WHY SO MANY. The scene's framing is computed at runtime from the width (cover-zoom up to
 // ×6 on phones, focal shift onto the statue, phones-only scaleY), so a still only lines up
 // at the width it was shot at; elsewhere the cross-fade shows the statue twice, and the
 // lighter the blur, the less offset it hides. Mismatch between neighbouring shots, blurred
 // exactly as shipped (mean |Δ| per channel, 0–255): below 1024 neighbours 40–80px apart
-// differ by 15–18, so shots are ~20–40px apart there and any width sits within half a step
-// of one; ≥1024 the scene merely scales (zoom 1, neighbours differ by 3–5) and a few cover
-// it.
+// differ by 15–18, so shots are ~20–25px apart there and any width sits within half a step
+// of one; ≥1024 the art merely scales (zoom 1) and steps of ~80–120px hold — checked by
+// 50/50 overlays at the bucket edges, the worst case of each step.
 //
 // INLINE BELOW 520, FILES ABOVE. A file is fetched only for the width that matches, so the
 // count costs nothing on the wire — but it arrives AFTER the first paint, and a new frame
 // needs the main thread, which on a phone is busy hydrating: measured, the file was in at
 // 1.9 s and painted at 6.5 s. A data URI is decodable at the first paint itself. So the
 // phone posters (the slowest main threads, and the narrowest stills) go inline at q65,
-// ~10 KB for all seven; tablets and desktops get a ~2–7 KB file behind a media-matched
+// ~17 KB for all seven; tablets and desktops get a ~4–14 KB file behind a media-matched
 // <link rel=preload> (app/layout.tsx).
 //
 // HEIGHT. The viewport is ~35% taller than a typical screen of that width, so a tall phone
@@ -58,15 +62,21 @@ const PUBLIC_URL = '/PNG/background/posters'
 
 // Shot widths. Buckets switch at the midpoints between neighbours — except at 1024
 // (WIDE_BREAKPOINT), where the framing itself jumps (cover-zoom ×2 → ×1).
-const NARROW = [360, 375, 390, 412, 430, 455, 480, 520, 560, 600, 640, 680, 720, 744, 768, 820, 900, 960]
-const WIDE = [1100, 1366, 1680, 2048, 2560]
+// Desktop needs a grid too: ≥1024 the art scales with the width but the statue is seated on
+// the hero's top line, a fixed px offset — at ~3 px of blur a 1100 still on a 1232 screen
+// doubled the statue's arms mid-fade.
+const NARROW = [
+  360, 375, 390, 412, 430, 455, 480,
+  520, 540, 560, 580, 600, 620, 640, 660, 680, 700, 720, 744, 768, 794, 820, 846, 872, 900, 930, 960, 990,
+]
+const WIDE = [1060, 1120, 1200, 1280, 1366, 1440, 1536, 1600, 1680, 1792, 1920, 2048, 2240, 2560]
 const WIDE_BREAKPOINT = 1024
 // Typical viewport height for a width: phone portrait, then tablet, then landscape screens.
 const viewportHeight = (w: number) => (w < 520 ? Math.round(w * 2.16) : w < WIDE_BREAKPOINT ? 1100 : Math.round(w * 0.6))
 const CAPTURE_BELOW = 1.35 // capture height / viewport height
 // Poster pixel width: blur ≈ BLUR_SIGMA × (w / posterWidth) css px.
-const posterWidth = (w: number) => Math.round(w / (w < WIDE_BREAKPOINT ? 6 : 8))
-const BLUR_SIGMA = 1.0
+const posterWidth = (w: number) => Math.round(w / (w < WIDE_BREAKPOINT ? 4 : 5))
+const BLUR_SIGMA = 0.8
 const INLINE_BELOW = 520
 
 const SHOTS = [...NARROW, ...WIDE]

@@ -3,6 +3,7 @@ import { injectWaveSurfAnimation, injectStaticSea } from '../components/ui/backg
 import { computeWaveQueue, BEACH_ART_H } from '../components/ui/background/waveQueueLayout'
 import type { OceanWaveShape } from '../components/ui/background/oceanWaves'
 import { OCEAN_WAVE_IDS } from '../components/ui/background/oceanWaves'
+import { OCEAN_WAVE_CRESTS } from '../components/ui/background/oceanWaveCrests'
 
 const ASPECTS = [0.320540, 0.326056, 0.299655, 0.307349, 0.364198, 0.250537]
 
@@ -109,54 +110,84 @@ assert.ok(
 // to drive restDepth past the wave's own box. ──
 assert.ok(!out.includes('NaN'), 'no NaN leaked into the baked SVG')
 
-// ── The foam's waterline clip must sit INSIDE its wave's box, and must track waveScale.
-// FOAM_CLIP_DEPTH is 150 canvas units, tuned against a ~480-unit wave; at any SMALLER wave
-// an unscaled clip line falls BELOW the wave's own box, cuts nothing, and lets the foam
-// show through the wave's band gaps while it is supposed to be submerged.
+// ── The foam's waterline clip follows its wave's OUTLINE, the foam rests fully under it, and
+// it is gated, not faded.
 //
-// At today's 5x sizes the waves are large enough that a raw 150 would happen to fit, so
-// "it fits" no longer discriminates — the proportionality does. Read the depth back OUT of
-// the emitted markup and pin it to 150 · waveScale: asserting `150 * waveScale < minTh`
-// instead would be arithmetic over the layout that never touches `out`, and stays true even
-// if the implementation ignores waveScale entirely. The scale-sensitivity of the constant
-// is proven separately, on a deliberately small wave, at the end of this block.
+// The clip used to be a straight line under the crest: in a trough it sat ABOVE the water and
+// sliced the foam off in mid-air, and an opacity fade dissolved the foam before it reached the
+// wave at all. Everything here is read back OUT of the emitted markup — arithmetic over the
+// layout alone would stay green if the injector ignored the crest table entirely. ──
 {
-  // Every foam rides an instance whose shape is OCEAN_WAVE_IDS[k % 6], so its wave's own
-  // height (and therefore its box) is known per k. Recover clipDepth from the emitted
-  // rect: y = yBase + clipDepth − 6000, and yBase = spawnCy − th/2.
-  const clips = [...out.matchAll(
-    /<clipPath id="b2-foamclip-(\d+)"[^>]*><rect[^>]*y="([-\d.]+)"/g,
-  )]
-  assert.ok(clips.length > 0, 'at least one foam clipPath was emitted')
-
-  const expectedDepth = 150 * desktopLayout.waveScale
-  for (const m of clips) {
-    const k = Number(m[1])
-    const th = desktopLayout.heightRefW * ASPECTS[k % ASPECTS.length]
-    const yBase = desktopLayout.spawnCy - th / 2
-    const clipDepth = Number(m[2]) + 6000 - yBase
-    assert.ok(
-      Math.abs(clipDepth - expectedDepth) < 0.5,
-      `foam ${k}: emitted clip depth ${clipDepth.toFixed(2)} = 150 · waveScale ` +
-      `(${expectedDepth.toFixed(2)}), not the raw 150`,
-    )
-    assert.ok(
-      clipDepth < th,
-      `foam ${k}: clip line ${clipDepth.toFixed(2)} sits inside its wave's box (${th.toFixed(2)})`,
-    )
+  const CREST_CLIP_INSET = 0.03 // mirror of beachWaves.ts
+  // Authored foam footprints (FOAM_BBOX in beachWaves.ts) — the stand-in foam paths above are
+  // seated at the same minY, so the emitted translate recovers the real rest position.
+  const FOAM_ART: Record<string, { minX: number; maxX: number; minY: number }> = {
+    f1: { minX: 0, maxX: 414, minY: 2948 },
+    f2: { minX: 0, maxX: 913, minY: 2982 },
   }
+  const foams = [...out.matchAll(
+    /<clipPath id="b2-foamclip-(\d+)"[^>]*><path d="([^"]+)"\/><\/clipPath>(.*?)<\/g><\/g>/g,
+  )]
+  assert.ok(foams.length > 0, 'at least one foam clip was emitted')
 
-  // And prove the guard has teeth. Not on desktopLayout — at the current 5x sizes its
-  // shortest wave is comfortably taller than 150, so an unscaled constant would fit there
-  // by luck and the check would assert nothing. Use a small wave (a short viewport is the
-  // honest way to get one), where scaling is the only thing keeping the clip in the box.
-  const small = computeWaveQueue({
-    viewportWidth: 1920, viewportHeight: 120, containerWidth: 1920, vScaleY: 1,
-    contentHeight: 40000, baseHeightPx: 1000, verticalOffset: 0, aspects: ASPECTS,
-  })
-  const smallMinTh = small.heightRefW * Math.min(...ASPECTS)
-  assert.ok(150 > smallMinTh, 'sanity: an unscaled 150 falls outside a small wave')
-  assert.ok(150 * small.waveScale < smallMinTh, 'scaled, it fits — which is the point')
+  for (const m of foams) {
+    const k = Number(m[1])
+    const id = OCEAN_WAVE_IDS[k % OCEAN_WAVE_IDS.length]
+    const [w, hFile] = SIZES[k % SIZES.length]
+    const th = desktopLayout.heightRefW * (hFile / w)
+    const yBase = desktopLayout.spawnCy - th / 2
+    const tw = 1027 * 2.4
+    const tx = (1027 - tw) / 2
+
+    // 1. The outline: after the two far-left points, one vertex per crest sample, at the
+    //    crest's own depth (+ inset) — then the two far-right points.
+    const pts = [...m[2].matchAll(/[ML]([-\d.]+) ([-\d.]+)/g)].map(q => [Number(q[1]), Number(q[2])])
+    const crest = OCEAN_WAVE_CRESTS[id]
+    assert.equal(pts.length, crest.length + 4, `foam ${k}: one outline vertex per crest sample`)
+    crest.forEach((cy, i) => {
+      const [x, y] = pts[i + 2]
+      const ex = tx + (i / (crest.length - 1)) * tw
+      const ey = yBase + (cy / hFile) * th + CREST_CLIP_INSET * th
+      assert.ok(Math.abs(x - ex) < 0.11 && Math.abs(y - ey) < 0.11,
+        `foam ${k}: vertex ${i} (${x}, ${y}) follows the crest (${ex.toFixed(1)}, ${ey.toFixed(1)})`)
+    })
+    const ys = crest.map(c => (c / hFile) * th)
+    assert.ok(Math.max(...ys) - Math.min(...ys) > th * 0.2,
+      `foam ${k}: the outline is a contour, not a straight line`)
+
+    // 2. At rest (both before and after the leap) the foam's top is under the outline
+    //    everywhere it spans — otherwise it pokes out of a trough while it waits.
+    const body = m[3]
+    const art = body.match(/<g transform="translate\(([-\d.]+) ([-\d.]+)\) scale\(([-\d.]+) ([-\d.]+)\)">.*?id="b2-(f[12])-f/)
+    assert.ok(art, `foam ${k}: seated art found`)
+    const [fx, fy, sx, s] = [1, 2, 3, 4].map(i => Number(art![i]))
+    const bb = FOAM_ART[art![5]]
+    const left = sx < 0 ? fx - s * bb.maxX : fx + s * bb.minX
+    const wf = s * (bb.maxX - bb.minX)
+    const restTop = fy + s * bb.minY
+    const jumpVals = body.match(/type="translate" values="([^"]+)"/)![1].split(';')
+    const n = Number(jumpVals[jumpVals.length - 1].split(' ')[0])
+    const depthAt = (x: number) => {
+      // linear between outline vertices
+      for (let i = 0; i < pts.length - 1; i++) {
+        const [x0, y0] = pts[i], [x1, y1] = pts[i + 1]
+        if (x >= Math.min(x0, x1) && x <= Math.max(x0, x1) && x1 !== x0) return y0 + (y1 - y0) * (x - x0) / (x1 - x0)
+      }
+      return Infinity
+    }
+    for (const start of [left, left + n]) {
+      for (let x = start; x <= start + wf; x += 2) {
+        assert.ok(restTop >= depthAt(x) - 0.2,
+          `foam ${k}: at rest its top (${restTop.toFixed(1)}) is under the outline at x=${x.toFixed(0)} (${depthAt(x).toFixed(1)})`)
+      }
+    }
+
+    // 3. A gate, not a fade: opacity only ever 0 or 1, switched while buried.
+    const gate = body.match(/<animate attributeName="opacity" values="([^"]+)" keyTimes="([^"]+)"[^>]*calcMode="([a-z]+)"/)
+    assert.ok(gate, `foam ${k}: opacity gate present`)
+    assert.equal(gate![1], '0;1;0', `foam ${k}: gate values`)
+    assert.equal(gate![3], 'discrete', `foam ${k}: the gate switches, it never fades mid-air`)
+  }
 }
 
 // ── The old baked-in type-1 sea groups are gone, replaced by the queue. ──

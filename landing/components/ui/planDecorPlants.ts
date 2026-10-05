@@ -66,17 +66,48 @@ export type PlanDecorPlant = {
   rotate: number
   /** нужно ли сперва перевернуть файл */
   flipY?: boolean
+  /**
+   * Точка, вокруг которой растение разрастается на hover/тап. По умолчанию — центр бокса
+   * (листья: у них нет точки важнее середины); у цветка — сердцевина, у ветки — черенок.
+   * Положение в покое от неё НЕ зависит: `planDecorStyle` компенсирует перенос опоры, так
+   * что числа фита остаются как есть.
+   */
+  pivot?: PlanDecorPivot
 }
+
+/** Опора в долях бокса файла; `aspect` — высота файла к ширине (высота у картинки `auto`). */
+export type PlanDecorPivot = { x: number; y: number; aspect: number }
+
+/**
+ * Центр цветка в `Flower 2 - Tutors - Plans Cream.svg` (168×154) — середина его сердцевины
+ * (слой `#D9A63B`, бокс 68.6…97.1 × 58.3…82.4). Он на 7 единиц выше центра бокса: лепестки
+ * снизу длиннее, — поэтому разрастание вокруг бокса тянуло бы сердцевину вверх-вбок.
+ */
+const FLOWER_2_CENTRE: PlanDecorPivot = { x: 82.84 / 168, y: 70.36 / 154, aspect: 154 / 168 }
+
+/**
+ * Черенки веток тарифа 4 — центр скруглённого торца ветки в долях своего среза (средняя
+ * точка непрозрачных пикселей в радиусе толщины стебля от крайней точки чернил в его углу).
+ * Ветка разрастается от черенка, как растёт настоящая, а не раздувается из середины.
+ * Срез пере-экспортирован — точку снять заново: она упирается в угол файла.
+ */
+const STEM_PLATE_RIGHT: PlanDecorPivot = { x: 0.0170, y: 0.0159, aspect: 708.818 / 889.618 }
+const STEM_PLATE_LEFT: PlanDecorPivot = { x: 0.0135, y: 0.9782, aspect: 534.145 / 670.721 }
+const STEM_M_TOP: PlanDecorPivot = { x: 0.9819, y: 0.0159, aspect: 353.076 / 443.427 }
+const STEM_M_BOTTOM: PlanDecorPivot = { x: 0.0127, y: 0.9773, aspect: 394.323 / 494.932 }
+
+/** Опора по умолчанию — центр бокса; `aspect` тут ни на что не влияет (смещение опоры 0). */
+const BOX_CENTRE: PlanDecorPivot = { x: 0.5, y: 0.5, aspect: 1 }
 
 export const PLAN_DECOR: readonly Record<PlanDecorSlot, readonly PlanDecorPlant[]>[] = [
   {
     plate: [
       /* p0-plate-0  3483:45165 */
-      { file: 'Flower 2 - Tutors - Plans Cream.svg', anchorX: 'left', x: 9.821, anchorY: 'bottom', y: -9.85, w: 67.938, rotate: 0.19 },
+      { file: 'Flower 2 - Tutors - Plans Cream.svg', anchorX: 'left', x: 9.821, anchorY: 'bottom', y: -9.85, w: 67.938, rotate: 0.19, pivot: FLOWER_2_CENTRE },
       /* p0-plate-1  3483:45159 */
-      { file: 'Flower 2 - Tutors - Plans Cream.svg', anchorX: 'right', x: 11.427, anchorY: 'top', y: -5.01, w: 69.27, rotate: 326.5 },
+      { file: 'Flower 2 - Tutors - Plans Cream.svg', anchorX: 'right', x: 11.427, anchorY: 'top', y: -5.01, w: 69.27, rotate: 326.5, pivot: FLOWER_2_CENTRE },
       /* p0-plate-2  3483:45170 */
-      { file: 'Flower 2 - Tutors - Plans Cream.svg', anchorX: 'center', x: 25.517, anchorY: 'top', y: 31.76, w: 80.609, rotate: 0.19 },
+      { file: 'Flower 2 - Tutors - Plans Cream.svg', anchorX: 'center', x: 25.517, anchorY: 'top', y: 31.76, w: 80.609, rotate: 0.19, pivot: FLOWER_2_CENTRE },
     ],
     button: [],
   },
@@ -121,9 +152,9 @@ export const PLAN_DECOR: readonly Record<PlanDecorSlot, readonly PlanDecorPlant[
     */
     plate: [
       /* p3-plate-0  3484:59802 — полный арт, клип снят */
-      { file: '/SVG/plans/decor/tier4-plate-right.svg', anchorX: 'right', x: 89.148, anchorY: 'top', y: 28.893, w: 210.312, rotate: 0 },
+      { file: '/SVG/plans/decor/tier4-plate-right.svg', anchorX: 'right', x: 89.148, anchorY: 'top', y: 28.893, w: 210.312, rotate: 0, pivot: STEM_PLATE_RIGHT },
       /* p3-plate-1  3484:60356 — полный арт, клип снят */
-      { file: '/SVG/plans/decor/tier4-plate-left.svg', anchorX: 'left', x: 19.585, anchorY: 'bottom', y: 8.394, w: 158.563, rotate: 0 },
+      { file: '/SVG/plans/decor/tier4-plate-left.svg', anchorX: 'left', x: 19.585, anchorY: 'bottom', y: 8.394, w: 158.563, rotate: 0, pivot: STEM_PLATE_LEFT },
     ],
     button: [],
   },
@@ -144,11 +175,11 @@ export const PLAN_DECOR: readonly Record<PlanDecorSlot, readonly PlanDecorPlant[
 export const PLAN_DECOR_MOBILE: readonly (readonly PlanDecorPlant[])[] = [
   [
     /* m0-plate-0  3498:46306 */
-    { file: 'Flower 2 - Tutors - Plans Cream.svg', anchorX: 'left', x: -9.091, anchorY: 'top', y: 7.242, w: 66.776, rotate: 0.19 },
+    { file: 'Flower 2 - Tutors - Plans Cream.svg', anchorX: 'left', x: -9.091, anchorY: 'top', y: 7.242, w: 66.776, rotate: 0.19, pivot: FLOWER_2_CENTRE },
     /* m0-plate-1  3499:46312 */
-    { file: 'Flower 2 - Tutors - Plans Cream.svg', anchorX: 'right', x: -1.551, anchorY: 'top', y: 25.723, w: 57.382, rotate: 326.5 },
+    { file: 'Flower 2 - Tutors - Plans Cream.svg', anchorX: 'right', x: -1.551, anchorY: 'top', y: 25.723, w: 57.382, rotate: 326.5, pivot: FLOWER_2_CENTRE },
     /* m0-plate-2  3499:46318 */
-    { file: 'Flower 2 - Tutors - Plans Cream.svg', anchorX: 'left', x: 12.373, anchorY: 'bottom', y: 9.849, w: 56.279, rotate: 0.19 },
+    { file: 'Flower 2 - Tutors - Plans Cream.svg', anchorX: 'left', x: 12.373, anchorY: 'bottom', y: 9.849, w: 56.279, rotate: 0.19, pivot: FLOWER_2_CENTRE },
   ],
   [
     /* m1-plate-0  3499:46324 */
@@ -166,9 +197,9 @@ export const PLAN_DECOR_MOBILE: readonly (readonly PlanDecorPlant[])[] = [
     /* Тариф 4 — готовые срезы из Figma по той же причине, что и на десктопе (см. комментарий
        у десктопной плашки тарифа 4). Оба среза во всю ширину плашки. */
     /* m3-plate-0  3499:46642 — полный арт, клип снят */
-    { file: '/SVG/plans/decor/tier4-m-top.svg', anchorX: 'right', x: 16.245, anchorY: 'top', y: 18.756, w: 89.763, rotate: 0 },
+    { file: '/SVG/plans/decor/tier4-m-top.svg', anchorX: 'right', x: 16.245, anchorY: 'top', y: 18.756, w: 89.763, rotate: 0, pivot: STEM_M_TOP },
     /* m3-plate-1  3499:46643 — полный арт, клип снят */
-    { file: '/SVG/plans/decor/tier4-m-bottom.svg', anchorX: 'left', x: 29.781, anchorY: 'bottom', y: 7.73, w: 100.189, rotate: 0 },
+    { file: '/SVG/plans/decor/tier4-m-bottom.svg', anchorX: 'left', x: 29.781, anchorY: 'bottom', y: 7.73, w: 100.189, rotate: 0, pivot: STEM_M_BOTTOM },
   ],
 ]
 
@@ -178,9 +209,9 @@ const u = (n: number) => `calc(var(--plan-u) * ${n})`
 /**
  * Где должен стоять бокс растения, чтобы его ЦЕНТР попал на `x`/`y` от выбранных граней.
  *
- * Грани ставят бокс, translate утаскивает его назад на половину себя. Translate записан
- * ПЕРВЫМ, значит применяется ПОСЛЕДНИМ: флип и поворот идут вокруг несмещённого центра,
- * и поэтому `x`/`y` не зависят от угла. `scaleY(-1)` записан последним, значит применится
+ * Грани ставят бокс, свойство `translate` утаскивает его назад на половину себя. Оно
+ * применяется ПОСЛЕДНИМ, поверх поворота, поэтому `x`/`y` не зависят от угла (поправка на
+ * опору, отличную от центра бокса, — ниже). `scaleY(-1)` записан последним, значит применится
  * первым — в том же порядке, в каком композит Figma (её scale действует до rotate).
  *
  * Инлайном, а не классами: значения вычисляемые, а Tailwind генерирует правило только
@@ -199,6 +230,28 @@ export function planDecorStyle(p: PlanDecorPlant): CSSProperties {
 
   const tx = p.anchorX === 'right' ? '50%' : '-50%'
   const ty = p.anchorY === 'bottom' ? '50%' : '-50%'
-  s.transform = `translate(${tx}, ${ty}) rotate(${p.rotate}deg)${p.flipY ? ' scaleY(-1)' : ''}`
+  const turn = `rotate(${p.rotate}deg)${p.flipY ? ' scaleY(-1)' : ''}`
+  const pivot = p.pivot ?? BOX_CENTRE
+
+  /* Разрастание вокруг своей точки (`pivot`, по умолчанию центр бокса). Разрастание — это CSS-свойство `scale`, а оно
+     применяется СНАРУЖИ `transform`, вокруг `transform-origin`. Пока якорный translate
+     сидел внутри `transform`, опорой выходила точка, сдвинутая на полбокса от центра
+     растения: цветок на hover не рос на месте, а съезжал по диагонали. Поэтому:
+
+     · якорь уезжает в свойство `translate` — оно применяется самым внешним, ПОСЛЕ `scale`;
+     · `transform-origin` ставится в опору — `scale` и поворот идут вокруг неё, и опора в
+       итоге стоит ровно там, куда её привёл translate;
+     · поворот вокруг опоры, а не вокруг центра бокса, сдвинул бы растение в покое на
+       R(F−c) − (F−c). Эта поправка прибавляется к translate, поэтому положение в покое
+       совпадает с прежним до долей пикселя и числа фита не трогаются. */
+  const fx = (pivot.x - 0.5) * p.w
+  const fyRaw = (pivot.y - 0.5) * p.w * pivot.aspect
+  const fy = p.flipY ? -fyRaw : fyRaw
+  const a = (p.rotate * Math.PI) / 180
+  const dx = Math.cos(a) * fx - Math.sin(a) * fy - fx
+  const dy = Math.sin(a) * fx + Math.cos(a) * fy - fyRaw
+  s.transformOrigin = `${pivot.x * 100}% ${pivot.y * 100}%`
+  s.translate = `calc(${tx} + ${u(dx)}) calc(${ty} + ${u(dy)})`
+  s.transform = turn
   return s
 }

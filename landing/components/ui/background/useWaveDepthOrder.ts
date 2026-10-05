@@ -26,34 +26,42 @@ export function useWaveDepthOrder(
   reRunKey: unknown, // re-attach when the SVG is (re)injected (e.g. queueCount change)
 ): void {
   useEffect(() => {
-    const root = ref.current
-    if (!root) return
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
     // There can be MORE than one queue in the tree (the beach + the terminal sea-fill band);
     // order each independently against its OWN <svg> timeline.
-    const containers = Array.from(root.querySelectorAll<SVGGElement>('.beach-wave-queue'))
-    const queues = containers
-      .map(container => {
-        const svgRoot = container.ownerSVGElement
-        if (!svgRoot) return null
-        // Each instance's rise animation is its FIRST animateTransform (foam's jump comes later).
-        const items = Array.from(container.querySelectorAll<SVGGElement>(':scope > .beach-wave'))
-          .map(inst => {
-            const anim = inst.querySelector('animateTransform')
-            if (!anim) return null
-            const begin = parseFloat(anim.getAttribute('begin') ?? '0') // "-44.44s" → -44.44
-            const dur = parseFloat(anim.getAttribute('dur') ?? '0')     // "50.0s"   → 50
-            return dur > 0 ? { inst, begin, dur } : null
-          })
-          .filter((v): v is { inst: SVGGElement; begin: number; dur: number } => v !== null)
-        return items.length >= 2 ? { container, svgRoot, items } : null
-      })
-      .filter((v): v is NonNullable<typeof v> => v !== null)
-    if (queues.length === 0) return
+    //
+    // The queues are looked up AFRESH on every tick, never cached at mount. React re-creates
+    // the beach markup without `reRunKey` changing (measured on the prod build at 1440: the
+    // queue on screen was a different node from the one this hook had captured, 0 of 6
+    // reorders reached it). A cached list then sorts a detached copy forever, while the live
+    // queue keeps its load-time order: after every wrap the wave that reached the shore stays
+    // on TOP of the whole stack instead of sinking to the back. Re-querying a handful of
+    // elements twice a second costs nothing and cannot go stale.
+    const collect = () => {
+      const root = ref.current
+      if (!root) return []
+      return Array.from(root.querySelectorAll<SVGGElement>('.beach-wave-queue'))
+        .map(container => {
+          const svgRoot = container.ownerSVGElement
+          if (!svgRoot) return null
+          // Each instance's rise animation is its FIRST animateTransform (foam's jump comes later).
+          const items = Array.from(container.querySelectorAll<SVGGElement>(':scope > .beach-wave'))
+            .map(inst => {
+              const anim = inst.querySelector('animateTransform')
+              if (!anim) return null
+              const begin = parseFloat(anim.getAttribute('begin') ?? '0') // "-44.44s" → -44.44
+              const dur = parseFloat(anim.getAttribute('dur') ?? '0')     // "50.0s"   → 50
+              return dur > 0 ? { inst, begin, dur } : null
+            })
+            .filter((v): v is { inst: SVGGElement; begin: number; dur: number } => v !== null)
+          return items.length >= 2 ? { container, svgRoot, items } : null
+        })
+        .filter((v): v is NonNullable<typeof v> => v !== null)
+    }
 
     const reorder = () => {
-      for (const { container, svgRoot, items } of queues) {
+      for (const { container, svgRoot, items } of collect()) {
         const t = svgRoot.getCurrentTime()
         // phase ∈ [0,1): 0 = just respawned (farthest, front), →1 = at the shore (nearest, back).
         const desired = items

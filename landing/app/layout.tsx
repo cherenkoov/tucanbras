@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { BG_POSTERS } from "@/components/ui/background/bgPosters";
+import { posterMedia } from "@/components/ui/background/BgPoster";
 
 export const metadata: Metadata = {
   title: "TucanBRAS — Online Brazilian Portuguese School",
@@ -45,6 +47,13 @@ export default function RootLayout({
             them. Low priority for the same LCP reason as above. */}
         {["/SVG/background/Jesus%20statue/statue.svg", "/SVG/background/Jesus%20statue/pedestal.svg"].map(href => (
           <link key={href} rel="preload" href={href} as="image" fetchPriority="low" />
+        ))}
+        {/* The background poster (BgPoster) for this width — and only this one: a preload
+            whose media does not match is never fetched. Without it the file is discovered
+            only once the stylesheet has applied, a round trip after first paint. Phone
+            posters are inlined data URIs and need none (see scripts/bakeBgPosters.mts). */}
+        {BG_POSTERS.filter(p => !p.src.startsWith("data:")).map(p => (
+          <link key={p.src} rel="preload" href={p.src} as="image" media={posterMedia(p)} />
         ))}
       </head>
       <body className="min-h-full flex flex-col" suppressHydrationWarning>{children}</body>

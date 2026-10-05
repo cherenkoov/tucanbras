@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { TELEGRAM_MINI_APP_REDIRECT } from "@/lib/telegramMiniApp";
 
 export const metadata: Metadata = {
   title: "TucanBRAS — Online Brazilian Portuguese School",
@@ -21,6 +22,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full antialiased">
       <head>
+        {/* Первым: открытый из Telegram лендинг сразу уходит в мини-апп (/app) —
+            кнопки бота в BotFather указывают на корень сайта. См. lib/telegramMiniApp.ts. */}
+        <script dangerouslySetInnerHTML={{ __html: TELEGRAM_MINI_APP_REDIRECT }} />
         <link
           rel="preload"
           href="/SVG/background/background-collage.svg"

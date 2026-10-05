@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import ChristScene, { CHRIST_SCENE, christBoxHeight } from './ChristScene'
+import BgPoster, { POSTER_FADE_MS } from './BgPoster'
 import { injectRailPath, injectCloudAnimation } from './utils/injectRailPath'
 import { useTrainAnimation } from './useTrainAnimation'
 import { useCarAnimation } from './useCarAnimation'
@@ -256,6 +257,25 @@ const narrowZoomOverride = (): number | null => {
   return Number.isFinite(v) && v >= 1 ? v : null
 }
 
+// Entrance reveal gate. The fade must play ONCE, over a scene that has stopped moving —
+// otherwise every late arrival lands on a visible background as a jump. Measured on prod
+// 2026-10-04 (Playwright, CPU ×4, slow network): the fade started on the first svg alone,
+// then the beach popped in mid-fade (scene 1197 → 3866px tall), sceneLift shifted the whole
+// scene ~100px, and on phones the cover-zoom snapped 100% → 373% → 545% for seconds AFTER
+// the fade had finished. So the reveal waits for: collage + statue placed and loaded, beach
+// in (or failed), coverage measured, no wave re-bake pending, and then the container's
+// geometry unchanged for REVEAL_SETTLE_MS and REVEAL_SETTLE_FRAMES both. Frames, not just
+// time: each layout pass (zoom → peak → lift → re-measure) lands a frame later, and on a
+// loaded phone a frame took 400–700ms, so a time-only window revealed between two passes.
+// Two ceilings sit under all of it: REVEAL_MAX_WAIT_MS from the collage for the data to
+// arrive (a stalled fetch degrades to the old staggered appearance, not an empty sky), then
+// REVEAL_MAX_SETTLE_MS from the moment it has — convergence is CPU-bound and finite, and a
+// slow phone should not be cut off half-way through it.
+const REVEAL_SETTLE_MS = 250
+const REVEAL_SETTLE_FRAMES = 4
+const REVEAL_MAX_WAIT_MS = 4000
+const REVEAL_MAX_SETTLE_MS = 2500
+
 // How long the beach bake waits for its inputs to settle. See the bake effect.
 const BAKE_DEBOUNCE_MS = 200
 
@@ -395,10 +415,17 @@ export default function BackgroundCanvas() {
   // Terminal-fill colour, sampled from the beach SVG's bottom edge (fallback until then).
   const [fillColor, setFillColor] = useState(TERMINAL_FILL_COLOR)
   const [entered, setEntered] = useState(false)
+  // The blurred poster under the scene (BgPoster) — unmounted once its fade-out is done.
+  const [posterGone, setPosterGone] = useState(false)
+  // Beach fetch failed — the reveal stops waiting for it (see REVEAL_SETTLE_MS).
+  const [beachFailed, setBeachFailed] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const christRef = useRef<HTMLDivElement>(null)
   const beachRef = useRef<HTMLDivElement>(null)
   const bakedLayout = useRef<WaveQueueLayout | null>(null)
+  // A debounced re-bake is scheduled. It rewrites the beach's HEIGHT, which feeds the
+  // cover-zoom — so the entrance treats it as "scene still moving" (see REVEAL_SETTLE_MS).
+  const bakePending = useRef(false)
   // Tallest viewport seen at the CURRENT width — see stableViewportHeight().
   const seenViewport = useRef<{ width: number; maxHeight: number } | null>(null)
   const brownRef = useRef<HTMLDivElement>(null)
@@ -581,7 +608,7 @@ export default function BackgroundCanvas() {
       fetch('/SVG/background/main%202.svg')
         .then(r => r.text())
         .then(raw => setBeachSvg(injectStaticSea(prepareBeachSvg(raw), BEACH_ART_H)))
-        .catch(err => console.warn('BackgroundCanvas: beach SVG fetch failed', err))
+        .catch(err => { setBeachFailed(true); console.warn('BackgroundCanvas: beach SVG fetch failed', err) })
       return
     }
     // full: surf conveyor (needs the Ocean Waves shapes). balanced: static sea — the
@@ -623,7 +650,7 @@ export default function BackgroundCanvas() {
           setBeachSvg(injectStaticSea(s, BEACH_ART_H)) // balanced: no layout to wait for
         }
       })
-      .catch(err => console.warn('BackgroundCanvas: beach SVG fetch failed', err))
+      .catch(err => { setBeachFailed(true); console.warn('BackgroundCanvas: beach SVG fetch failed', err) })
   }, [])
 
   // Sample the beach SVG's bottom-edge colour so the terminal fill band blends
@@ -665,16 +692,6 @@ export default function BackgroundCanvas() {
   }, [beachSvg])
 
   const svgReady = !!mainSvg
-
-  // Trigger entrance animation after SVG is rendered to DOM
-  useEffect(() => {
-    if (!svgReady) return
-    let id2: number
-    const id1 = requestAnimationFrame(() => {
-      id2 = requestAnimationFrame(() => setEntered(true))
-    })
-    return () => { cancelAnimationFrame(id1); cancelAnimationFrame(id2) }
-  }, [svgReady])
 
   // Recalculate ChristScene anchor whenever container or window resizes
   const updatePeakPos = useCallback(() => {
@@ -832,7 +849,9 @@ export default function BackgroundCanvas() {
   const narrowCrop = isNarrowCrop()
   useTrainAnimation(containerRef, { enabled: svgReady && sprites })
   useCarAnimation(containerRef, { enabled: svgReady && sprites && !narrowCrop })
-  useCloudAnimation(containerRef, { enabled: svgReady })
+  // Gated on the entrance, not on svgReady: the staggered slide-in otherwise plays out
+  // while the whole background is still held at opacity 0, and is gone by the reveal.
+  useCloudAnimation(containerRef, { enabled: entered })
   useBushAnimation(bush01Ref, bush02Ref, { enabled: svgReady && sprites })
   useBigTreeAnimation(bigTreeRef, { enabled: !!bigTreeLayer })
   useHumanAnimation(containerRef, humanRefs, { enabled: svgReady && sprites && !narrowCrop, debug: false })
@@ -907,13 +926,77 @@ export default function BackgroundCanvas() {
       setBeachSvg(injectWaveSurfAnimation(beachRaw, { layout, shapes: waveShapes }))
     }
 
-    if (bakedLayout.current === null) { run(); return }
-    const t = setTimeout(run, BAKE_DEBOUNCE_MS)
-    return () => clearTimeout(t)
+    // Before the entrance the bake is immediate too. The debounce guards a window being
+    // dragged; during load it only stretched the bake ↔ zoom fixed-point iteration (each
+    // re-bake moves the beach height, which moves the zoom, which re-bakes) past the
+    // reveal, because every sub-pixel width change restarted the 200ms timer.
+    if (bakedLayout.current === null || !entered) { run(); return }
+    bakePending.current = true
+    const t = setTimeout(() => { bakePending.current = false; run() }, BAKE_DEBOUNCE_MS)
+    return () => { bakePending.current = false; clearTimeout(t) }
   }, [
-    beachRaw, waveShapes, resizeTick,
+    beachRaw, waveShapes, resizeTick, entered,
     coverage.containerWidth, coverage.baseHeightPx, coverage.verticalOffset,
   ])
+
+  // Entrance: reveal once the scene has stopped moving — see REVEAL_SETTLE_MS. Everything
+  // that repositions the scene after load is a prerequisite here (statue → sceneLift,
+  // beach → coverage zoom), then a short watch on the container's own geometry catches
+  // the follow-up passes they trigger (zoom → re-anchored peak → new lift → re-measure).
+  const layoutReady =
+    svgReady && !!peakPos && (beachFailed || (!!beachSvg && coverage.containerWidth > 0))
+  // Ceiling: see REVEAL_MAX_WAIT_MS / REVEAL_MAX_SETTLE_MS.
+  useEffect(() => {
+    if (!svgReady || entered) return
+    const t = setTimeout(
+      () => setEntered(true),
+      layoutReady ? REVEAL_MAX_SETTLE_MS : REVEAL_MAX_WAIT_MS,
+    )
+    return () => clearTimeout(t)
+  }, [svgReady, layoutReady, entered])
+  useEffect(() => {
+    if (!layoutReady || entered) return
+    const container = containerRef.current
+    if (!container) return
+    let raf = 0
+    let prev = ''
+    let stableSince = performance.now()
+    let stableFrames = 0
+    const tick = () => {
+      const christImgs = christRef.current?.querySelectorAll('img') ?? []
+      const imgsDone = Array.from(christImgs).every(img => img.complete)
+      const sig = [
+        container.style.width,
+        container.style.transform,
+        container.offsetHeight,
+        christRef.current?.style.top,
+        christRef.current?.style.left,
+        imgsDone,
+      ].join('|')
+      const now = performance.now()
+      if (sig !== prev || !imgsDone || bakePending.current) { prev = sig; stableSince = now; stableFrames = 0 }
+      else stableFrames++
+      if (now - stableSince >= REVEAL_SETTLE_MS && stableFrames >= REVEAL_SETTLE_FRAMES) {
+        // One more frame so the settled layout is painted at opacity 0 before the
+        // transition starts from it.
+        raf = requestAnimationFrame(() => setEntered(true))
+        return
+      }
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [layoutReady, entered])
+
+  // Drop the poster once it has faded out under the revealed scene (a timer, not
+  // transitionend — that one does not fire in a background tab). ?nobg never reveals, and
+  // a blurred still is not what that lever is for — drop it straight away there.
+  useEffect(() => {
+    const noBg = isBgDisabled()
+    if (!entered && !noBg) return
+    const t = setTimeout(() => setPosterGone(true), noBg ? 0 : POSTER_FADE_MS + 200)
+    return () => clearTimeout(t)
+  }, [entered])
 
   // Order every queue in the tree — the beach AND the terminal sea-fill band. Re-run when a
   // queue mounts/unmounts (booleans keep the dep stable across unrelated renders).
@@ -981,6 +1064,8 @@ export default function BackgroundCanvas() {
   }, [coverage.parallaxFactor, coverage.focalTranslateX, sceneLift])
 
   return (
+    <>
+    {!posterGone && <BgPoster hidden={entered} />}
     <div
       className="background-canvas absolute top-0 left-0 w-full pointer-events-none"
       style={{
@@ -1259,5 +1344,6 @@ export default function BackgroundCanvas() {
       )}
       </div>
     </div>
+    </>
   )
 }

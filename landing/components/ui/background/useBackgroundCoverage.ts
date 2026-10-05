@@ -93,15 +93,21 @@ export function useBackgroundCoverage(
       verticalOffset,
     }
 
+    // Compared WITH a tolerance, not ===. Every input here is a getBoundingClientRect read
+    // off a container this result itself resizes, so sub-pixel rounding comes back as a
+    // "new" zoom: a phone was measured cycling 400.141% ↔ 400.144% forever, a re-render
+    // every ~500ms that also kept restarting the wave bake's debounce. Under a quarter
+    // pixel (zoom: 1e-3 of the viewport ≈ 0.4px at 390) is not a layout change.
+    const near = (a: number, b: number, eps: number) => Math.abs(a - b) < eps
     setResult(prev =>
-      prev.zoom === merged.zoom &&
-      prev.parallaxFactor === merged.parallaxFactor &&
-      prev.focalTranslateX === merged.focalTranslateX &&
-      prev.fillHeight === merged.fillHeight &&
-      prev.bgHeight === merged.bgHeight &&
-      prev.containerWidth === merged.containerWidth &&
-      prev.baseHeightPx === merged.baseHeightPx &&
-      prev.verticalOffset === merged.verticalOffset
+      near(prev.zoom, merged.zoom, 1e-3) &&
+      near(prev.parallaxFactor, merged.parallaxFactor, 1e-4) &&
+      near(prev.focalTranslateX, merged.focalTranslateX, 0.5) &&
+      near(prev.fillHeight, merged.fillHeight, 0.5) &&
+      near(prev.bgHeight, merged.bgHeight, 0.5) &&
+      near(prev.containerWidth, merged.containerWidth, 0.5) &&
+      near(prev.baseHeightPx, merged.baseHeightPx, 0.5) &&
+      near(prev.verticalOffset, merged.verticalOffset, 0.5)
         ? prev
         : merged,
     )
@@ -114,6 +120,12 @@ export function useBackgroundCoverage(
     const main = document.querySelector('main')
     const ro = new ResizeObserver(measure)
     if (main) ro.observe(main)
+    // The container too: the wave bake re-injects the beach at a different height, and the
+    // zoom depends on that height. Watching only <main> left the zoom stale until some
+    // unrelated event re-measured — on a loaded phone ~1s later, as a visible jump
+    // (100% → 400% → 535% across 6s, measured 2026-10-04). Converges: measure() is
+    // idempotent at a fixed natural height, and setResult drops an unchanged result.
+    if (containerRef.current) ro.observe(containerRef.current)
     window.addEventListener('resize', measure)
     // Re-measure after web fonts settle (font swap changes content height).
     if (typeof document !== 'undefined' && 'fonts' in document) {
@@ -124,7 +136,7 @@ export function useBackgroundCoverage(
       ro.disconnect()
       window.removeEventListener('resize', measure)
     }
-  }, [ready, measure])
+  }, [ready, measure, containerRef])
 
   return result
 }
